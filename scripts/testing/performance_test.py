@@ -1,428 +1,300 @@
 #!/usr/bin/env python3
 """
 志航密信性能测试脚本
-针对中国用户手机进行性能测试
+用于测试系统的性能指标和负载能力
 """
 
-import requests
-import json
+import asyncio
+import aiohttp
 import time
-import psutil
-import threading
-import concurrent.futures
-from typing import Dict, List, Any
+import statistics
+import json
+import argparse
+import sys
+from typing import List, Dict, Any
 from dataclasses import dataclass
-from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
 import logging
 
 # 配置日志
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('performance_test.log'),
-        logging.StreamHandler()
-    ]
-)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 @dataclass
-class PerformanceMetrics:
-    """性能指标数据类"""
-    test_name: str
-    response_time: float
-    memory_usage: float
-    cpu_usage: float
-    throughput: float
-    error_rate: float
-    timestamp: datetime
+class TestResult:
+    """测试结果数据类"""
+    name: str
+    success_count: int
+    failure_count: int
+    total_time: float
+    avg_response_time: float
+    min_response_time: float
+    max_response_time: float
+    p95_response_time: float
+    p99_response_time: float
+    requests_per_second: float
 
-class ChinesePhonePerformanceTester:
-    """中国手机品牌性能测试器"""
+class PerformanceTest:
+    """性能测试类"""
     
     def __init__(self, base_url: str = "http://localhost:8080"):
         self.base_url = base_url
-        self.session = requests.Session()
-        self.metrics: List[PerformanceMetrics] = []
+        self.session = None
+        self.results: List[TestResult] = []
+    
+    async def __aenter__(self):
+        """异步上下文管理器入口"""
+        self.session = aiohttp.ClientSession()
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """异步上下文管理器出口"""
+        if self.session:
+            await self.session.close()
+    
+    async def make_request(self, method: str, endpoint: str, data: Dict[str, Any] = None, headers: Dict[str, str] = None) -> tuple:
+        """
+        发送 HTTP 请求
         
-        # 中国手机品牌性能基准
-        self.brand_benchmarks = {
-            "xiaomi": {
-                "name": "小米",
-                "expected_response_time": 0.5,  # 秒
-                "expected_memory_usage": 100,   # MB
-                "expected_cpu_usage": 15,       # %
-                "expected_throughput": 100       # 请求/秒
-            },
-            "huawei": {
-                "name": "华为",
-                "expected_response_time": 0.6,
-                "expected_memory_usage": 120,
-                "expected_cpu_usage": 18,
-                "expected_throughput": 90
-            },
-            "oppo": {
-                "name": "OPPO",
-                "expected_response_time": 0.7,
-                "expected_memory_usage": 110,
-                "expected_cpu_usage": 16,
-                "expected_throughput": 85
-            },
-            "vivo": {
-                "name": "vivo",
-                "expected_response_time": 0.8,
-                "expected_memory_usage": 115,
-                "expected_cpu_usage": 17,
-                "expected_throughput": 80
-            },
-            "oneplus": {
-                "name": "一加",
-                "expected_response_time": 0.4,
-                "expected_memory_usage": 95,
-                "expected_cpu_usage": 12,
-                "expected_throughput": 120
-            },
-            "realme": {
-                "name": "realme",
-                "expected_response_time": 0.6,
-                "expected_memory_usage": 105,
-                "expected_cpu_usage": 14,
-                "expected_throughput": 95
-            },
-            "meizu": {
-                "name": "魅族",
-                "expected_response_time": 0.7,
-                "expected_memory_usage": 108,
-                "expected_cpu_usage": 16,
-                "expected_throughput": 88
-            }
-        }
-    
-    def get_system_metrics(self) -> Dict[str, float]:
-        """获取系统性能指标"""
+        Args:
+            method: HTTP 方法
+            endpoint: API 端点
+            data: 请求数据
+            headers: 请求头
+            
+        Returns:
+            (success: bool, response_time: float, status_code: int)
+        """
+        url = f"{self.base_url}{endpoint}"
+        start_time = time.time()
+        
         try:
-            # CPU使用率
-            cpu_percent = psutil.cpu_percent(interval=1)
-            
-            # 内存使用情况
-            memory = psutil.virtual_memory()
-            memory_usage = memory.used / (1024 * 1024)  # 转换为MB
-            
-            # 磁盘使用情况
-            disk = psutil.disk_usage('/')
-            disk_usage = disk.used / (1024 * 1024 * 1024)  # 转换为GB
-            
-            return {
-                "cpu_usage": cpu_percent,
-                "memory_usage": memory_usage,
-                "disk_usage": disk_usage,
-                "memory_percent": memory.percent
-            }
+            async with self.session.request(
+                method=method,
+                url=url,
+                json=data,
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=30)
+            ) as response:
+                response_time = time.time() - start_time
+                success = response.status < 400
+                return success, response_time, response.status
         except Exception as e:
-            logger.error(f"获取系统指标失败: {e}")
-            return {}
-    
-    def test_api_response_time(self, endpoint: str, method: str = "GET", data: Dict = None) -> float:
-        """测试API响应时间"""
-        try:
-            start_time = time.time()
-            
-            if method.upper() == "GET":
-                response = self.session.get(f"{self.base_url}{endpoint}", timeout=10)
-            elif method.upper() == "POST":
-                response = self.session.post(f"{self.base_url}{endpoint}", json=data, timeout=10)
-            elif method.upper() == "PUT":
-                response = self.session.put(f"{self.base_url}{endpoint}", json=data, timeout=10)
-            elif method.upper() == "DELETE":
-                response = self.session.delete(f"{self.base_url}{endpoint}", timeout=10)
-            
             response_time = time.time() - start_time
-            
-            if response.status_code >= 400:
-                logger.warning(f"API请求失败: {endpoint} - {response.status_code}")
-            
-            return response_time
-        except Exception as e:
-            logger.error(f"API响应时间测试失败: {e}")
-            return -1
+            logger.error(f"请求失败: {e}")
+            return False, response_time, 0
     
-    def test_concurrent_requests(self, endpoint: str, num_requests: int = 100) -> Dict[str, Any]:
-        """测试并发请求性能"""
-        try:
-            start_time = time.time()
-            success_count = 0
-            error_count = 0
-            response_times = []
+    async def run_concurrent_test(self, name: str, method: str, endpoint: str, 
+                                concurrent_users: int, requests_per_user: int,
+                                data: Dict[str, Any] = None, headers: Dict[str, str] = None) -> TestResult:
+        """
+        运行并发测试
+        
+        Args:
+            name: 测试名称
+            method: HTTP 方法
+            endpoint: API 端点
+            concurrent_users: 并发用户数
+            requests_per_user: 每个用户的请求数
+            data: 请求数据
+            headers: 请求头
             
-            def make_request():
-                try:
-                    req_start = time.time()
-                    response = self.session.get(f"{self.base_url}{endpoint}", timeout=5)
-                    req_time = time.time() - req_start
-                    
-                    if response.status_code == 200:
-                        return True, req_time
-                    else:
-                        return False, req_time
-                except Exception:
-                    return False, 0
+        Returns:
+            测试结果
+        """
+        logger.info(f"开始运行测试: {name}")
+        logger.info(f"并发用户数: {concurrent_users}, 每用户请求数: {requests_per_user}")
+        
+        start_time = time.time()
+        response_times = []
+        success_count = 0
+        failure_count = 0
+        
+        # 创建并发任务
+        async def user_session():
+            user_response_times = []
+            user_success = 0
+            user_failure = 0
             
-            # 使用线程池执行并发请求
-            with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-                futures = [executor.submit(make_request) for _ in range(num_requests)]
-                results = [future.result() for future in futures]
-            
-            total_time = time.time() - start_time
-            
-            for success, req_time in results:
+            for _ in range(requests_per_user):
+                success, resp_time, status_code = await self.make_request(method, endpoint, data, headers)
+                user_response_times.append(resp_time)
+                
                 if success:
-                    success_count += 1
-                    response_times.append(req_time)
+                    user_success += 1
                 else:
-                    error_count += 1
+                    user_failure += 1
+                    logger.warning(f"请求失败: {status_code}")
             
-            throughput = num_requests / total_time if total_time > 0 else 0
-            error_rate = (error_count / num_requests) * 100 if num_requests > 0 else 0
-            avg_response_time = sum(response_times) / len(response_times) if response_times else 0
-            
-            return {
-                "total_requests": num_requests,
-                "success_count": success_count,
-                "error_count": error_count,
-                "throughput": throughput,
-                "error_rate": error_rate,
-                "avg_response_time": avg_response_time,
-                "total_time": total_time
-            }
-        except Exception as e:
-            logger.error(f"并发请求测试失败: {e}")
-            return {}
+            return user_response_times, user_success, user_failure
+        
+        # 运行并发测试
+        tasks = [user_session() for _ in range(concurrent_users)]
+        results = await asyncio.gather(*tasks)
+        
+        # 汇总结果
+        for user_response_times, user_success, user_failure in results:
+            response_times.extend(user_response_times)
+            success_count += user_success
+            failure_count += user_failure
+        
+        total_time = time.time() - start_time
+        
+        # 计算统计指标
+        if response_times:
+            avg_response_time = statistics.mean(response_times)
+            min_response_time = min(response_times)
+            max_response_time = max(response_times)
+            p95_response_time = self._percentile(response_times, 95)
+            p99_response_time = self._percentile(response_times, 99)
+        else:
+            avg_response_time = min_response_time = max_response_time = 0
+            p95_response_time = p99_response_time = 0
+        
+        requests_per_second = (success_count + failure_count) / total_time if total_time > 0 else 0
+        
+        result = TestResult(
+            name=name,
+            success_count=success_count,
+            failure_count=failure_count,
+            total_time=total_time,
+            avg_response_time=avg_response_time,
+            min_response_time=min_response_time,
+            max_response_time=max_response_time,
+            p95_response_time=p95_response_time,
+            p99_response_time=p99_response_time,
+            requests_per_second=requests_per_second
+        )
+        
+        self.results.append(result)
+        logger.info(f"测试完成: {name}")
+        logger.info(f"成功率: {success_count/(success_count+failure_count)*100:.2f}%")
+        logger.info(f"平均响应时间: {avg_response_time:.3f}s")
+        logger.info(f"请求/秒: {requests_per_second:.2f}")
+        
+        return result
     
-    def test_memory_usage(self, duration: int = 60) -> Dict[str, Any]:
-        """测试内存使用情况"""
-        try:
-            memory_samples = []
-            start_time = time.time()
-            
-            while time.time() - start_time < duration:
-                metrics = self.get_system_metrics()
-                if metrics:
-                    memory_samples.append(metrics["memory_usage"])
-                time.sleep(1)
-            
-            if memory_samples:
-                avg_memory = sum(memory_samples) / len(memory_samples)
-                max_memory = max(memory_samples)
-                min_memory = min(memory_samples)
-                
-                return {
-                    "duration": duration,
-                    "samples": len(memory_samples),
-                    "avg_memory": avg_memory,
-                    "max_memory": max_memory,
-                    "min_memory": min_memory,
-                    "memory_trend": memory_samples
-                }
-            else:
-                return {}
-        except Exception as e:
-            logger.error(f"内存使用测试失败: {e}")
-            return {}
+    def _percentile(self, data: List[float], percentile: int) -> float:
+        """计算百分位数"""
+        sorted_data = sorted(data)
+        index = int(len(sorted_data) * percentile / 100)
+        return sorted_data[min(index, len(sorted_data) - 1)]
     
-    def test_cpu_usage(self, duration: int = 60) -> Dict[str, Any]:
-        """测试CPU使用情况"""
-        try:
-            cpu_samples = []
-            start_time = time.time()
-            
-            while time.time() - start_time < duration:
-                metrics = self.get_system_metrics()
-                if metrics:
-                    cpu_samples.append(metrics["cpu_usage"])
-                time.sleep(1)
-            
-            if cpu_samples:
-                avg_cpu = sum(cpu_samples) / len(cpu_samples)
-                max_cpu = max(cpu_samples)
-                min_cpu = min(cpu_samples)
-                
-                return {
-                    "duration": duration,
-                    "samples": len(cpu_samples),
-                    "avg_cpu": avg_cpu,
-                    "max_cpu": max_cpu,
-                    "min_cpu": min_cpu,
-                    "cpu_trend": cpu_samples
-                }
-            else:
-                return {}
-        except Exception as e:
-            logger.error(f"CPU使用测试失败: {e}")
-            return {}
-    
-    def test_brand_optimization_performance(self, brand: str) -> Dict[str, Any]:
-        """测试品牌优化性能"""
-        try:
-            brand_config = self.brand_benchmarks.get(brand)
-            if not brand_config:
-                return {}
-            
-            # 测试品牌特定优化
-            optimization_endpoints = [
-                "/api/optimization/xiaomi" if brand == "xiaomi" else f"/api/optimization/{brand}",
-                "/api/permissions/test",
-                "/api/theme/apply",
-                "/api/notification/test"
-            ]
-            
-            results = {}
-            total_response_time = 0
-            successful_requests = 0
-            
-            for endpoint in optimization_endpoints:
-                response_time = self.test_api_response_time(endpoint)
-                if response_time > 0:
-                    total_response_time += response_time
-                    successful_requests += 1
-                    results[endpoint] = response_time
-            
-            avg_response_time = total_response_time / successful_requests if successful_requests > 0 else 0
-            
-            # 与基准对比
-            benchmark = brand_config
-            performance_score = 0
-            
-            if avg_response_time <= benchmark["expected_response_time"]:
-                performance_score += 25
-            if avg_response_time <= benchmark["expected_response_time"] * 0.8:
-                performance_score += 25
-            
-            return {
-                "brand": brand,
-                "brand_name": brand_config["name"],
-                "avg_response_time": avg_response_time,
-                "expected_response_time": benchmark["expected_response_time"],
-                "performance_score": performance_score,
-                "successful_requests": successful_requests,
-                "total_requests": len(optimization_endpoints),
-                "details": results
-            }
-        except Exception as e:
-            logger.error(f"品牌优化性能测试失败 ({brand}): {e}")
-            return {}
-    
-    def test_network_performance(self) -> Dict[str, Any]:
-        """测试网络性能"""
-        try:
-            # 测试不同网络环境下的性能
-            network_tests = [
-                {"name": "本地网络", "endpoint": "/api/ping"},
-                {"name": "用户信息", "endpoint": "/api/users/me"},
-                {"name": "消息列表", "endpoint": "/api/messages"},
-                {"name": "文件上传", "endpoint": "/api/files/upload"}
-            ]
-            
-            results = {}
-            
-            for test in network_tests:
-                response_time = self.test_api_response_time(test["endpoint"])
-                if response_time > 0:
-                    results[test["name"]] = {
-                        "endpoint": test["endpoint"],
-                        "response_time": response_time,
-                        "status": "success"
-                    }
-                else:
-                    results[test["name"]] = {
-                        "endpoint": test["endpoint"],
-                        "response_time": -1,
-                        "status": "failed"
-                    }
-            
-            return results
-        except Exception as e:
-            logger.error(f"网络性能测试失败: {e}")
-            return {}
-    
-    def run_performance_tests(self):
-        """运行所有性能测试"""
-        logger.info("开始志航密信性能测试")
-        logger.info("=" * 50)
+    def generate_report(self) -> str:
+        """生成测试报告"""
+        if not self.results:
+            return "没有测试结果"
         
-        # 基础性能测试
-        logger.info("1. 基础性能测试")
-        ping_time = self.test_api_response_time("/api/ping")
-        logger.info(f"   Ping响应时间: {ping_time:.3f}秒")
+        report = []
+        report.append("=" * 80)
+        report.append("志航密信性能测试报告")
+        report.append("=" * 80)
+        report.append(f"测试时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+        report.append(f"测试总数: {len(self.results)}")
+        report.append("")
         
-        # 并发性能测试
-        logger.info("2. 并发性能测试")
-        concurrent_results = self.test_concurrent_requests("/api/ping", 100)
-        if concurrent_results:
-            logger.info(f"   吞吐量: {concurrent_results['throughput']:.2f} 请求/秒")
-            logger.info(f"   错误率: {concurrent_results['error_rate']:.2f}%")
-            logger.info(f"   平均响应时间: {concurrent_results['avg_response_time']:.3f}秒")
+        for result in self.results:
+            report.append(f"测试名称: {result.name}")
+            report.append("-" * 40)
+            report.append(f"总请求数: {result.success_count + result.failure_count}")
+            report.append(f"成功请求: {result.success_count}")
+            report.append(f"失败请求: {result.failure_count}")
+            report.append(f"成功率: {result.success_count/(result.success_count+result.failure_count)*100:.2f}%")
+            report.append(f"总测试时间: {result.total_time:.3f}s")
+            report.append(f"平均响应时间: {result.avg_response_time:.3f}s")
+            report.append(f"最小响应时间: {result.min_response_time:.3f}s")
+            report.append(f"最大响应时间: {result.max_response_time:.3f}s")
+            report.append(f"95%响应时间: {result.p95_response_time:.3f}s")
+            report.append(f"99%响应时间: {result.p99_response_time:.3f}s")
+            report.append(f"请求/秒: {result.requests_per_second:.2f}")
+            report.append("")
         
-        # 内存使用测试
-        logger.info("3. 内存使用测试")
-        memory_results = self.test_memory_usage(30)
-        if memory_results:
-            logger.info(f"   平均内存使用: {memory_results['avg_memory']:.2f}MB")
-            logger.info(f"   最大内存使用: {memory_results['max_memory']:.2f}MB")
-        
-        # CPU使用测试
-        logger.info("4. CPU使用测试")
-        cpu_results = self.test_cpu_usage(30)
-        if cpu_results:
-            logger.info(f"   平均CPU使用: {cpu_results['avg_cpu']:.2f}%")
-            logger.info(f"   最大CPU使用: {cpu_results['max_cpu']:.2f}%")
-        
-        # 中国品牌优化性能测试
-        logger.info("5. 中国品牌优化性能测试")
-        for brand in self.brand_benchmarks.keys():
-            brand_results = self.test_brand_optimization_performance(brand)
-            if brand_results:
-                brand_name = brand_results.get("brand_name", brand)
-                performance_score = brand_results.get("performance_score", 0)
-                avg_response_time = brand_results.get("avg_response_time", 0)
-                
-                logger.info(f"   {brand_name}: 性能得分 {performance_score}/100, 响应时间 {avg_response_time:.3f}秒")
-        
-        # 网络性能测试
-        logger.info("6. 网络性能测试")
-        network_results = self.test_network_performance()
-        for test_name, result in network_results.items():
-            if result["status"] == "success":
-                logger.info(f"   {test_name}: {result['response_time']:.3f}秒")
-            else:
-                logger.info(f"   {test_name}: 测试失败")
-        
-        # 生成性能报告
-        self.generate_performance_report()
-    
-    def generate_performance_report(self):
-        """生成性能测试报告"""
-        report_data = {
-            "test_time": datetime.now().isoformat(),
-            "system_info": self.get_system_metrics(),
-            "brand_benchmarks": self.brand_benchmarks,
-            "summary": {
-                "total_tests": len(self.metrics),
-                "avg_response_time": 0,
-                "avg_memory_usage": 0,
-                "avg_cpu_usage": 0
-            }
-        }
-        
-        # 保存报告
-        with open('performance_report.json', 'w', encoding='utf-8') as f:
-            json.dump(report_data, f, ensure_ascii=False, indent=2)
-        
-        logger.info(f"\n性能测试报告已保存到: performance_report.json")
+        return "\n".join(report)
 
-def main():
+async def main():
     """主函数"""
-    tester = ChinesePhonePerformanceTester()
-    tester.run_performance_tests()
+    parser = argparse.ArgumentParser(description="志航密信性能测试")
+    parser.add_argument("--base-url", default="http://localhost:8080", help="API 基础 URL")
+    parser.add_argument("--concurrent-users", type=int, default=10, help="并发用户数")
+    parser.add_argument("--requests-per-user", type=int, default=10, help="每个用户的请求数")
+    parser.add_argument("--output", help="输出文件路径")
+    parser.add_argument("--test-type", choices=["all", "api", "websocket", "database"], 
+                       default="all", help="测试类型")
+    
+    args = parser.parse_args()
+    
+    logger.info("开始志航密信性能测试")
+    logger.info(f"API 基础 URL: {args.base_url}")
+    logger.info(f"并发用户数: {args.concurrent_users}")
+    logger.info(f"每用户请求数: {args.requests_per_user}")
+    
+    async with PerformanceTest(args.base_url) as tester:
+        # API 健康检查测试
+        if args.test_type in ["all", "api"]:
+            await tester.run_concurrent_test(
+                name="API 健康检查",
+                method="GET",
+                endpoint="/api/ping",
+                concurrent_users=args.concurrent_users,
+                requests_per_user=args.requests_per_user
+            )
+        
+        # 用户认证测试
+        if args.test_type in ["all", "api"]:
+            await tester.run_concurrent_test(
+                name="用户登录测试",
+                method="POST",
+                endpoint="/api/auth/login",
+                concurrent_users=args.concurrent_users,
+                requests_per_user=args.requests_per_user,
+                data={"phone": "13800138000", "code": "123456"}
+            )
+        
+        # 消息发送测试
+        if args.test_type in ["all", "api"]:
+            await tester.run_concurrent_test(
+                name="消息发送测试",
+                method="POST",
+                endpoint="/api/messages/send",
+                concurrent_users=args.concurrent_users,
+                requests_per_user=args.requests_per_user,
+                data={
+                    "chat_id": 1,
+                    "content": "性能测试消息",
+                    "type": "text"
+                },
+                headers={"Authorization": "Bearer test-token"}
+            )
+        
+        # 获取消息列表测试
+        if args.test_type in ["all", "api"]:
+            await tester.run_concurrent_test(
+                name="获取消息列表测试",
+                method="GET",
+                endpoint="/api/messages?chat_id=1&limit=50",
+                concurrent_users=args.concurrent_users,
+                requests_per_user=args.requests_per_user,
+                headers={"Authorization": "Bearer test-token"}
+            )
+    
+    # 生成报告
+    report = tester.generate_report()
+    print(report)
+    
+    # 保存报告
+    if args.output:
+        with open(args.output, 'w', encoding='utf-8') as f:
+            f.write(report)
+        logger.info(f"测试报告已保存到: {args.output}")
+    
+    logger.info("性能测试完成")
 
 if __name__ == "__main__":
-    main()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("测试被用户中断")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"测试执行失败: {e}")
+        sys.exit(1)

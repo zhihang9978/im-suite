@@ -1,0 +1,205 @@
+# 志航密信开发环境 Docker Compose 配置
+# 用于本地开发和测试
+
+version: '3.8'
+
+services:
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: zhihang-messenger-mysql-dev
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: zhihang_messenger
+      MYSQL_USER: zhihang_messenger
+      MYSQL_PASSWORD: zhihang_messenger
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - zhihang_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: zhihang-messenger-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - zhihang_net
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 10s
+      retries: 5
+
+  # MinIO 对象存储
+  minio:
+    image: minio/minio:latest
+    container_name: zhihang-messenger-minio-dev
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_dev_data:/data
+    networks:
+      - zhihang_net
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      timeout: 10s
+      retries: 5
+
+  # 志航密信后端服务
+  backend:
+    build: 
+      context: ./im-backend
+      dockerfile: Dockerfile
+    container_name: zhihang-messenger-backend-dev
+    environment:
+      PORT: 8080
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: zhihang_messenger
+      DB_USER: zhihang_messenger
+      DB_PASSWORD: zhihang_messenger
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      JWT_SECRET: zhihang_messenger_secret_key_2024_dev
+      JWT_EXPIRE_HOURS: 24
+      LOG_LEVEL: debug
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - zhihang_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/ping"]
+      timeout: 10s
+      retries: 5
+      interval: 30s
+    volumes:
+      - ./im-backend/logs:/app/logs
+
+  # 志航密信 Web 端
+  web:
+    build:
+      context: ./telegram-web
+      dockerfile: Dockerfile
+    container_name: zhihang-messenger-web-dev
+    environment:
+      VITE_API_BASE_URL: http://localhost:8080/api
+      VITE_WS_BASE_URL: ws://localhost:8080/ws
+      VITE_APP_TITLE: 志航密信 Web (开发环境)
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - zhihang_net
+    restart: unless-stopped
+
+  # 志航密信管理后台
+  admin:
+    build:
+      context: ./im-admin
+      dockerfile: Dockerfile
+    container_name: zhihang-messenger-admin-dev
+    environment:
+      VITE_API_BASE_URL: http://localhost:8080/api
+      VITE_WS_BASE_URL: ws://localhost:8080/ws
+      VITE_APP_TITLE: 志航密信管理后台 (开发环境)
+    ports:
+      - "3001:3001"
+    depends_on:
+      - backend
+    networks:
+      - zhihang_net
+    restart: unless-stopped
+
+  # Nginx 反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: zhihang-messenger-nginx-dev
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./scripts/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./scripts/nginx/conf.d:/etc/nginx/conf.d
+      - ./scripts/ssl:/etc/nginx/ssl
+    depends_on:
+      - backend
+      - web
+      - admin
+    networks:
+      - zhihang_net
+    restart: unless-stopped
+
+  # 开发工具 - phpMyAdmin
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: zhihang-messenger-phpmyadmin-dev
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root
+    ports:
+      - "8081:80"
+    depends_on:
+      - mysql
+    networks:
+      - zhihang_net
+    restart: unless-stopped
+
+  # 开发工具 - Redis Commander
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: zhihang-messenger-redis-commander-dev
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8082:8081"
+    depends_on:
+      - redis
+    networks:
+      - zhihang_net
+    restart: unless-stopped
+
+volumes:
+  mysql_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+  minio_dev_data:
+    driver: local
+
+networks:
+  zhihang_net:
+    driver: bridge

@@ -2,10 +2,9 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"os"
-	"time"
-
+	"zhihang-messenger/im-backend/internal/model"
+	
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -15,50 +14,38 @@ var DB *gorm.DB
 
 // InitDatabase 初始化数据库连接
 func InitDatabase() error {
-	// 获取数据库配置
+	// 从环境变量获取数据库配置
 	host := getEnv("DB_HOST", "localhost")
 	port := getEnv("DB_PORT", "3306")
-	user := getEnv("DB_USER", "root")
+	username := getEnv("DB_USER", "root")
 	password := getEnv("DB_PASSWORD", "")
 	database := getEnv("DB_NAME", "zhihang_messenger")
-	charset := getEnv("DB_CHARSET", "utf8mb4")
-
-	// 构建 DSN
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=%s&parseTime=True&loc=Local",
-		user, password, host, port, database, charset)
-
-	// 配置 GORM
-	config := &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-		NowFunc: func() time.Time {
-			return time.Now().Local()
-		},
-	}
-
+	
+	// 构建DSN
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		username, password, host, port, database)
+	
 	// 连接数据库
 	var err error
-	DB, err = gorm.Open(mysql.Open(dsn), config)
+	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
+	
 	if err != nil {
-		return fmt.Errorf("数据库连接失败: %v", err)
+		return fmt.Errorf("连接数据库失败: %v", err)
 	}
-
-	// 获取底层 sql.DB 对象进行连接池配置
+	
+	// 配置连接池
 	sqlDB, err := DB.DB()
 	if err != nil {
 		return fmt.Errorf("获取数据库实例失败: %v", err)
 	}
-
+	
 	// 设置连接池参数
 	sqlDB.SetMaxIdleConns(10)
 	sqlDB.SetMaxOpenConns(100)
-	sqlDB.SetConnMaxLifetime(time.Hour)
-
-	// 测试连接
-	if err := sqlDB.Ping(); err != nil {
-		return fmt.Errorf("数据库连接测试失败: %v", err)
-	}
-
-	log.Println("数据库连接成功")
+	sqlDB.SetConnMaxLifetime(3600) // 1小时
+	
 	return nil
 }
 
@@ -67,26 +54,21 @@ func AutoMigrate() error {
 	if DB == nil {
 		return fmt.Errorf("数据库未初始化")
 	}
-
-	// 导入模型
-	import "zhihang-messenger/im-backend/models"
-
-	// 执行自动迁移
+	
+	// 自动迁移所有模型
 	err := DB.AutoMigrate(
-		&models.User{},
-		&models.Contact{},
-		&models.Chat{},
-		&models.ChatMember{},
-		&models.Message{},
-		&models.MessageRead{},
-		&models.Session{},
+		&model.User{},
+		&model.Contact{},
+		&model.Chat{},
+		&model.ChatMember{},
+		&model.Message{},
+		&model.MessageRead{},
 	)
-
+	
 	if err != nil {
 		return fmt.Errorf("数据库迁移失败: %v", err)
 	}
-
-	log.Println("数据库迁移完成")
+	
 	return nil
 }
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 志航密信更新脚本
-# 支持滚动更新和蓝绿部署
+# 用于更新已部署的服务
 
 set -e
 
@@ -38,30 +38,34 @@ show_help() {
 
 选项:
     -h, --help          显示帮助信息
-    -v, --version VER   指定新版本
-    -s, --strategy STR  更新策略 (rolling|blue-green)
-    -e, --env ENV       指定环境 (staging|production)
-    -m, --mode MODE     指定部署模式 (swarm|k8s)
-    --dry-run          模拟更新
-    --rollback          回滚更新
-
-更新策略:
-    rolling             滚动更新 (默认)
-    blue-green          蓝绿部署
+    -e, --env ENV       指定环境 (dev|staging|prod)
+    -m, --mode MODE     指定部署模式 (docker|k8s)
+    -s, --service SERVICE 指定要更新的服务 (backend|web|admin|all)
+    -t, --tag TAG       指定镜像标签
+    -d, --dry-run       仅显示将要执行的命令，不实际执行
+    -f, --force         强制更新，跳过确认
+    -v, --verbose       显示详细输出
+    --no-backup         跳过备份
+    --rollback          回滚到上一个版本
 
 示例:
-    $0 --version v1.1.0 --strategy rolling
-    $0 --version v1.1.0 --strategy blue-green --env production
-    $0 --rollback
+    $0 -e dev -m docker                    # 更新开发环境
+    $0 -e prod -m k8s -s backend          # 更新生产环境后端服务
+    $0 -e staging -m docker --rollback    # 回滚测试环境
+    $0 --help                              # 显示帮助信息
+
 EOF
 }
 
 # 默认参数
-VERSION=""
-STRATEGY="rolling"
-ENVIRONMENT=""
-DEPLOY_MODE=""
+ENVIRONMENT="dev"
+DEPLOY_MODE="docker"
+SERVICE="all"
+TAG="latest"
 DRY_RUN=false
+FORCE=false
+VERBOSE=false
+NO_BACKUP=false
 ROLLBACK=false
 
 # 解析命令行参数
@@ -71,14 +75,6 @@ while [[ $# -gt 0 ]]; do
             show_help
             exit 0
             ;;
-        -v|--version)
-            VERSION="$2"
-            shift 2
-            ;;
-        -s|--strategy)
-            STRATEGY="$2"
-            shift 2
-            ;;
         -e|--env)
             ENVIRONMENT="$2"
             shift 2
@@ -87,8 +83,28 @@ while [[ $# -gt 0 ]]; do
             DEPLOY_MODE="$2"
             shift 2
             ;;
-        --dry-run)
+        -s|--service)
+            SERVICE="$2"
+            shift 2
+            ;;
+        -t|--tag)
+            TAG="$2"
+            shift 2
+            ;;
+        -d|--dry-run)
             DRY_RUN=true
+            shift
+            ;;
+        -f|--force)
+            FORCE=true
+            shift
+            ;;
+        -v|--verbose)
+            VERBOSE=true
+            shift
+            ;;
+        --no-backup)
+            NO_BACKUP=true
             shift
             ;;
         --rollback)
@@ -104,314 +120,235 @@ while [[ $# -gt 0 ]]; do
 done
 
 # 验证参数
-if [[ -z "$VERSION" && "$ROLLBACK" != "true" ]]; then
-    log_error "请指定版本 (--version)"
-    exit 1
-fi
+case $ENVIRONMENT in
+    dev|staging|prod)
+        ;;
+    *)
+        log_error "无效的环境: $ENVIRONMENT"
+        exit 1
+        ;;
+esac
 
-if [[ "$STRATEGY" != "rolling" && "$STRATEGY" != "blue-green" ]]; then
-    log_error "无效的更新策略: $STRATEGY"
-    exit 1
-fi
+case $DEPLOY_MODE in
+    docker|k8s)
+        ;;
+    *)
+        log_error "无效的部署模式: $DEPLOY_MODE"
+        exit 1
+        ;;
+esac
 
-# 设置环境变量
-export VERSION=$VERSION
-export STRATEGY=$STRATEGY
-export ENVIRONMENT=$ENVIRONMENT
-export DEPLOY_MODE=$DEPLOY_MODE
+case $SERVICE in
+    backend|web|admin|all)
+        ;;
+    *)
+        log_error "无效的服务: $SERVICE"
+        exit 1
+        ;;
+esac
 
-# 检查当前版本
-get_current_version() {
-    if [[ "$DEPLOY_MODE" == "swarm" ]]; then
-        docker service inspect zhihang-messenger_backend --format '{{.Spec.Labels.version}}' 2>/dev/null || echo "unknown"
-    elif [[ "$DEPLOY_MODE" == "k8s" ]]; then
-        kubectl get deployment zhihang-messenger-backend -n zhihang-messenger -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null | cut -d: -f2 || echo "unknown"
+# 执行命令函数
+execute_command() {
+    local cmd="$1"
+    local description="$2"
+    
+    if [ "$DRY_RUN" = true ]; then
+        log_info "[DRY RUN] $description"
+        log_info "[DRY RUN] 命令: $cmd"
+        return 0
+    fi
+    
+    if [ "$VERBOSE" = true ]; then
+        log_info "$description"
+        log_info "执行命令: $cmd"
+    fi
+    
+    if eval "$cmd"; then
+        log_success "$description 完成"
+        return 0
+    else
+        log_error "$description 失败"
+        return 1
     fi
 }
 
-# 滚动更新
-rolling_update() {
-    log_info "开始滚动更新到版本: $VERSION"
-    
-    if [[ "$DEPLOY_MODE" == "swarm" ]]; then
-        # Docker Swarm 滚动更新
-        if [[ "$DRY_RUN" == "true" ]]; then
-            log_info "模拟滚动更新 (dry-run)"
-            docker service update --image ${DOCKER_REGISTRY}/zhihang-messenger/backend:$VERSION --dry-run zhihang-messenger_backend
-        else
-            docker service update --image ${DOCKER_REGISTRY}/zhihang-messenger/backend:$VERSION zhihang-messenger_backend
-            docker service update --image ${DOCKER_REGISTRY}/zhihang-messenger/web:$VERSION zhihang-messenger_web
-            docker service update --image ${DOCKER_REGISTRY}/zhihang-messenger/admin:$VERSION zhihang-messenger_admin
-        fi
-        
-    elif [[ "$DEPLOY_MODE" == "k8s" ]]; then
-        # Kubernetes 滚动更新
-        if [[ "$DRY_RUN" == "true" ]]; then
-            log_info "模拟滚动更新 (dry-run)"
-            kubectl set image deployment/zhihang-messenger-backend backend=${DOCKER_REGISTRY}/zhihang-messenger/backend:$VERSION --dry-run=client -n zhihang-messenger
-        else
-            kubectl set image deployment/zhihang-messenger-backend backend=${DOCKER_REGISTRY}/zhihang-messenger/backend:$VERSION -n zhihang-messenger
-            kubectl set image deployment/zhihang-messenger-web web=${DOCKER_REGISTRY}/zhihang-messenger/web:$VERSION -n zhihang-messenger
-            kubectl set image deployment/zhihang-messenger-admin admin=${DOCKER_REGISTRY}/zhihang-messenger/admin:$VERSION -n zhihang-messenger
-        fi
+# 创建备份
+create_backup() {
+    if [ "$NO_BACKUP" = true ]; then
+        log_info "跳过备份"
+        return 0
     fi
     
-    log_success "滚动更新完成"
-}
-
-# 蓝绿部署
-blue_green_deployment() {
-    log_info "开始蓝绿部署到版本: $VERSION"
+    log_info "创建备份..."
     
-    if [[ "$DEPLOY_MODE" == "swarm" ]]; then
-        # Docker Swarm 蓝绿部署
-        log_info "部署绿色环境..."
-        
-        # 创建绿色环境服务
-        docker service create \
-            --name zhihang-messenger-backend-green \
-            --replicas 3 \
-            --image ${DOCKER_REGISTRY}/zhihang-messenger/backend:$VERSION \
-            --env-file .env \
-            --network zhihang_net \
-            zhihang-messenger-backend-green
-        
-        # 等待绿色环境启动
-        log_info "等待绿色环境启动..."
-        sleep 60
-        
-        # 健康检查
-        if ! health_check_green; then
-            log_error "绿色环境健康检查失败"
-            docker service rm zhihang-messenger-backend-green
-            exit 1
-        fi
-        
-        # 切换流量到绿色环境
-        log_info "切换流量到绿色环境..."
-        # 这里需要更新负载均衡器配置
-        
-        # 删除蓝色环境
-        log_info "删除蓝色环境..."
-        docker service rm zhihang-messenger_backend
-        
-        # 重命名绿色环境为蓝色环境
-        docker service update --name zhihang-messenger_backend zhihang-messenger-backend-green
-        
-    elif [[ "$DEPLOY_MODE" == "k8s" ]]; then
-        # Kubernetes 蓝绿部署
-        log_info "部署绿色环境..."
-        
-        # 创建绿色环境部署
-        kubectl apply -f - << EOF
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: zhihang-messenger-backend-green
-  namespace: zhihang-messenger
-  labels:
-    app: zhihang-messenger-backend
-    version: green
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: zhihang-messenger-backend
-      version: green
-  template:
-    metadata:
-      labels:
-        app: zhihang-messenger-backend
-        version: green
-    spec:
-      containers:
-      - name: backend
-        image: ${DOCKER_REGISTRY}/zhihang-messenger/backend:$VERSION
-        ports:
-        - containerPort: 8080
-        env:
-        - name: DB_HOST
-          value: "mysql-service"
-        - name: DB_PORT
-          value: "3306"
-        - name: DB_NAME
-          value: "zhihang_messenger"
-        - name: DB_USER
-          value: "zhihang_messenger"
-        - name: DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: mysql-secret
-              key: password
-        - name: REDIS_HOST
-          value: "redis-service"
-        - name: REDIS_PORT
-          value: "6379"
-        - name: MINIO_ENDPOINT
-          value: "minio-service:9000"
-        - name: MINIO_ACCESS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: minio-secret
-              key: access-key
-        - name: MINIO_SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: minio-secret
-              key: secret-key
-        - name: JWT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: jwt-secret
-              key: secret
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /api/health
-            port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /api/health
-            port: 8080
-          initialDelaySeconds: 5
-          periodSeconds: 5
-EOF
-        
-        # 等待绿色环境启动
-        log_info "等待绿色环境启动..."
-        kubectl wait --for=condition=available --timeout=300s deployment/zhihang-messenger-backend-green -n zhihang-messenger
-        
-        # 健康检查
-        if ! health_check_green; then
-            log_error "绿色环境健康检查失败"
-            kubectl delete deployment zhihang-messenger-backend-green -n zhihang-messenger
-            exit 1
-        fi
-        
-        # 切换流量到绿色环境
-        log_info "切换流量到绿色环境..."
-        kubectl patch service backend-service -n zhihang-messenger -p '{"spec":{"selector":{"version":"green"}}}'
-        
-        # 删除蓝色环境
-        log_info "删除蓝色环境..."
-        kubectl delete deployment zhihang-messenger-backend -n zhihang-messenger
-        
-        # 重命名绿色环境为蓝色环境
-        kubectl patch deployment zhihang-messenger-backend-green -n zhihang-messenger -p '{"metadata":{"name":"zhihang-messenger-backend","labels":{"version":"blue"}},"spec":{"selector":{"matchLabels":{"version":"blue"}},"template":{"metadata":{"labels":{"version":"blue"}}}}}'
+    local backup_dir="backups/$(date +%Y%m%d_%H%M%S)"
+    mkdir -p "$backup_dir"
+    
+    if [ "$DEPLOY_MODE" = "docker" ]; then
+        # 备份 Docker 数据卷
+        execute_command "docker-compose -f docker-compose.yml exec mysql mysqldump -u root -p\$MYSQL_ROOT_PASSWORD \$MYSQL_DATABASE > $backup_dir/database.sql" "备份数据库"
+        execute_command "docker-compose -f docker-compose.yml exec redis redis-cli BGSAVE" "备份 Redis 数据"
     fi
     
-    log_success "蓝绿部署完成"
-}
-
-# 健康检查
-health_check_green() {
-    log_info "执行绿色环境健康检查..."
-    
-    if [[ "$DEPLOY_MODE" == "swarm" ]]; then
-        # 检查 Docker Swarm 服务状态
-        if ! docker service ps zhihang-messenger-backend-green --filter desired-state=running --format "{{.CurrentState}}" | grep -q "Running"; then
-            return 1
-        fi
-        
-    elif [[ "$DEPLOY_MODE" == "k8s" ]]; then
-        # 检查 Kubernetes 部署状态
-        if ! kubectl get deployment zhihang-messenger-backend-green -n zhihang-messenger | grep -q "Available"; then
-            return 1
-        fi
+    if [ "$DEPLOY_MODE" = "k8s" ]; then
+        # 备份 Kubernetes 配置
+        execute_command "kubectl get all -n zhihang-messenger -o yaml > $backup_dir/k8s-resources.yaml" "备份 Kubernetes 资源"
     fi
     
-    log_success "绿色环境健康检查通过"
-    return 0
+    log_success "备份创建完成: $backup_dir"
 }
 
-# 回滚更新
-rollback_update() {
-    log_info "开始回滚更新..."
+# 回滚操作
+rollback() {
+    log_info "执行回滚操作..."
     
-    if [[ "$DEPLOY_MODE" == "swarm" ]]; then
-        # Docker Swarm 回滚
-        docker service rollback zhihang-messenger_backend
-        docker service rollback zhihang-messenger_web
-        docker service rollback zhihang-messenger_admin
-        
-    elif [[ "$DEPLOY_MODE" == "k8s" ]]; then
-        # Kubernetes 回滚
-        kubectl rollout undo deployment/zhihang-messenger-backend -n zhihang-messenger
-        kubectl rollout undo deployment/zhihang-messenger-web -n zhihang-messenger
-        kubectl rollout undo deployment/zhihang-messenger-admin -n zhihang-messenger
+    if [ "$DEPLOY_MODE" = "docker" ]; then
+        # 回滚 Docker 服务
+        execute_command "docker-compose -f docker-compose.yml down" "停止服务"
+        execute_command "docker-compose -f docker-compose.yml up -d" "重新启动服务"
+    fi
+    
+    if [ "$DEPLOY_MODE" = "k8s" ]; then
+        # 回滚 Kubernetes 部署
+        execute_command "kubectl rollout undo deployment/zhihang-messenger-backend -n zhihang-messenger" "回滚后端部署"
+        execute_command "kubectl rollout undo deployment/zhihang-messenger-web -n zhihang-messenger" "回滚前端部署"
+        execute_command "kubectl rollout undo deployment/zhihang-messenger-admin -n zhihang-messenger" "回滚管理后台部署"
     fi
     
     log_success "回滚完成"
 }
 
+# 更新 Docker 服务
+update_docker() {
+    log_info "更新 Docker 服务..."
+    
+    # 拉取最新镜像
+    execute_command "docker-compose -f docker-compose.yml pull" "拉取最新镜像"
+    
+    # 重启指定服务
+    if [ "$SERVICE" = "all" ]; then
+        execute_command "docker-compose -f docker-compose.yml up -d" "重启所有服务"
+    else
+        execute_command "docker-compose -f docker-compose.yml up -d $SERVICE" "重启 $SERVICE 服务"
+    fi
+    
+    # 清理旧镜像
+    execute_command "docker image prune -f" "清理未使用的镜像"
+    
+    log_success "Docker 服务更新完成"
+}
+
+# 更新 Kubernetes 服务
+update_k8s() {
+    log_info "更新 Kubernetes 服务..."
+    
+    # 更新镜像标签
+    if [ "$SERVICE" = "all" ] || [ "$SERVICE" = "backend" ]; then
+        execute_command "kubectl set image deployment/zhihang-messenger-backend backend=zhihang-messenger/backend:$TAG -n zhihang-messenger" "更新后端镜像"
+    fi
+    
+    if [ "$SERVICE" = "all" ] || [ "$SERVICE" = "web" ]; then
+        execute_command "kubectl set image deployment/zhihang-messenger-web web=zhihang-messenger/web:$TAG -n zhihang-messenger" "更新前端镜像"
+    fi
+    
+    if [ "$SERVICE" = "all" ] || [ "$SERVICE" = "admin" ]; then
+        execute_command "kubectl set image deployment/zhihang-messenger-admin admin=zhihang-messenger/admin:$TAG -n zhihang-messenger" "更新管理后台镜像"
+    fi
+    
+    # 等待部署完成
+    log_info "等待部署完成..."
+    execute_command "kubectl rollout status deployment/zhihang-messenger-backend -n zhihang-messenger" "等待后端部署完成"
+    execute_command "kubectl rollout status deployment/zhihang-messenger-web -n zhihang-messenger" "等待前端部署完成"
+    execute_command "kubectl rollout status deployment/zhihang-messenger-admin -n zhihang-messenger" "等待管理后台部署完成"
+    
+    log_success "Kubernetes 服务更新完成"
+}
+
 # 验证更新
 verify_update() {
-    log_info "验证更新..."
+    log_info "验证更新结果..."
     
-    # 等待服务稳定
-    sleep 30
+    # 等待服务启动
+    sleep 10
     
-    # 检查服务状态
-    if [[ "$DEPLOY_MODE" == "swarm" ]]; then
-        docker service ls --filter name=zhihang-messenger
+    if [ "$DEPLOY_MODE" = "docker" ]; then
+        # 检查容器状态
+        execute_command "docker-compose -f docker-compose.yml ps" "检查容器状态"
         
-    elif [[ "$DEPLOY_MODE" == "k8s" ]]; then
-        kubectl get pods -n zhihang-messenger
+        # 健康检查
+        execute_command "curl -f http://localhost:8080/api/ping" "后端健康检查"
+        execute_command "curl -f http://localhost:3000" "前端健康检查"
     fi
     
-    # 检查版本
-    CURRENT_VERSION=$(get_current_version)
-    log_info "当前版本: $CURRENT_VERSION"
-    
-    if [[ "$CURRENT_VERSION" == "$VERSION" ]]; then
-        log_success "版本更新成功"
-    else
-        log_warning "版本可能未完全更新"
+    if [ "$DEPLOY_MODE" = "k8s" ]; then
+        # 检查 Pod 状态
+        execute_command "kubectl get pods -n zhihang-messenger" "检查 Pod 状态"
+        
+        # 健康检查
+        execute_command "kubectl port-forward -n zhihang-messenger svc/zhihang-messenger-backend 8080:8080 &" "设置端口转发"
+        sleep 5
+        execute_command "curl -f http://localhost:8080/api/ping" "后端健康检查"
+        kill %1 2>/dev/null || true
     fi
+    
+    log_success "更新验证完成"
 }
 
 # 主函数
 main() {
-    log_info "开始志航密信更新..."
-    log_info "目标版本: $VERSION"
-    log_info "更新策略: $STRATEGY"
+    log_info "开始更新志航密信..."
     log_info "环境: $ENVIRONMENT"
     log_info "部署模式: $DEPLOY_MODE"
+    log_info "服务: $SERVICE"
+    log_info "标签: $TAG"
     
-    if [[ "$ROLLBACK" == "true" ]]; then
-        rollback_update
+    if [ "$ROLLBACK" = true ]; then
+        log_warning "执行回滚操作"
+        rollback
         verify_update
-        exit 0
+        log_success "🎉 回滚完成！"
+        return 0
     fi
     
-    # 获取当前版本
-    CURRENT_VERSION=$(get_current_version)
-    log_info "当前版本: $CURRENT_VERSION"
-    
-    if [[ "$CURRENT_VERSION" == "$VERSION" ]]; then
-        log_warning "版本已是最新，无需更新"
-        exit 0
+    if [ "$DRY_RUN" = true ]; then
+        log_warning "DRY RUN 模式 - 不会实际执行更新"
     fi
+    
+    # 确认更新
+    if [ "$FORCE" != true ]; then
+        echo
+        log_warning "即将更新 $ENVIRONMENT 环境的 $SERVICE 服务"
+        read -p "是否继续? (y/N): " -n 1 -r
+        echo
+        
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log_info "更新已取消"
+            exit 0
+        fi
+    fi
+    
+    # 创建备份
+    create_backup
     
     # 执行更新
-    if [[ "$STRATEGY" == "rolling" ]]; then
-        rolling_update
-    elif [[ "$STRATEGY" == "blue-green" ]]; then
-        blue_green_deployment
-    fi
+    case $DEPLOY_MODE in
+        docker)
+            update_docker
+            ;;
+        k8s)
+            update_k8s
+            ;;
+    esac
     
+    # 验证更新
     verify_update
     
-    log_success "更新完成！"
+    log_success "🎉 志航密信更新完成！"
+    log_info "访问地址:"
+    log_info "  - Web 端: http://localhost:3000"
+    log_info "  - 管理后台: http://localhost:3001"
+    log_info "  - API 文档: http://localhost:8080/api/ping"
 }
 
-# 执行主函数
+# 脚本入口
 main "$@"
