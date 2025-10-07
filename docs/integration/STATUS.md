@@ -21,13 +21,20 @@
 **Web 适配进度**: 0%
 
 ### 第 2 步：Android 端适配层 ⏳
-- [ ] 新建模块 org.telegram.im.adapter
-- [ ] 创建 Api.kt、WS.kt、Mapper.kt
+- [x] 新建模块 org.telegram.im.adapter
+- [x] 创建 ApiService.kt (REST API 适配层)
+- [x] 创建 WebSocketService.kt (WebSocket 适配层)
+- [x] 创建 DataMapper.kt (数据映射器)
+- [x] 创建 NetworkProxy.kt (网络代理)
+- [x] 创建 DebugActivity.kt (调试面板)
+- [x] 创建 IMAdapterInitializer.kt (初始化器)
+- [x] 添加必要依赖到 build.gradle
+- [x] 创建配置文件 im_config.json
 - [ ] 网络调用点代理替换
 - [ ] 隐藏调试开关和面板
 - [ ] 构建成功并运行测试
 
-**Android 适配进度**: 0%
+**Android 适配进度**: 70%
 
 ### 第 3 步：消息/联系人接口定义 ⏳
 - [ ] 生成 OpenAPI 规范文档
