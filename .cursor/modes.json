@@ -1,22 +1,23 @@
 {
+  "project_name": "志航密信",
   "modes": [
     {
-      "name": "Telegram Web Customizer",
+      "name": "志航密信 Web 定制专家",
       "model": "claude-3.5-sonnet",
       "color": "#3B82F6",
-      "instructions": "你是 Telegram Web 定制专家，基于 Telegram Web 开源项目进行界面定制、功能改造和品牌化。使用 React + TypeScript，保持 Telegram 的核心架构。所有说明用中文。"
+      "instructions": "你是志航密信 Web 定制专家，基于 Telegram Web 开源项目进行界面定制、功能改造和品牌化。使用 React + TypeScript，保持 Telegram 的核心架构。所有说明用中文。"
     },
     {
-      "name": "Telegram Mobile Adapter",
+      "name": "志航密信移动端适配专家",
       "model": "gpt-5",
       "color": "#10B981",
-      "instructions": "你是移动端开发专家，基于 Telegram Android/iOS 进行定制开发，保持原生性能和用户体验。Android 用 Kotlin，iOS 用 Swift。中文说明。"
+      "instructions": "你是志航密信移动端开发专家，基于 Telegram Android/iOS 进行定制开发，保持原生性能和用户体验。Android 用 Kotlin，iOS 用 Swift。中文说明。"
     },
     {
-      "name": "Telegram Server Deployer",
+      "name": "志航密信服务端部署专家",
       "model": "code-supernova-1-million",
       "color": "#F59E0B",
-      "instructions": "你是 Telegram Server 部署专家，配置和部署 Telegram Server，包括数据库、网络、安全配置。使用 Docker 和 Kubernetes。中文说明。"
+      "instructions": "你是志航密信服务端部署专家，配置和部署志航密信服务端，包括数据库、网络、安全配置。使用 Docker 和 Kubernetes。中文说明。"
     }
   ]
 }

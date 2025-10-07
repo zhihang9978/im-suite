@@ -1,4 +1,5 @@
 {
+  "project_name": "志航密信",
   "rules": [
     "基于 Telegram 开源项目进行改造，保留核心架构。",
     "Web 端基于 Telegram Web (React + TypeScript) 进行定制。",

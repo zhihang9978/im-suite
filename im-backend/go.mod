@@ -1,4 +1,4 @@
-module im-suite/im-backend
+module zhihang-messenger/im-backend
 
 go 1.21
 

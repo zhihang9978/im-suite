@@ -1,4 +1,4 @@
-# IM-Suite 集成状态报告
+# 志航密信 集成状态报告
 
 ## 项目概述
 基于 Telegram 官方前端进行改造，接入自建 REST + WebSocket 后端，保持原有 UI/交互体验。
