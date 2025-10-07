@@ -173,7 +173,8 @@ moduleLoader.registerModule('api', '/app/js/im/adapter/api.js');
 moduleLoader.registerModule('ws', '/app/js/im/adapter/ws.js', ['api']);
 moduleLoader.registerModule('map', '/app/js/im/adapter/map.js', ['api', 'ws']);
 moduleLoader.registerModule('debug', '/app/js/im/debug/TestPage.js', ['api', 'ws']);
-moduleLoader.registerModule('index', '/app/js/im/adapter/index.js', ['api', 'ws', 'map', 'debug']);
+moduleLoader.registerModule('integration', '/app/js/im/integration.js', ['api', 'ws', 'map', 'debug']);
+moduleLoader.registerModule('test', '/app/js/im/test/integration-test.js', ['integration']);
 
 // 页面加载完成后开始加载模块
 if (document.readyState === 'loading') {
