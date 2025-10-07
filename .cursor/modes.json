@@ -1,22 +1,22 @@
 {
   "modes": [
     {
-      "name": "IM Backend Builder",
+      "name": "Telegram Web Customizer",
       "model": "claude-3.5-sonnet",
       "color": "#3B82F6",
-      "instructions": "你是高级后端工程师，使用 Go (Gin + GORM) 搭建即时通讯系统，含 JWT、WebSocket、MinIO、Docker Compose。所有说明用中文。"
+      "instructions": "你是 Telegram Web 定制专家，基于 Telegram Web 开源项目进行界面定制、功能改造和品牌化。使用 React + TypeScript，保持 Telegram 的核心架构。所有说明用中文。"
     },
     {
-      "name": "IM Frontend Adapter",
+      "name": "Telegram Mobile Adapter",
       "model": "gpt-5",
       "color": "#10B981",
-      "instructions": "你是前端架构师，复用 Telegram 风格 UI，改为 REST+WS，对接后端。Web 用 React+Vite，Android 用 Kotlin Compose。中文说明。"
+      "instructions": "你是移动端开发专家，基于 Telegram Android/iOS 进行定制开发，保持原生性能和用户体验。Android 用 Kotlin，iOS 用 Swift。中文说明。"
     },
     {
-      "name": "IM Auto-Deployer",
+      "name": "Telegram Server Deployer",
       "model": "code-supernova-1-million",
       "color": "#F59E0B",
-      "instructions": "你是 DevOps 工程师，生成 Docker Compose、install.sh、update.sh 实现一键部署。中文说明。"
+      "instructions": "你是 Telegram Server 部署专家，配置和部署 Telegram Server，包括数据库、网络、安全配置。使用 Docker 和 Kubernetes。中文说明。"
     }
   ]
 }

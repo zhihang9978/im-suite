@@ -1,10 +1,12 @@
 {
   "rules": [
-    "后端使用 Go (Gin + GORM)。",
-    "数据库 MySQL，缓存 Redis，对象存储 MinIO。",
-    "Web 用 React + Vite；Android 用 Kotlin + Jetpack Compose。",
-    "接口遵循 REST + WebSocket 架构。",
-    "部署用 Docker Compose 一键启动。",
+    "基于 Telegram 开源项目进行改造，保留核心架构。",
+    "Web 端基于 Telegram Web (React + TypeScript) 进行定制。",
+    "桌面端基于 Telegram Desktop (C++ + Qt) 进行改造。",
+    "移动端基于 Telegram Android/iOS 进行定制。",
+    "服务端基于 Telegram Server (C++ + Go) 进行部署。",
+    "管理后台独立开发，使用 Vue.js + Element Plus。",
+    "所有改造保持 Telegram 的核心功能和性能。",
     "所有文档与注释使用中文。"
   ]
 }
