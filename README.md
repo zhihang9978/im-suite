@@ -22,11 +22,13 @@
 本项目采用混合架构，前端基于 Telegram 改造，后端完全自建：
 
 - **Web 端**: 基于 Telegram Web 改造，使用 React + TypeScript
-- **桌面端**: 基于 Telegram Desktop 改造，使用 C++ + Qt
-- **移动端**: 基于 Telegram Android/iOS 改造，保持原生性能
-- **后端服务**: 完全自建，使用 Go + Gin + GORM
-- **管理后台**: 独立开发，使用 Vue.js + Element Plus
-- **部署方案**: Docker Compose 容器化部署
+- **移动端**: 基于 Telegram Android 改造，使用 Kotlin + Jetpack Compose
+- **后端服务**: 完全自建，使用 Go + Gin + GORM + WebSocket
+- **管理后台**: 独立开发，使用 Vue3 + Element Plus + Pinia
+- **数据库**: MySQL + Redis + MinIO 对象存储
+- **部署方案**: Docker Compose / Docker Swarm / Kubernetes
+- **监控系统**: 自定义监控 + Prometheus + 日志收集
+- **CI/CD**: GitHub Actions 自动化流程
 
 ## 目录结构
 
@@ -36,19 +38,31 @@
 │   ├── rules.json             # 开发规则配置
 │   └── modes.json             # AI 模式配置
 ├── telegram-web/              # Web 端 (基于 Telegram Web)
-├── telegram-desktop/          # 桌面端 (基于 Telegram Desktop)
 ├── telegram-android/          # Android 端 (基于 Telegram Android)
-├── telegram-ios/              # iOS 端 (基于 Telegram iOS)
-├── telegram-server/           # 服务端 (基于 Telegram Server)
-├── im-admin/                  # 管理后台 (独立开发)
+├── im-backend/                # 后端服务 (Go + Gin + GORM)
+├── im-admin/                  # 管理后台 (Vue3 + Element Plus)
 ├── assets/                    # 资源文件
 │   ├── icons/                 # 图标资源
 │   ├── images/                # 图片资源
 │   └── fonts/                 # 字体资源
 ├── docs/                      # 文档
 │   ├── api/                   # API 文档
-│   └── deployment/            # 部署文档
-├── scripts/                   # 部署脚本
+│   ├── technical/             # 技术文档
+│   ├── user-guide/            # 用户指南
+│   ├── deployment/            # 部署文档
+│   ├── testing/               # 测试文档
+│   ├── security/              # 安全文档
+│   ├── webrtc/                # WebRTC 文档
+│   └── chinese-phones/        # 中国手机适配文档
+├── scripts/                   # 脚本文件
+│   ├── deploy/                # 部署脚本
+│   ├── testing/               # 测试脚本
+│   ├── nginx/                 # Nginx 配置
+│   ├── init.sql               # 数据库初始化
+│   └── stop.sh                # 停止脚本
+├── k8s/                       # Kubernetes 配置
+├── docker-compose.yml         # Docker Compose 配置
+├── docker-stack.yml           # Docker Swarm 配置
 └── README.md                  # 项目说明
 ```
 
@@ -125,31 +139,60 @@
 
 ## 快速开始
 
+### 使用 Docker Compose 部署
+
 1. **克隆项目**
    ```bash
    git clone https://github.com/zhihang9978/im-suite.git
    cd im-suite
    ```
 
-2. **环境准备**
+2. **启动所有服务**
    ```bash
-   # 安装依赖
-   npm install
-   
-   # 配置环境变量
-   cp .env.example .env
+   # 启动所有服务（后端、前端、数据库等）
+   docker-compose up -d
    ```
 
-3. **启动开发环境**
+3. **访问应用**
+   - Web 端: http://localhost:3000
+   - 管理后台: http://localhost:8081
+   - API 文档: http://localhost:8080/api/docs
+
+### 开发环境搭建
+
+1. **后端开发**
    ```bash
-   # 启动 Web 端
+   cd im-backend
+   go mod download
+   go run main.go
+   ```
+
+2. **Web 端开发**
+   ```bash
    cd telegram-web
-   npm run dev
-   
-   # 启动管理后台
-   cd im-admin
+   npm install
    npm run dev
    ```
+
+3. **管理后台开发**
+   ```bash
+   cd im-admin
+   npm install
+   npm run dev
+   ```
+
+### 生产环境部署
+
+```bash
+# 使用 Docker Swarm
+docker stack deploy -c docker-stack.yml zhihang-messenger
+
+# 使用 Kubernetes
+kubectl apply -f k8s/
+
+# 使用部署脚本
+./scripts/deploy/deploy.sh --env production --mode swarm
+```
 
 ## 贡献指南
 
