@@ -44,6 +44,11 @@
             <el-icon><Document /></el-icon>
             <span>日志管理</span>
           </el-menu-item>
+          
+          <el-menu-item index="/plugins">
+            <el-icon><Grid /></el-icon>
+            <span>插件管理</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
       

@@ -48,6 +48,12 @@ const routes = [
         name: 'Logs',
         component: () => import('@/views/Logs.vue'),
         meta: { title: '日志管理' }
+      },
+      {
+        path: '/plugins',
+        name: 'PluginManagement',
+        component: () => import('@/views/PluginManagement.vue'),
+        meta: { title: '插件管理' }
       }
     ]
   }
