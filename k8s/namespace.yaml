@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: zhihang-messenger
+  labels:
+    name: zhihang-messenger
+    app: zhihang-messenger
