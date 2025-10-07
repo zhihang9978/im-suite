@@ -50,12 +50,13 @@
 **API 定义进度**: 100%
 
 ### 第 4 步：语音/视频通话 ⏳
-- [ ] 建立信令协议
-- [ ] Web 端 WebRTC 集成
-- [ ] Android 端 WebRTC 集成
-- [ ] 输出技术文档
+- [x] 建立信令协议 (signaling-protocol.md)
+- [x] Web 端 WebRTC 集成 (WebRTCManager.js)
+- [x] Android 端 WebRTC 集成 (WebRTCManager.kt)
+- [x] 输出技术文档 (webrtc-config.md, integration-examples.md)
+- [x] 创建完整的集成示例和测试用例
 
-**WebRTC 进度**: 0%
+**WebRTC 进度**: 100%
 
 ### 第 5 步：安全与加密 ⏳
 - [ ] 传输层 HTTPS/WSS 支持
