@@ -37,14 +37,17 @@
 **Android 适配进度**: 70%
 
 ### 第 3 步：消息/联系人接口定义 ⏳
-- [ ] 生成 OpenAPI 规范文档
-- [ ] 定义 Auth 接口
-- [ ] 定义 User 接口
-- [ ] 定义 Contacts 接口
-- [ ] 定义 Chat/Message 接口
-- [ ] 定义 WebSocket 事件
+- [x] 生成 OpenAPI 规范文档 (openapi.yaml)
+- [x] 定义 Auth 接口 (登录、刷新、登出)
+- [x] 定义 User 接口 (用户信息管理)
+- [x] 定义 Contacts 接口 (联系人管理)
+- [x] 定义 Chat/Message 接口 (聊天和消息)
+- [x] 定义 WebSocket 事件 (实时通讯)
+- [x] 创建数据库设计文档 (database-schema.md)
+- [x] 创建 API 使用示例 (api-examples.md)
+- [x] 创建 API 测试用例 (api-tests.md)
 
-**API 定义进度**: 0%
+**API 定义进度**: 100%
 
 ### 第 4 步：语音/视频通话 ⏳
 - [ ] 建立信令协议
