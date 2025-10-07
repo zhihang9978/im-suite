@@ -1,0 +1,10 @@
+{
+  "rules": [
+    "后端使用 Go (Gin + GORM)。",
+    "数据库 MySQL，缓存 Redis，对象存储 MinIO。",
+    "Web 用 React + Vite；Android 用 Kotlin + Jetpack Compose。",
+    "接口遵循 REST + WebSocket 架构。",
+    "部署用 Docker Compose 一键启动。",
+    "所有文档与注释使用中文。"
+  ]
+}

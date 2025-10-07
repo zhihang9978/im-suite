@@ -1,0 +1,91 @@
+# 环境变量
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 依赖目录
+node_modules/
+vendor/
+
+# 构建输出
+dist/
+build/
+out/
+target/
+
+# 日志文件
+*.log
+logs/
+
+# 运行时文件
+*.pid
+*.seed
+*.pid.lock
+
+# 缓存目录
+.npm
+.yarn
+.cache/
+
+# IDE 配置
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 操作系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Go 相关
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# Android 相关
+*.apk
+*.aab
+*.dex
+*.class
+local.properties
+.gradle/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# 临时文件
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 证书文件
+*.pem
+*.key
+*.crt
+*.p12
+*.jks
+
+# 配置文件（敏感信息）
+config/local.json
+config/production.json
