@@ -1,25 +1,39 @@
-# 环境变量
+# 志航密信项目 .gitignore
+
+# 环境变量文件
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+config.env
 
 # 依赖目录
 node_modules/
 vendor/
+bower_components/
 
 # 构建输出
 dist/
 build/
 out/
 target/
+bin/
+obj/
 
 # 日志文件
 *.log
 logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
 
 # 运行时文件
+*.pid
+*.seed
+*.pid.lock
+pids
 *.pid
 *.seed
 *.pid.lock
@@ -28,15 +42,22 @@ logs/
 .npm
 .yarn
 .cache/
+.parcel-cache/
+.eslintcache
 
-# IDE 配置
+# IDE 配置文件
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
 
-# 操作系统文件
+# 操作系统生成的文件
 .DS_Store
 .DS_Store?
 ._*
@@ -44,8 +65,10 @@ logs/
 .Trashes
 ehthumbs.db
 Thumbs.db
+desktop.ini
 
-# Go 相关
+# Go 语言相关
+# 编译输出
 bin/
 *.exe
 *.exe~
@@ -55,6 +78,9 @@ bin/
 *.test
 *.out
 go.work
+
+# Go 依赖
+vendor/
 
 # Android 相关
 *.apk
@@ -67,25 +93,76 @@ build/
 captures/
 .externalNativeBuild/
 .cxx/
+*.iml
+*.hprof
 
 # 临时文件
 *.tmp
 *.temp
 *.bak
 *.backup
+*.swp
+*.swo
 
 # 数据库文件
 *.db
 *.sqlite
 *.sqlite3
+*.mdb
 
-# 证书文件
+# 证书和密钥文件
 *.pem
 *.key
 *.crt
 *.p12
 *.jks
+*.keystore
+release.keystore
 
-# 配置文件（敏感信息）
+# 配置文件（包含敏感信息）
 config/local.json
 config/production.json
+secrets/
+credentials/
+
+# Docker 相关
+.dockerignore
+docker-compose.override.yml
+
+# 测试覆盖率报告
+coverage/
+*.lcov
+.nyc_output/
+
+# 性能分析文件
+*.prof
+
+# 备份文件
+*.backup
+*.old
+
+# 监控和日志
+monitoring.log
+performance.log
+error.log
+access.log
+
+# 测试报告
+test-results/
+test-reports/
+*.xml
+
+# 部署相关
+deployment/
+deploy/
+*.tar.gz
+*.zip
+
+# 文档生成
+docs/_build/
+docs/.doctrees/
+
+# 包管理器锁文件（可选，根据需要取消注释）
+# package-lock.json
+# yarn.lock
+# go.sum
