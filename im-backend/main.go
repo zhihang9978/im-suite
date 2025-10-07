@@ -9,6 +9,8 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
+	"zhihang-messenger/im-backend/config"
+	"zhihang-messenger/im-backend/services"
 )
 
 // WebSocket 升级器
@@ -68,7 +70,17 @@ func main() {
 
 	// 设置日志级别
 	logrus.SetLevel(logrus.InfoLevel)
-	logrus.Info("IM Backend 启动中...")
+	logrus.Info("志航密信后端启动中...")
+
+	// 初始化数据库
+	if err := config.InitDatabase(); err != nil {
+		logrus.Fatal("数据库初始化失败:", err)
+	}
+
+	// 自动迁移数据库表
+	if err := config.AutoMigrate(); err != nil {
+		logrus.Fatal("数据库迁移失败:", err)
+	}
 
 	// 启动 WebSocket Hub
 	go hub.run()
@@ -95,20 +107,77 @@ func main() {
 	{
 		// 健康检查
 		api.GET("/ping", func(c *gin.Context) {
-			c.JSON(200, gin.H{"ok": true, "message": "IM Backend 运行正常"})
+			c.JSON(200, gin.H{"ok": true, "message": "志航密信后端运行正常"})
 		})
+
+		// 初始化服务
+		authService := services.NewAuthService()
+		messageService := services.NewMessageService()
 
 		// 认证相关
 		auth := api.Group("/auth")
 		{
 			auth.POST("/login", func(c *gin.Context) {
-				c.JSON(200, gin.H{"message": "登录接口待实现"})
+				var req services.LoginRequest
+				if err := c.ShouldBindJSON(&req); err != nil {
+					c.JSON(400, gin.H{"error": err.Error()})
+					return
+				}
+				
+				resp, err := authService.Login(req)
+				if err != nil {
+					c.JSON(401, gin.H{"error": err.Error()})
+					return
+				}
+				
+				c.JSON(200, resp)
 			})
+			
+			auth.POST("/register", func(c *gin.Context) {
+				var req services.RegisterRequest
+				if err := c.ShouldBindJSON(&req); err != nil {
+					c.JSON(400, gin.H{"error": err.Error()})
+					return
+				}
+				
+				resp, err := authService.Register(req)
+				if err != nil {
+					c.JSON(400, gin.H{"error": err.Error()})
+					return
+				}
+				
+				c.JSON(200, resp)
+			})
+			
 			auth.POST("/refresh", func(c *gin.Context) {
-				c.JSON(200, gin.H{"message": "刷新令牌接口待实现"})
+				var req services.RefreshRequest
+				if err := c.ShouldBindJSON(&req); err != nil {
+					c.JSON(400, gin.H{"error": err.Error()})
+					return
+				}
+				
+				resp, err := authService.RefreshToken(req)
+				if err != nil {
+					c.JSON(401, gin.H{"error": err.Error()})
+					return
+				}
+				
+				c.JSON(200, resp)
 			})
+			
 			auth.POST("/logout", func(c *gin.Context) {
-				c.JSON(200, gin.H{"message": "登出接口待实现"})
+				token := c.GetHeader("Authorization")
+				if token == "" {
+					c.JSON(400, gin.H{"error": "缺少认证令牌"})
+					return
+				}
+				
+				if err := authService.Logout(token); err != nil {
+					c.JSON(500, gin.H{"error": err.Error()})
+					return
+				}
+				
+				c.JSON(200, gin.H{"message": "登出成功"})
 			})
 		}
 
@@ -116,29 +185,109 @@ func main() {
 		users := api.Group("/users")
 		{
 			users.GET("/me", func(c *gin.Context) {
-				c.JSON(200, gin.H{"message": "获取当前用户信息接口待实现"})
+				token := c.GetHeader("Authorization")
+				if token == "" {
+					c.JSON(401, gin.H{"error": "缺少认证令牌"})
+					return
+				}
+				
+				user, err := authService.ValidateToken(token)
+				if err != nil {
+					c.JSON(401, gin.H{"error": err.Error()})
+					return
+				}
+				
+				c.JSON(200, user)
 			})
+			
 			users.PUT("/me", func(c *gin.Context) {
-				c.JSON(200, gin.H{"message": "更新用户信息接口待实现"})
+				token := c.GetHeader("Authorization")
+				if token == "" {
+					c.JSON(401, gin.H{"error": "缺少认证令牌"})
+					return
+				}
+				
+				user, err := authService.ValidateToken(token)
+				if err != nil {
+					c.JSON(401, gin.H{"error": err.Error()})
+					return
+				}
+				
+				var updateData struct {
+					Nickname string `json:"nickname"`
+					Bio      string `json:"bio"`
+					Avatar   string `json:"avatar"`
+				}
+				
+				if err := c.ShouldBindJSON(&updateData); err != nil {
+					c.JSON(400, gin.H{"error": err.Error()})
+					return
+				}
+				
+				// 更新用户信息
+				config.DB.Model(user).Updates(updateData)
+				
+				c.JSON(200, gin.H{"message": "用户信息更新成功"})
 			})
 		}
 
-		// 联系人相关
-		contacts := api.Group("/contacts")
+		// 消息相关
+		messages := api.Group("/messages")
 		{
-			contacts.GET("", func(c *gin.Context) {
-				c.JSON(200, gin.H{"message": "获取联系人列表接口待实现"})
+			messages.POST("/send", func(c *gin.Context) {
+				token := c.GetHeader("Authorization")
+				if token == "" {
+					c.JSON(401, gin.H{"error": "缺少认证令牌"})
+					return
+				}
+				
+				user, err := authService.ValidateToken(token)
+				if err != nil {
+					c.JSON(401, gin.H{"error": err.Error()})
+					return
+				}
+				
+				var req services.SendMessageRequest
+				if err := c.ShouldBindJSON(&req); err != nil {
+					c.JSON(400, gin.H{"error": err.Error()})
+					return
+				}
+				
+				message, err := messageService.SendMessage(user.ID, req)
+				if err != nil {
+					c.JSON(400, gin.H{"error": err.Error()})
+					return
+				}
+				
+				c.JSON(200, message)
 			})
-			contacts.POST("", func(c *gin.Context) {
-				c.JSON(200, gin.H{"message": "添加联系人接口待实现"})
-			})
-		}
-
-		// 聊天相关
-		chats := api.Group("/chats")
-		{
-			chats.GET("", func(c *gin.Context) {
-				c.JSON(200, gin.H{"message": "获取聊天列表接口待实现"})
+			
+			messages.GET("", func(c *gin.Context) {
+				token := c.GetHeader("Authorization")
+				if token == "" {
+					c.JSON(401, gin.H{"error": "缺少认证令牌"})
+					return
+				}
+				
+				user, err := authService.ValidateToken(token)
+				if err != nil {
+					c.JSON(401, gin.H{"error": err.Error()})
+					return
+				}
+				
+				var req services.GetMessagesRequest
+				if err := c.ShouldBindQuery(&req); err != nil {
+					c.JSON(400, gin.H{"error": err.Error()})
+					return
+				}
+				
+				messages, err := messageService.GetMessages(user.ID, req)
+				if err != nil {
+					c.JSON(400, gin.H{"error": err.Error()})
+					return
+				}
+				
+				c.JSON(200, messages)
 			})
 		}
 	}
@@ -174,7 +323,7 @@ func main() {
 		port = "8080"
 	}
 
-	logrus.Info("IM Backend 启动完成，端口:", port)
+	logrus.Info("志航密信后端启动完成，端口:", port)
 	logrus.Info("API 文档: http://localhost:" + port + "/api/ping")
 	logrus.Info("WebSocket: ws://localhost:" + port + "/ws")
 	
