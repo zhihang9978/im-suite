@@ -52,6 +52,10 @@ func main() {
 
 	networkOptimizationService := service.NewNetworkOptimizationService()
 	networkOptimizationService.StartNetworkOptimization()
+	
+	// 启动系统监控服务
+	systemMonitorService := service.NewSystemMonitorService()
+	go systemMonitorService.StartMonitoring()
 
 	// 设置Gin模式
 	gin.SetMode(gin.ReleaseMode)
@@ -111,6 +115,9 @@ func main() {
 
 		// 性能优化控制器
 		performanceController := controller.NewPerformanceOptimizationController()
+		
+		// 超级管理员控制器
+		superAdminController := controller.NewSuperAdminController()
 
 		// 认证路由
 		auth := api.Group("/auth")
@@ -231,6 +238,12 @@ func main() {
 			performance := protected.Group("/performance")
 			performanceController.SetupRoutes(performance)
 		}
+		
+		// 超级管理员路由（需要超级管理员权限）
+		superAdmin := api.Group("/super-admin")
+		superAdmin.Use(middleware.Auth())
+		superAdmin.Use(middleware.SuperAdmin())
+		superAdminController.SetupRoutes(superAdmin)
 	}
 
 	// 启动服务器

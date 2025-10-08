@@ -28,6 +28,12 @@ type User struct {
 	LastSeen  time.Time `json:"last_seen"`                               // 最后在线时间
 	Online    bool      `json:"online" gorm:"default:false"`             // 是否在线
 	
+	// 权限信息
+	Role      string     `json:"role" gorm:"default:'user'"`              // 用户角色: user, admin, super_admin
+	IsBanned  bool       `json:"is_banned" gorm:"default:false"`          // 是否被封禁
+	BanUntil  *time.Time `json:"ban_until,omitempty"`                     // 封禁到期时间
+	BanReason string     `json:"ban_reason,omitempty"`                    // 封禁原因
+	
 	// 设置信息
 	Language  string `json:"language" gorm:"default:'zh-CN'"`            // 语言设置
 	Theme     string `json:"theme" gorm:"default:'auto'"`                // 主题设置

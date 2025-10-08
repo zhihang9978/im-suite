@@ -93,6 +93,13 @@ func AutoMigrate() error {
 		&model.GroupJoinRequest{},
 		&model.GroupAuditLog{},
 		&model.GroupPermissionTemplate{},
+		&model.Alert{},
+		&model.AdminOperationLog{},
+		&model.SystemConfig{},
+		&model.IPBlacklist{},
+		&model.UserBlacklist{},
+		&model.LoginAttempt{},
+		&model.SuspiciousActivity{},
 	)
 	
 	if err != nil {
