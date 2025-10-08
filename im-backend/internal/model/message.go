@@ -196,3 +196,16 @@ type MessageReply struct {
 	Message Message `gorm:"foreignKey:MessageID" json:"message,omitempty"`
 	ReplyTo Message `gorm:"foreignKey:ReplyToID" json:"reply_to,omitempty"`
 }
+
+// MessageRead 消息已读记录
+type MessageRead struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	MessageID uint      `gorm:"not null;index" json:"message_id"` // 消息ID
+	UserID    uint      `gorm:"not null;index" json:"user_id"`    // 用户ID
+	ReadAt    time.Time `gorm:"not null" json:"read_at"`          // 阅读时间
+	CreatedAt time.Time `json:"created_at"`
+
+	// 关联
+	Message Message `gorm:"foreignKey:MessageID" json:"message,omitempty"`
+	User    User    `gorm:"foreignKey:UserID" json:"user,omitempty"`
+}

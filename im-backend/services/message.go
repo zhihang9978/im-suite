@@ -6,7 +6,7 @@ import (
 
 	"gorm.io/gorm"
 	"zhihang-messenger/im-backend/config"
-	"zhihang-messenger/im-backend/models"
+	"zhihang-messenger/im-backend/internal/model"
 )
 
 type MessageService struct {
@@ -43,15 +43,15 @@ type GetMessagesRequest struct {
 }
 
 // SendMessage 发送消息
-func (s *MessageService) SendMessage(userID uint, req SendMessageRequest) (*models.Message, error) {
+func (s *MessageService) SendMessage(userID uint, req SendMessageRequest) (*model.Message, error) {
 	// 检查用户是否在聊天中
-	var member models.ChatMember
+	var member model.ChatMember
 	if err := s.db.Where("chat_id = ? AND user_id = ?", req.ChatID, userID).First(&member).Error; err != nil {
 		return nil, errors.New("用户不在该聊天中")
 	}
 
 	// 创建消息
-	message := models.Message{
+	message := model.Message{
 		ChatID:        req.ChatID,
 		UserID:        userID,
 		Type:          req.Type,
@@ -73,7 +73,7 @@ func (s *MessageService) SendMessage(userID uint, req SendMessageRequest) (*mode
 	s.db.Preload("User").Preload("Chat").Preload("ReplyTo").First(&message, message.ID)
 
 	// 更新聊天的最后消息
-	s.db.Model(&models.Chat{}).Where("id = ?", req.ChatID).Updates(map[string]interface{}{
+	s.db.Model(&model.Chat{}).Where("id = ?", req.ChatID).Updates(map[string]interface{}{
 		"last_message_id": message.ID,
 		"last_message_at": time.Now(),
 	})
@@ -82,9 +82,9 @@ func (s *MessageService) SendMessage(userID uint, req SendMessageRequest) (*mode
 }
 
 // GetMessages 获取消息列表
-func (s *MessageService) GetMessages(userID uint, req GetMessagesRequest) ([]models.Message, error) {
+func (s *MessageService) GetMessages(userID uint, req GetMessagesRequest) ([]model.Message, error) {
 	// 检查用户是否在聊天中
-	var member models.ChatMember
+	var member model.ChatMember
 	if err := s.db.Where("chat_id = ? AND user_id = ?", req.ChatID, userID).First(&member).Error; err != nil {
 		return nil, errors.New("用户不在该聊天中")
 	}
@@ -97,7 +97,7 @@ func (s *MessageService) GetMessages(userID uint, req GetMessagesRequest) ([]mod
 		req.Limit = 100
 	}
 
-	var messages []models.Message
+	var messages []model.Message
 	query := s.db.Where("chat_id = ? AND is_deleted = ?", req.ChatID, false).
 		Preload("User").
 		Preload("ReplyTo").
@@ -120,8 +120,8 @@ func (s *MessageService) GetMessages(userID uint, req GetMessagesRequest) ([]mod
 }
 
 // EditMessage 编辑消息
-func (s *MessageService) EditMessage(userID uint, messageID uint, content string) (*models.Message, error) {
-	var message models.Message
+func (s *MessageService) EditMessage(userID uint, messageID uint, content string) (*model.Message, error) {
+	var message model.Message
 	
 	// 查找消息
 	if err := s.db.Where("id = ? AND user_id = ?", messageID, userID).First(&message).Error; err != nil {
@@ -148,7 +148,7 @@ func (s *MessageService) EditMessage(userID uint, messageID uint, content string
 
 // DeleteMessage 删除消息
 func (s *MessageService) DeleteMessage(userID uint, messageID uint) error {
-	var message models.Message
+	var message model.Message
 	
 	// 查找消息
 	if err := s.db.Where("id = ? AND user_id = ?", messageID, userID).First(&message).Error; err != nil {
@@ -167,13 +167,13 @@ func (s *MessageService) DeleteMessage(userID uint, messageID uint) error {
 // PinMessage 置顶消息
 func (s *MessageService) PinMessage(userID uint, messageID uint) error {
 	// 检查用户权限（这里简化处理）
-	var message models.Message
+	var message model.Message
 	if err := s.db.Where("id = ?", messageID).First(&message).Error; err != nil {
 		return errors.New("消息不存在")
 	}
 
 	// 检查用户是否在聊天中
-	var member models.ChatMember
+	var member model.ChatMember
 	if err := s.db.Where("chat_id = ? AND user_id = ?", message.ChatID, userID).First(&member).Error; err != nil {
 		return errors.New("用户不在该聊天中")
 	}
@@ -190,22 +190,22 @@ func (s *MessageService) PinMessage(userID uint, messageID uint) error {
 // MarkAsRead 标记消息为已读
 func (s *MessageService) MarkAsRead(userID uint, messageID uint) error {
 	// 检查消息是否存在
-	var message models.Message
+	var message model.Message
 	if err := s.db.Where("id = ?", messageID).First(&message).Error; err != nil {
 		return errors.New("消息不存在")
 	}
 
 	// 检查用户是否在聊天中
-	var member models.ChatMember
+	var member model.ChatMember
 	if err := s.db.Where("chat_id = ? AND user_id = ?", message.ChatID, userID).First(&member).Error; err != nil {
 		return errors.New("用户不在该聊天中")
 	}
 
 	// 创建或更新已读记录
-	var readRecord models.MessageRead
+	var readRecord model.MessageRead
 	if err := s.db.Where("message_id = ? AND user_id = ?", messageID, userID).First(&readRecord).Error; err != nil {
 		// 创建新的已读记录
-		readRecord = models.MessageRead{
+		readRecord = model.MessageRead{
 			MessageID: messageID,
 			UserID:    userID,
 			ReadAt:    time.Now(),
@@ -229,7 +229,7 @@ func (s *MessageService) GetUnreadCount(userID uint, chatID uint) (int64, error)
 	var count int64
 	
 	// 计算未读消息数量
-	err := s.db.Model(&models.Message{}).
+	err := s.db.Model(&model.Message{}).
 		Joins("LEFT JOIN message_reads ON messages.id = message_reads.message_id AND message_reads.user_id = ?", userID).
 		Where("messages.chat_id = ? AND messages.user_id != ? AND message_reads.id IS NULL AND messages.is_deleted = ?", 
 			chatID, userID, false).

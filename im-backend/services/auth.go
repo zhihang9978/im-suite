@@ -9,7 +9,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"zhihang-messenger/im-backend/config"
-	"zhihang-messenger/im-backend/models"
+	"zhihang-messenger/im-backend/internal/model"
 )
 
 type AuthService struct {
@@ -31,7 +31,7 @@ type LoginRequest struct {
 // LoginResponse 登录响应
 type LoginResponse struct {
 	Token     string    `json:"token"`
-	User      models.User `json:"user"`
+	User      model.User `json:"user"`
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
@@ -50,7 +50,7 @@ type RefreshRequest struct {
 
 // Login 用户登录
 func (s *AuthService) Login(req LoginRequest) (*LoginResponse, error) {
-	var user models.User
+	var user model.User
 	
 	// 查找用户
 	if err := s.db.Where("phone = ?", req.Phone).First(&user).Error; err != nil {
@@ -73,7 +73,7 @@ func (s *AuthService) Login(req LoginRequest) (*LoginResponse, error) {
 	}
 
 	// 创建会话记录
-	session := models.Session{
+	session := model.Session{
 		UserID:    user.ID,
 		Token:     token,
 		Device:    "Web",
@@ -87,8 +87,8 @@ func (s *AuthService) Login(req LoginRequest) (*LoginResponse, error) {
 	}
 
 	// 更新用户状态
-	user.Status = "online"
-	user.LastSeen = &[]time.Time{time.Now()}[0]
+	user.Online = true
+	user.LastSeen = time.Now()
 	s.db.Save(&user)
 
 	return &LoginResponse{
@@ -101,7 +101,7 @@ func (s *AuthService) Login(req LoginRequest) (*LoginResponse, error) {
 // Register 用户注册
 func (s *AuthService) Register(req RegisterRequest) (*LoginResponse, error) {
 	// 检查手机号是否已存在
-	var existingUser models.User
+	var existingUser model.User
 	if err := s.db.Where("phone = ?", req.Phone).First(&existingUser).Error; err == nil {
 		return nil, errors.New("手机号已注册")
 	}
@@ -118,11 +118,12 @@ func (s *AuthService) Register(req RegisterRequest) (*LoginResponse, error) {
 	}
 
 	// 创建用户
-	user := models.User{
+	user := model.User{
 		Phone:    req.Phone,
 		Username: req.Username,
 		Nickname: req.Nickname,
-		Status:   "offline",
+		Password: string(hashedPassword),
+		Salt:     "default_salt", // 简化处理，实际应用中应该生成随机盐值
 	}
 
 	if err := s.db.Create(&user).Error; err != nil {
@@ -136,7 +137,7 @@ func (s *AuthService) Register(req RegisterRequest) (*LoginResponse, error) {
 	}
 
 	// 创建会话记录
-	session := models.Session{
+	session := model.Session{
 		UserID:    user.ID,
 		Token:     token,
 		Device:    "Web",
@@ -158,7 +159,7 @@ func (s *AuthService) Register(req RegisterRequest) (*LoginResponse, error) {
 
 // RefreshToken 刷新令牌
 func (s *AuthService) RefreshToken(req RefreshRequest) (*LoginResponse, error) {
-	var session models.Session
+	var session model.Session
 	
 	// 查找会话
 	if err := s.db.Preload("User").Where("token = ?", req.Token).First(&session).Error; err != nil {
@@ -193,22 +194,22 @@ func (s *AuthService) RefreshToken(req RefreshRequest) (*LoginResponse, error) {
 // Logout 用户登出
 func (s *AuthService) Logout(token string) error {
 	// 删除会话
-	if err := s.db.Where("token = ?", token).Delete(&models.Session{}).Error; err != nil {
+	if err := s.db.Where("token = ?", token).Delete(&model.Session{}).Error; err != nil {
 		return err
 	}
 
 	// 更新用户状态
-	var session models.Session
+	var session model.Session
 	if err := s.db.Where("token = ?", token).First(&session).Error; err == nil {
-		s.db.Model(&models.User{}).Where("id = ?", session.UserID).Update("status", "offline")
+		s.db.Model(&model.User{}).Where("id = ?", session.UserID).Update("online", false)
 	}
 
 	return nil
 }
 
 // ValidateToken 验证令牌
-func (s *AuthService) ValidateToken(token string) (*models.User, error) {
-	var session models.Session
+func (s *AuthService) ValidateToken(token string) (*model.User, error) {
+	var session model.Session
 	
 	if err := s.db.Preload("User").Where("token = ?", token).First(&session).Error; err != nil {
 		return nil, errors.New("无效的令牌")
