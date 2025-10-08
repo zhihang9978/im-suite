@@ -139,6 +139,11 @@ func main() {
 		// 初始化内容审核服务
 		contentModerationService := service.NewContentModerationService(config.DB)
 		
+		// 初始化主题服务
+		themeService := service.NewThemeService(config.DB)
+		// 初始化内置主题
+		themeService.InitializeBuiltInThemes()
+		
 		// 启动定时任务
 		ctx := context.Background()
 		go schedulerService.StartScheduler(ctx)
@@ -155,6 +160,7 @@ func main() {
 		fileController := controller.NewFileController()
 		messageEnhancementController := controller.NewMessageEnhancementController(messageEnhancementService)
 		contentModerationController := controller.NewContentModerationController(contentModerationService)
+		themeController := controller.NewThemeController(themeService)
 
 		// 认证相关
 		auth := api.Group("/auth")
@@ -431,6 +437,24 @@ func main() {
 			
 			// 统计数据
 			moderation.GET("/statistics", contentModerationController.GetStatistics)
+		}
+
+		// 主题管理相关
+		themes := api.Group("/themes")
+		{
+			// 公开接口
+			themes.GET("", themeController.ListThemes)
+			themes.GET("/:theme_id", themeController.GetTheme)
+			themes.POST("/initialize", themeController.InitializeBuiltInThemes)
+			
+			// 需要认证的接口
+			themesAuth := themes.Group("")
+			themesAuth.Use(middleware.AuthMiddleware())
+			{
+				themesAuth.POST("", themeController.CreateTheme)
+				themesAuth.GET("/user", themeController.GetUserTheme)
+				themesAuth.PUT("/user", themeController.UpdateUserTheme)
+			}
 		}
 	}
 

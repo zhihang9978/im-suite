@@ -82,6 +82,9 @@ func AutoMigrate() error {
 		&model.UserWarning{},
 		&model.ModerationLog{},
 		&model.ContentStatistics{},
+		&model.Theme{},
+		&model.UserThemeSetting{},
+		&model.ThemeTemplate{},
 	)
 	
 	if err != nil {
