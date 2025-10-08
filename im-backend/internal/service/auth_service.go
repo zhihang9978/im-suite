@@ -26,9 +26,8 @@ func NewAuthService() *AuthService {
 
 // LoginRequest 登录请求
 type LoginRequest struct {
-	Phone    string `json:"phone" binding:"required"`
-	Code     string `json:"code" binding:"required"`
-	Password string `json:"password,omitempty"`
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }
 
 // RegisterRequest 注册请求

@@ -59,6 +59,7 @@ func AutoMigrate() error {
 	err := DB.AutoMigrate(
 		&model.User{},
 		&model.Contact{},
+		&model.Session{},
 		&model.Chat{},
 		&model.ChatMember{},
 		&model.Message{},

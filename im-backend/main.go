@@ -5,6 +5,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -14,13 +17,12 @@ import (
 	"zhihang-messenger/im-backend/internal/controller"
 	"zhihang-messenger/im-backend/internal/middleware"
 	"zhihang-messenger/im-backend/internal/service"
-	"zhihang-messenger/im-backend/services"
 )
 
 // WebSocket 升级器
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		return true // 开发环境允许所有来源
+		return true // 生产环境应该检查具体域名
 	},
 }
 
@@ -51,478 +53,288 @@ func (h *Hub) run() {
 			if _, ok := h.clients[conn]; ok {
 				delete(h.clients, conn)
 				conn.Close()
-				logrus.Info("客户端断开")
+				logrus.Info("客户端断开连接")
 			}
 		case message := <-h.broadcast:
 			for conn := range h.clients {
-				if err := conn.WriteMessage(websocket.TextMessage, message); err != nil {
+				select {
+				case conn.WriteMessage(websocket.TextMessage, message):
+				default:
+					close(conn)
 					delete(h.clients, conn)
-					conn.Close()
 				}
 			}
 		}
 	}
 }
 
-var hub = newHub()
-
 func main() {
 	// 加载环境变量
 	if err := godotenv.Load(); err != nil {
-		logrus.Warn("未找到 .env 文件，使用默认配置")
+		logrus.Warn("未找到.env文件，使用系统环境变量")
 	}
 
-	// 设置日志级别
+	// 初始化日志
+	logrus.SetFormatter(&logrus.JSONFormatter{})
 	logrus.SetLevel(logrus.InfoLevel)
-	logrus.Info("志航密信后端启动中...")
 
 	// 初始化数据库
-	if err := config.InitDatabase(); err != nil {
+	if err := config.InitDB(); err != nil {
 		logrus.Fatal("数据库初始化失败:", err)
 	}
 
-	// 自动迁移数据库表
+	// 自动迁移数据库
 	if err := config.AutoMigrate(); err != nil {
 		logrus.Fatal("数据库迁移失败:", err)
 	}
 
-	// 启动 WebSocket Hub
+	// 初始化Redis
+	if err := config.InitRedis(); err != nil {
+		logrus.Fatal("Redis初始化失败:", err)
+	}
+
+	// 设置Gin模式
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.New()
+
+	// 中间件
+	r.Use(gin.Logger())
+	r.Use(gin.Recovery())
+	r.Use(middleware.CORS())
+	r.Use(middleware.RateLimit())
+	r.Use(middleware.Security())
+
+	// WebSocket Hub
+	hub := newHub()
 	go hub.run()
 
-	// 创建 Gin 路由
-	r := gin.Default()
-
-	// 添加 CORS 中间件
-	r.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-		
-		c.Next()
+	// 健康检查
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "ok",
+			"timestamp": time.Now().Unix(),
+			"service": "im-backend",
+			"version": "1.0.0",
+		})
 	})
 
-	// API 路由组
+	// 指标端点
+	r.GET("/metrics", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"connections": len(hub.clients),
+			"uptime": time.Since(time.Now()).String(),
+		})
+	})
+
+	// API路由组
 	api := r.Group("/api")
 	{
-		// 健康检查
-		api.GET("/ping", func(c *gin.Context) {
-			c.JSON(200, gin.H{"ok": true, "message": "志航密信后端运行正常"})
-		})
-
 		// 初始化服务
-		authService := services.NewAuthService()
-		messageService := services.NewMessageService()
-		
-		// 初始化高级消息服务
+		authService := service.NewAuthService()
+		messageService := service.NewMessageService()
+		userManagementService := service.NewUserManagementService()
 		messageAdvancedService := service.NewMessageAdvancedService(config.DB)
 		messageEncryptionService := service.NewMessageEncryptionService(config.DB)
-		schedulerService := service.NewSchedulerService(config.DB, messageAdvancedService, messageEncryptionService)
-		
-		// 初始化群组管理服务
-		chatPermissionService := service.NewChatPermissionService(config.DB)
-		chatAnnouncementService := service.NewChatAnnouncementService(config.DB)
-		chatStatisticsService := service.NewChatStatisticsService(config.DB)
-		chatBackupService := service.NewChatBackupService(config.DB)
-		
-		// 初始化文件管理服务
-		_ = service.NewFileService()
-		_ = service.NewFileEncryptionService()
-		
-		// 初始化消息功能增强服务
 		messageEnhancementService := service.NewMessageEnhancementService(config.DB)
-		
-		// 初始化内容审核服务
 		contentModerationService := service.NewContentModerationService(config.DB)
-		
-		// 初始化主题服务
 		themeService := service.NewThemeService(config.DB)
-		// 初始化内置主题
-		themeService.InitializeBuiltInThemes()
-		
-		// 初始化群组管理服务
 		groupMgmtService := service.NewGroupManagementService(config.DB)
-		// 初始化管理员角色
-		groupMgmtService.InitializeAdminRoles()
-		
-		// 启动定时任务
-		ctx := context.Background()
-		go schedulerService.StartScheduler(ctx)
-		
+		fileService := service.NewFileService()
+		fileEncryptionService := service.NewFileEncryptionService()
+		schedulerService := service.NewSchedulerService(config.DB, messageAdvancedService, messageEncryptionService)
+
 		// 初始化控制器
+		authController := controller.NewAuthController(authService)
+		messageController := controller.NewMessageController(messageService)
+		userMgmtController := controller.NewUserManagementController(userManagementService)
 		messageAdvancedController := controller.NewMessageAdvancedController(messageAdvancedService)
 		messageEncryptionController := controller.NewMessageEncryptionController(messageEncryptionService)
-		chatManagementController := controller.NewChatManagementController(
-			chatPermissionService,
-			chatAnnouncementService,
-			chatStatisticsService,
-			chatBackupService,
-		)
-		fileController := controller.NewFileController()
 		messageEnhancementController := controller.NewMessageEnhancementController(messageEnhancementService)
 		contentModerationController := controller.NewContentModerationController(contentModerationService)
 		themeController := controller.NewThemeController(themeService)
 		groupMgmtController := controller.NewGroupManagementController(groupMgmtService)
+		fileController := controller.NewFileController(fileService, fileEncryptionService)
 
-		// 认证相关
+		// 认证路由
 		auth := api.Group("/auth")
 		{
-			auth.POST("/login", func(c *gin.Context) {
-				var req services.LoginRequest
-				if err := c.ShouldBindJSON(&req); err != nil {
-					c.JSON(400, gin.H{"error": err.Error()})
-					return
-				}
-				
-				resp, err := authService.Login(req)
-				if err != nil {
-					c.JSON(401, gin.H{"error": err.Error()})
-					return
-				}
-				
-				c.JSON(200, resp)
-			})
-			
-			auth.POST("/register", func(c *gin.Context) {
-				var req services.RegisterRequest
-				if err := c.ShouldBindJSON(&req); err != nil {
-					c.JSON(400, gin.H{"error": err.Error()})
-					return
-				}
-				
-				resp, err := authService.Register(req)
-				if err != nil {
-					c.JSON(400, gin.H{"error": err.Error()})
-					return
-				}
-				
-				c.JSON(200, resp)
-			})
-			
-			auth.POST("/refresh", func(c *gin.Context) {
-				var req services.RefreshRequest
-				if err := c.ShouldBindJSON(&req); err != nil {
-					c.JSON(400, gin.H{"error": err.Error()})
-					return
-				}
-				
-				resp, err := authService.RefreshToken(req)
-				if err != nil {
-					c.JSON(401, gin.H{"error": err.Error()})
-					return
-				}
-				
-				c.JSON(200, resp)
-			})
-			
-			auth.POST("/logout", func(c *gin.Context) {
-				token := c.GetHeader("Authorization")
-				if token == "" {
-					c.JSON(400, gin.H{"error": "缺少认证令牌"})
-					return
-				}
-				
-				if err := authService.Logout(token); err != nil {
-					c.JSON(500, gin.H{"error": err.Error()})
-					return
-				}
-				
-				c.JSON(200, gin.H{"message": "登出成功"})
-			})
+			auth.POST("/login", authController.Login)
+			auth.POST("/register", authController.Register)
+			auth.POST("/logout", authController.Logout)
+			auth.POST("/refresh", authController.RefreshToken)
+			auth.GET("/validate", authController.ValidateToken)
 		}
 
-		// 用户相关
-		users := api.Group("/users")
+		// 受保护的路由
+		protected := api.Group("/")
+		protected.Use(middleware.Auth())
 		{
-			users.GET("/me", func(c *gin.Context) {
-				token := c.GetHeader("Authorization")
-				if token == "" {
-					c.JSON(401, gin.H{"error": "缺少认证令牌"})
-					return
-				}
-				
-				user, err := authService.ValidateToken(token)
-				if err != nil {
-					c.JSON(401, gin.H{"error": err.Error()})
-					return
-				}
-				
-				c.JSON(200, user)
-			})
-			
-			users.PUT("/me", func(c *gin.Context) {
-				token := c.GetHeader("Authorization")
-				if token == "" {
-					c.JSON(401, gin.H{"error": "缺少认证令牌"})
-					return
-				}
-				
-				user, err := authService.ValidateToken(token)
-				if err != nil {
-					c.JSON(401, gin.H{"error": err.Error()})
-					return
-				}
-				
-				var updateData struct {
-					Nickname string `json:"nickname"`
-					Bio      string `json:"bio"`
-					Avatar   string `json:"avatar"`
-				}
-				
-				if err := c.ShouldBindJSON(&updateData); err != nil {
-					c.JSON(400, gin.H{"error": err.Error()})
-					return
-				}
-				
-				// 更新用户信息
-				config.DB.Model(user).Updates(updateData)
-				
-				c.JSON(200, gin.H{"message": "用户信息更新成功"})
-			})
-		}
+			// 用户管理
+			users := protected.Group("/users")
+			{
+				users.GET("/me", func(c *gin.Context) {
+					userID, _ := c.Get("user_id")
+					c.JSON(http.StatusOK, gin.H{"user_id": userID})
+				})
+				users.PUT("/profile", userMgmtController.UpdateProfile)
+				users.PUT("/password", userMgmtController.ChangePassword)
+				users.DELETE("/account", userMgmtController.DeleteAccount)
+				users.GET("/contacts", userMgmtController.GetContacts)
+				users.POST("/contacts", userMgmtController.AddContact)
+				users.DELETE("/contacts/:id", userMgmtController.RemoveContact)
+				users.POST("/block", userMgmtController.BlockUser)
+				users.POST("/unblock", userMgmtController.UnblockUser)
+			}
 
-		// 消息相关
-		messages := api.Group("/messages")
-		messages.Use(middleware.AuthMiddleware()) // 添加认证中间件
-		{
-			// 基础消息功能
-			messages.POST("/send", func(c *gin.Context) {
-				userID := c.GetUint("user_id")
-				
-				var req services.SendMessageRequest
-				if err := c.ShouldBindJSON(&req); err != nil {
-					c.JSON(400, gin.H{"error": err.Error()})
-					return
-				}
-				
-				message, err := messageService.SendMessage(userID, req)
-				if err != nil {
-					c.JSON(400, gin.H{"error": err.Error()})
-					return
-				}
-				
-				c.JSON(200, message)
-			})
-			
-			messages.GET("", func(c *gin.Context) {
-				userID := c.GetUint("user_id")
-				
-				var req services.GetMessagesRequest
-				if err := c.ShouldBindQuery(&req); err != nil {
-					c.JSON(400, gin.H{"error": err.Error()})
-					return
-				}
-				
-				messages, err := messageService.GetMessages(userID, req)
-				if err != nil {
-					c.JSON(400, gin.H{"error": err.Error()})
-					return
-				}
-				
-				c.JSON(200, messages)
-			})
+			// 消息管理
+			messages := protected.Group("/messages")
+			{
+				messages.POST("/", messageController.SendMessage)
+				messages.GET("/", messageController.GetMessages)
+				messages.GET("/:id", messageController.GetMessage)
+				messages.DELETE("/:id", messageController.DeleteMessage)
+				messages.POST("/:id/read", messageController.MarkAsRead)
+			}
 
 			// 高级消息功能
-			messages.POST("/recall", messageAdvancedController.RecallMessage)
-			messages.POST("/edit", messageAdvancedController.EditMessage)
-			messages.POST("/forward", messageAdvancedController.ForwardMessage)
-			messages.POST("/schedule", messageAdvancedController.ScheduleMessage)
-			messages.GET("/search", messageAdvancedController.SearchMessages)
-			messages.GET("/:message_id/edit-history", messageAdvancedController.GetMessageEditHistory)
-			messages.DELETE("/:message_id/schedule", messageAdvancedController.CancelScheduledMessage)
-			messages.GET("/scheduled", messageAdvancedController.GetScheduledMessages)
-			messages.POST("/reply", messageAdvancedController.ReplyToMessage)
-			
-			// 消息功能增强
-			messages.POST("/pin", messageEnhancementController.PinMessage)
-			messages.POST("/:message_id/unpin", messageEnhancementController.UnpinMessage)
-			messages.POST("/mark", messageEnhancementController.MarkMessage)
-			messages.POST("/:message_id/unmark", messageEnhancementController.UnmarkMessage)
-			messages.POST("/share", messageEnhancementController.ShareMessage)
-			messages.POST("/status", messageEnhancementController.UpdateMessageStatus)
-			messages.GET("/:message_id/reply-chain", messageEnhancementController.GetMessageReplyChain)
-			messages.GET("/pinned", messageEnhancementController.GetPinnedMessages)
-			messages.GET("/marked", messageEnhancementController.GetMarkedMessages)
-			messages.GET("/:message_id/status", messageEnhancementController.GetMessageStatus)
-			messages.GET("/:message_id/share-history", messageEnhancementController.GetMessageShareHistory)
-		}
-
-		// 消息加密相关
-		encryption := api.Group("/encryption")
-		encryption.Use(middleware.AuthMiddleware())
-		{
-			encryption.POST("/encrypt", messageEncryptionController.EncryptMessage)
-			encryption.POST("/decrypt", messageEncryptionController.DecryptMessage)
-			encryption.GET("/:message_id/info", messageEncryptionController.GetEncryptedMessageInfo)
-			encryption.POST("/self-destruct", messageEncryptionController.SetMessageSelfDestruct)
-		}
-
-		// 群组管理相关
-		chats := api.Group("/chats")
-		chats.Use(middleware.AuthMiddleware())
-		{
-			// 权限管理
-			chats.POST("/:chat_id/permissions", chatManagementController.SetChatPermissions)
-			chats.GET("/:chat_id/permissions", chatManagementController.GetChatPermissions)
-			chats.POST("/:chat_id/members/mute", chatManagementController.MuteMember)
-			chats.DELETE("/:chat_id/members/:user_id/mute", chatManagementController.UnmuteMember)
-			chats.POST("/:chat_id/members/ban", chatManagementController.BanMember)
-			chats.DELETE("/:chat_id/members/:user_id/ban", chatManagementController.UnbanMember)
-			chats.POST("/:chat_id/members/promote", chatManagementController.PromoteMember)
-			chats.POST("/:chat_id/members/:user_id/demote", chatManagementController.DemoteMember)
-			chats.GET("/:chat_id/members", chatManagementController.GetChatMembers)
-
-			// 公告管理
-			chats.POST("/:chat_id/announcements", chatManagementController.CreateAnnouncement)
-			chats.PUT("/announcements/:announcement_id", chatManagementController.UpdateAnnouncement)
-			chats.DELETE("/announcements/:announcement_id", chatManagementController.DeleteAnnouncement)
-			chats.GET("/:chat_id/announcements", chatManagementController.GetChatAnnouncements)
-			chats.GET("/:chat_id/announcements/pinned", chatManagementController.GetPinnedAnnouncement)
-			chats.POST("/announcements/:announcement_id/pin", chatManagementController.PinAnnouncement)
-			chats.DELETE("/announcements/:announcement_id/pin", chatManagementController.UnpinAnnouncement)
-
-			// 规则管理
-			chats.POST("/:chat_id/rules", chatManagementController.CreateRule)
-			chats.PUT("/rules/:rule_id", chatManagementController.UpdateRule)
-			chats.DELETE("/rules/:rule_id", chatManagementController.DeleteRule)
-			chats.GET("/:chat_id/rules", chatManagementController.GetChatRules)
-
-			// 统计分析
-			chats.GET("/:chat_id/statistics", chatManagementController.GetChatStatistics)
-
-			// 备份恢复
-			chats.POST("/:chat_id/backups", chatManagementController.CreateBackup)
-			chats.POST("/backups/:backup_id/restore", chatManagementController.RestoreBackup)
-			chats.GET("/:chat_id/backups", chatManagementController.GetBackupList)
-			chats.DELETE("/backups/:backup_id", chatManagementController.DeleteBackup)
-		}
-
-		// 文件管理相关
-		files := api.Group("/files")
-		files.Use(middleware.AuthMiddleware())
-		{
-			// 文件上传
-			files.POST("/upload", fileController.UploadFile)
-			files.POST("/upload-chunk", fileController.UploadChunk)
-			
-			// 文件操作
-			files.GET("/:file_id", fileController.GetFile)
-			files.GET("/:file_id/download", fileController.DownloadFile)
-			files.DELETE("/:file_id", fileController.DeleteFile)
-			
-			// 文件预览
-			files.GET("/:file_id/preview", fileController.GetFilePreview)
-			
-			// 文件版本管理
-			files.GET("/:file_id/versions", fileController.GetFileVersions)
-			files.POST("/:file_id/versions", fileController.CreateFileVersion)
-		}
-
-		// 内容审核相关
-		moderation := api.Group("/moderation")
-		moderation.Use(middleware.AuthMiddleware())
-		{
-			// 举报功能
-			moderation.POST("/report", contentModerationController.ReportContent)
-			moderation.POST("/check", contentModerationController.CheckContent)
-			
-			// 举报管理（管理员）
-			moderation.GET("/reports/pending", contentModerationController.GetPendingReports)
-			moderation.GET("/reports/:report_id", contentModerationController.GetReportDetail)
-			moderation.POST("/reports/handle", contentModerationController.HandleReport)
-			
-			// 过滤规则管理（管理员）
-			moderation.POST("/filters", contentModerationController.CreateFilter)
-			
-			// 用户警告
-			moderation.GET("/users/:user_id/warnings", contentModerationController.GetUserWarnings)
-			
-			// 统计数据
-			moderation.GET("/statistics", contentModerationController.GetStatistics)
-		}
-
-		// 主题管理相关
-		themes := api.Group("/themes")
-		{
-			// 公开接口
-			themes.GET("", themeController.ListThemes)
-			themes.GET("/:theme_id", themeController.GetTheme)
-			themes.POST("/initialize", themeController.InitializeBuiltInThemes)
-			
-			// 需要认证的接口
-			themesAuth := themes.Group("")
-			themesAuth.Use(middleware.AuthMiddleware())
+			advanced := protected.Group("/advanced")
 			{
-				themesAuth.POST("", themeController.CreateTheme)
-				themesAuth.GET("/user", themeController.GetUserTheme)
-				themesAuth.PUT("/user", themeController.UpdateUserTheme)
+				advanced.POST("/recall", messageAdvancedController.RecallMessage)
+				advanced.PUT("/edit", messageAdvancedController.EditMessage)
+				advanced.POST("/forward", messageAdvancedController.ForwardMessage)
+				advanced.POST("/search", messageAdvancedController.SearchMessages)
+				advanced.POST("/schedule", messageAdvancedController.ScheduleMessage)
+				advanced.GET("/scheduled", messageAdvancedController.GetScheduledMessages)
+				advanced.DELETE("/scheduled/:id", messageAdvancedController.CancelScheduledMessage)
+			}
+
+			// 消息加密功能
+			encryption := protected.Group("/encryption")
+			{
+				encryption.POST("/encrypt", messageEncryptionController.EncryptMessage)
+				encryption.POST("/decrypt", messageEncryptionController.DecryptMessage)
+				encryption.POST("/self-destruct", messageEncryptionController.SetSelfDestruct)
+			}
+
+			// 消息增强功能
+			enhancement := protected.Group("/enhancement")
+			{
+				enhancement.POST("/pin", messageEnhancementController.PinMessage)
+				enhancement.POST("/unpin", messageEnhancementController.UnpinMessage)
+				enhancement.POST("/mark", messageEnhancementController.MarkMessage)
+				enhancement.POST("/unmark", messageEnhancementController.UnmarkMessage)
+				enhancement.POST("/share", messageEnhancementController.ShareMessage)
+				enhancement.GET("/status/:id", messageEnhancementController.GetMessageStatus)
+			}
+
+			// 群组管理
+			groups := protected.Group("/groups")
+			{
+				groups.POST("/", groupMgmtController.CreateGroup)
+				groups.GET("/", groupMgmtController.GetGroups)
+				groups.GET("/:id", groupMgmtController.GetGroup)
+				groups.PUT("/:id", groupMgmtController.UpdateGroup)
+				groups.DELETE("/:id", groupMgmtController.DeleteGroup)
+				groups.POST("/:id/members", groupMgmtController.AddMember)
+				groups.DELETE("/:id/members/:user_id", groupMgmtController.RemoveMember)
+				groups.POST("/:id/admins", groupMgmtController.PromoteAdmin)
+				groups.DELETE("/:id/admins/:user_id", groupMgmtController.DemoteAdmin)
+				groups.POST("/:id/invite", groupMgmtController.CreateInvite)
+				groups.GET("/:id/invites", groupMgmtController.GetInvites)
+				groups.POST("/join/:invite_code", groupMgmtController.JoinByInvite)
+			}
+
+			// 文件管理
+			files := protected.Group("/files")
+			{
+				files.POST("/upload", fileController.UploadFile)
+				files.GET("/:id", fileController.GetFile)
+				files.GET("/:id/download", fileController.DownloadFile)
+				files.GET("/:id/preview", fileController.GetFilePreview)
+				files.DELETE("/:id", fileController.DeleteFile)
+				files.GET("/", fileController.GetUserFiles)
+			}
+
+			// 主题管理
+			themes := protected.Group("/themes")
+			{
+				themes.GET("/", themeController.GetThemes)
+				themes.GET("/:id", themeController.GetTheme)
+				themes.POST("/", themeController.CreateTheme)
+				themes.PUT("/:id", themeController.UpdateTheme)
+				themes.DELETE("/:id", themeController.DeleteTheme)
+				themes.POST("/:id/apply", themeController.ApplyTheme)
+				themes.GET("/user/settings", themeController.GetUserThemeSettings)
+				themes.PUT("/user/settings", themeController.UpdateUserThemeSettings)
+			}
+
+			// 内容审核
+			moderation := protected.Group("/moderation")
+			{
+				moderation.POST("/report", contentModerationController.ReportContent)
+				moderation.GET("/reports", contentModerationController.GetReports)
+				moderation.POST("/reports/:id/review", contentModerationController.ReviewReport)
+				moderation.POST("/filters", contentModerationController.CreateFilter)
+				moderation.GET("/filters", contentModerationController.GetFilters)
+				moderation.DELETE("/filters/:id", contentModerationController.DeleteFilter)
+				moderation.GET("/statistics", contentModerationController.GetStatistics)
 			}
 		}
 
-		// 群组管理相关
-		groups := api.Group("/groups")
-		groups.Use(middleware.AuthMiddleware())
-		{
-			// 邀请管理
-			groups.POST("/:chat_id/invites", groupMgmtController.CreateInvite)
-			groups.GET("/:chat_id/invites", groupMgmtController.GetChatInvites)
-			groups.POST("/invites/:invite_code/use", groupMgmtController.UseInvite)
-			groups.POST("/invites/:invite_id/revoke", groupMgmtController.RevokeInvite)
-			
-			// 入群申请
-			groups.GET("/:chat_id/join-requests", groupMgmtController.GetPendingJoinRequests)
-			groups.POST("/join-requests/approve", groupMgmtController.ApproveJoinRequest)
-			
-			// 管理员管理
-			groups.GET("/:chat_id/admins", groupMgmtController.GetChatAdmins)
-			groups.POST("/admins/promote", groupMgmtController.PromoteMember)
-			groups.POST("/:chat_id/admins/:user_id/demote", groupMgmtController.DemoteMember)
-			
-			// 审计日志
-			groups.GET("/:chat_id/audit-logs", groupMgmtController.GetAuditLogs)
-		}
+		// WebSocket连接
+		r.GET("/ws", func(c *gin.Context) {
+			conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+			if err != nil {
+				logrus.Error("WebSocket升级失败:", err)
+				return
+			}
+			defer conn.Close()
+
+			hub.register <- conn
+
+			for {
+				_, _, err := conn.ReadMessage()
+				if err != nil {
+					logrus.Error("WebSocket读取失败:", err)
+					hub.unregister <- conn
+					break
+				}
+			}
+		})
 	}
 
-	// WebSocket 连接处理
-	r.GET("/ws", func(c *gin.Context) {
-		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-		if err != nil {
-			logrus.Error("WebSocket 升级失败:", err)
-			return
-		}
-		defer conn.Close()
-
-		hub.register <- conn
-		defer func() { hub.unregister <- conn }()
-
-		// 处理 WebSocket 消息
-		for {
-			_, message, err := conn.ReadMessage()
-			if err != nil {
-				logrus.Error("WebSocket 读取错误:", err)
-				break
-			}
-			
-			// 广播消息给所有客户端
-			hub.broadcast <- message
-		}
-	})
-
-	// 获取端口号，默认 8080
+	// 启动服务器
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	logrus.Info("志航密信后端启动完成，端口:", port)
-	logrus.Info("API 文档: http://localhost:" + port + "/api/ping")
-	logrus.Info("WebSocket: ws://localhost:" + port + "/ws")
-	
-	if err := r.Run(":" + port); err != nil {
-		log.Fatal("服务器启动失败:", err)
+	srv := &http.Server{
+		Addr:    ":" + port,
+		Handler: r,
 	}
+
+	// 优雅关闭
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logrus.Fatal("服务器启动失败:", err)
+		}
+	}()
+
+	logrus.Info("服务器启动成功，端口:", port)
+
+	// 等待中断信号
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	logrus.Info("正在关闭服务器...")
+
+	// 优雅关闭
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		logrus.Fatal("服务器强制关闭:", err)
+	}
+
+	logrus.Info("服务器已关闭")
 }
