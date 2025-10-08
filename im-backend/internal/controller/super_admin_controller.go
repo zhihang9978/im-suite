@@ -1,29 +1,54 @@
-﻿package controller
+package controller
 
 import (
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"zhihang-messenger/im-backend/internal/service"
+
+	"github.com/gin-gonic/gin"
 )
 
-// SuperAdminController 瓒呯骇绠＄悊鍛樻帶鍒跺櫒
+// SuperAdminController 超级管理员控制器
 type SuperAdminController struct {
-	superAdminService *service.SuperAdminService
+	service *service.SuperAdminService
+	monitor *service.SystemMonitorService
 }
 
-// NewSuperAdminController 鍒涘缓瓒呯骇绠＄悊鍛樻帶鍒跺櫒
+// NewSuperAdminController 创建超级管理员控制器
 func NewSuperAdminController() *SuperAdminController {
 	return &SuperAdminController{
-		superAdminService: service.NewSuperAdminService(),
+		service: service.NewSuperAdminService(),
+		monitor: service.NewSystemMonitorService(),
 	}
 }
 
-// GetSystemStats 鑾峰彇绯荤粺缁熻淇℃伅
+// SetupRoutes 设置路由
+func (c *SuperAdminController) SetupRoutes(router *gin.RouterGroup) {
+	// 系统统计
+	router.GET("/stats", c.GetSystemStats)
+	router.GET("/stats/system", c.GetSystemMetrics)
+
+	// 在线用户管理
+	router.GET("/users/online", c.GetOnlineUsers)
+	router.POST("/users/:id/logout", c.ForceLogout)
+
+	// 用户管理
+	router.POST("/users/:id/ban", c.BanUser)
+	router.POST("/users/:id/unban", c.UnbanUser)
+	router.DELETE("/users/:id", c.DeleteUser)
+	router.GET("/users/:id/analysis", c.GetUserAnalysis)
+
+	// 系统管理
+	router.GET("/alerts", c.GetAlerts)
+	router.GET("/logs", c.GetAdminLogs)
+	router.POST("/broadcast", c.BroadcastMessage)
+}
+
+// GetSystemStats 获取系统统计
 func (c *SuperAdminController) GetSystemStats(ctx *gin.Context) {
-	stats, err := c.superAdminService.GetSystemStats()
+	stats, err := c.service.GetSystemStats()
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -35,22 +60,23 @@ func (c *SuperAdminController) GetSystemStats(ctx *gin.Context) {
 	})
 }
 
-// GetOnlineUsers 鑾峰彇鍦ㄧ嚎鐢ㄦ埛鍒楄〃
+// GetSystemMetrics 获取系统指标
+func (c *SuperAdminController) GetSystemMetrics(ctx *gin.Context) {
+	metrics, err := c.monitor.GetSystemStats()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    metrics,
+	})
+}
+
+// GetOnlineUsers 获取在线用户
 func (c *SuperAdminController) GetOnlineUsers(ctx *gin.Context) {
-	pageStr := ctx.DefaultQuery("page", "1")
-	pageSizeStr := ctx.DefaultQuery("page_size", "50")
-
-	page, _ := strconv.Atoi(pageStr)
-	pageSize, _ := strconv.Atoi(pageSizeStr)
-
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 50
-	}
-
-	users, total, err := c.superAdminService.GetOnlineUsers(page, pageSize)
+	users, err := c.service.GetOnlineUsers()
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -58,49 +84,111 @@ func (c *SuperAdminController) GetOnlineUsers(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data": gin.H{
-			"users":     users,
-			"total":     total,
-			"page":      page,
-			"page_size": pageSize,
-		},
+		"data":    users,
+		"total":   len(users),
 	})
 }
 
-// GetUserActivity 鑾峰彇鐢ㄦ埛娲诲姩璁板綍
-func (c *SuperAdminController) GetUserActivity(ctx *gin.Context) {
-	userIDStr := ctx.Param("user_id")
-	userID, err := strconv.ParseUint(userIDStr, 10, 32)
+// ForceLogout 强制用户下线
+func (c *SuperAdminController) ForceLogout(ctx *gin.Context) {
+	adminID := ctx.GetUint("user_id")
+	userID, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "鏃犳晥鐨勭敤鎴稩D"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的用户ID"})
 		return
 	}
 
-	limitStr := ctx.DefaultQuery("limit", "100")
-	limit, _ := strconv.Atoi(limitStr)
-
-	activities, err := c.superAdminService.GetUserActivity(uint(userID), limit)
-	if err != nil {
+	if err := c.service.ForceLogoutUser(adminID, uint(userID)); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    activities,
+		"message": "用户已强制下线",
 	})
 }
 
-// GetUserBehaviorAnalysis 鑾峰彇鐢ㄦ埛琛屼负鍒嗘瀽
-func (c *SuperAdminController) GetUserBehaviorAnalysis(ctx *gin.Context) {
-	userIDStr := ctx.Param("user_id")
-	userID, err := strconv.ParseUint(userIDStr, 10, 32)
+// BanUser 封禁用户
+func (c *SuperAdminController) BanUser(ctx *gin.Context) {
+	adminID := ctx.GetUint("user_id")
+	userID, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "鏃犳晥鐨勭敤鎴稩D"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的用户ID"})
 		return
 	}
 
-	analysis, err := c.superAdminService.GetUserBehaviorAnalysis(uint(userID))
+	var req struct {
+		Duration int64  `json:"duration"` // 封禁时长（秒）
+		Reason   string `json:"reason"`
+	}
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	duration := time.Duration(req.Duration) * time.Second
+	if err := c.service.BanUser(adminID, uint(userID), duration, req.Reason); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "用户已封禁",
+	})
+}
+
+// UnbanUser 解封用户
+func (c *SuperAdminController) UnbanUser(ctx *gin.Context) {
+	adminID := ctx.GetUint("user_id")
+	userID, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的用户ID"})
+		return
+	}
+
+	if err := c.service.UnbanUser(adminID, uint(userID)); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "用户已解封",
+	})
+}
+
+// DeleteUser 删除用户
+func (c *SuperAdminController) DeleteUser(ctx *gin.Context) {
+	adminID := ctx.GetUint("user_id")
+	userID, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的用户ID"})
+		return
+	}
+
+	if err := c.service.DeleteUser(adminID, uint(userID)); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "用户已删除",
+	})
+}
+
+// GetUserAnalysis 获取用户分析
+func (c *SuperAdminController) GetUserAnalysis(ctx *gin.Context) {
+	userID, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的用户ID"})
+		return
+	}
+
+	analysis, err := c.service.GetUserAnalysis(uint(userID))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -112,25 +200,9 @@ func (c *SuperAdminController) GetUserBehaviorAnalysis(ctx *gin.Context) {
 	})
 }
 
-// ForceLogoutUser 寮哄埗鐢ㄦ埛涓嬬嚎
-func (c *SuperAdminController) ForceLogoutUser(ctx *gin.Context) {
-	userIDStr := ctx.Param("user_id")
-	userID, err := strconv.ParseUint(userIDStr, 10, 32)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "鏃犳晥鐨勭敤鎴稩D"})
-		return
-	}
-
-	var req struct {
-		Reason string `json:"reason" binding:"required"`
-	}
-
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	err = c.superAdminService.ForceLogoutUser(uint(userID), req.Reason)
+// GetAlerts 获取系统告警
+func (c *SuperAdminController) GetAlerts(ctx *gin.Context) {
+	alerts, err := c.monitor.GetActiveAlerts()
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -138,33 +210,21 @@ func (c *SuperAdminController) ForceLogoutUser(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"message": "鐢ㄦ埛宸插己鍒朵笅绾?,
+		"data":    alerts,
+		"total":   len(alerts),
 	})
 }
 
-// BanUser 灏佺鐢ㄦ埛
-func (c *SuperAdminController) BanUser(ctx *gin.Context) {
-	userIDStr := ctx.Param("user_id")
-	userID, err := strconv.ParseUint(userIDStr, 10, 32)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "鏃犳晥鐨勭敤鎴稩D"})
-		return
+// GetAdminLogs 获取管理员操作日志
+func (c *SuperAdminController) GetAdminLogs(ctx *gin.Context) {
+	limit := 100
+	if l := ctx.Query("limit"); l != "" {
+		if parsed, err := strconv.Atoi(l); err == nil {
+			limit = parsed
+		}
 	}
 
-	var req struct {
-		Duration int    `json:"duration" binding:"required"` // 灏佺鏃堕暱锛堝皬鏃讹級
-		Reason   string `json:"reason" binding:"required"`
-	}
-
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	adminID, _ := ctx.Get("user_id")
-	duration := time.Duration(req.Duration) * time.Hour
-
-	err = c.superAdminService.BanUser(uint(userID), duration, req.Reason, adminID.(uint))
+	activities, err := c.service.GetRecentActivities(limit)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -172,156 +232,17 @@ func (c *SuperAdminController) BanUser(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"message": "鐢ㄦ埛宸插皝绂?,
+		"data":    activities,
+		"total":   len(activities),
 	})
 }
 
-// UnbanUser 瑙ｅ皝鐢ㄦ埛
-func (c *SuperAdminController) UnbanUser(ctx *gin.Context) {
-	userIDStr := ctx.Param("user_id")
-	userID, err := strconv.ParseUint(userIDStr, 10, 32)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "鏃犳晥鐨勭敤鎴稩D"})
-		return
-	}
-
-	adminID, _ := ctx.Get("user_id")
-
-	err = c.superAdminService.UnbanUser(uint(userID), adminID.(uint))
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "鐢ㄦ埛宸茶В灏?,
-	})
-}
-
-// DeleteUserAccount 鍒犻櫎鐢ㄦ埛璐﹀彿
-func (c *SuperAdminController) DeleteUserAccount(ctx *gin.Context) {
-	userIDStr := ctx.Param("user_id")
-	userID, err := strconv.ParseUint(userIDStr, 10, 32)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "鏃犳晥鐨勭敤鎴稩D"})
-		return
-	}
-
-	var req struct {
-		Reason string `json:"reason" binding:"required"`
-	}
-
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	adminID, _ := ctx.Get("user_id")
-
-	err = c.superAdminService.DeleteUserAccount(uint(userID), adminID.(uint), req.Reason)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "鐢ㄦ埛璐﹀彿宸插垹闄?,
-	})
-}
-
-// GetContentModerationQueue 鑾峰彇鍐呭瀹℃牳闃熷垪
-func (c *SuperAdminController) GetContentModerationQueue(ctx *gin.Context) {
-	status := ctx.DefaultQuery("status", "pending")
-	pageStr := ctx.DefaultQuery("page", "1")
-	pageSizeStr := ctx.DefaultQuery("page_size", "20")
-
-	page, _ := strconv.Atoi(pageStr)
-	pageSize, _ := strconv.Atoi(pageSizeStr)
-
-	records, total, err := c.superAdminService.GetContentModerationQueue(status, page, pageSize)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data": gin.H{
-			"records":   records,
-			"total":     total,
-			"page":      page,
-			"page_size": pageSize,
-		},
-	})
-}
-
-// ModerateContent 瀹℃牳鍐呭
-func (c *SuperAdminController) ModerateContent(ctx *gin.Context) {
-	contentIDStr := ctx.Param("content_id")
-	contentID, err := strconv.ParseUint(contentIDStr, 10, 32)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "鏃犳晥鐨勫唴瀹笽D"})
-		return
-	}
-
-	var req struct {
-		Action string `json:"action" binding:"required"` // approve, reject, delete, warn, ban
-		Reason string `json:"reason" binding:"required"`
-	}
-
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	reviewerID, _ := ctx.Get("user_id")
-
-	err = c.superAdminService.ModerateContent(uint(contentID), req.Action, req.Reason, reviewerID.(uint))
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "鍐呭瀹℃牳瀹屾垚",
-	})
-}
-
-// GetSystemLogs 鑾峰彇绯荤粺鏃ュ織
-func (c *SuperAdminController) GetSystemLogs(ctx *gin.Context) {
-	logType := ctx.DefaultQuery("type", "all")
-	pageStr := ctx.DefaultQuery("page", "1")
-	pageSizeStr := ctx.DefaultQuery("page_size", "50")
-
-	page, _ := strconv.Atoi(pageStr)
-	pageSize, _ := strconv.Atoi(pageSizeStr)
-
-	logs, total, err := c.superAdminService.GetSystemLogs(logType, page, pageSize)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data": gin.H{
-			"logs":      logs,
-			"total":     total,
-			"page":      page,
-			"page_size": pageSize,
-		},
-	})
-}
-
-// BroadcastMessage 骞挎挱绯荤粺娑堟伅
+// BroadcastMessage 广播系统消息
 func (c *SuperAdminController) BroadcastMessage(ctx *gin.Context) {
+	adminID := ctx.GetUint("user_id")
+
 	var req struct {
-		Message    string `json:"message" binding:"required"`
-		TargetType string `json:"target_type" binding:"required"` // all, users, groups
-		TargetIDs  []uint `json:"target_ids"`
+		Message string `json:"message" binding:"required"`
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -329,62 +250,13 @@ func (c *SuperAdminController) BroadcastMessage(ctx *gin.Context) {
 		return
 	}
 
-	err := c.superAdminService.BroadcastMessage(req.Message, req.TargetType, req.TargetIDs)
-	if err != nil {
+	if err := c.service.BroadcastMessage(adminID, req.Message); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"message": "绯荤粺娑堟伅宸插箍鎾?,
+		"message": "广播消息已发送",
 	})
-}
-
-// GetServerHealth 鑾峰彇鏈嶅姟鍣ㄥ仴搴风姸鎬?func (c *SuperAdminController) GetServerHealth(ctx *gin.Context) {
-	health, err := c.superAdminService.GetServerHealth()
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    health,
-	})
-}
-
-// SetupRoutes 璁剧疆璺敱
-func (c *SuperAdminController) SetupRoutes(r *gin.RouterGroup) {
-	// 绯荤粺缁熻
-	r.GET("/stats", c.GetSystemStats)
-	r.GET("/health", c.GetServerHealth)
-
-	// 鍦ㄧ嚎鐢ㄦ埛绠＄悊
-	r.GET("/online-users", c.GetOnlineUsers)
-
-	// 鐢ㄦ埛绠＄悊
-	users := r.Group("/users")
-	{
-		users.GET("/:user_id/activity", c.GetUserActivity)
-		users.GET("/:user_id/analysis", c.GetUserBehaviorAnalysis)
-		users.POST("/:user_id/force-logout", c.ForceLogoutUser)
-		users.POST("/:user_id/ban", c.BanUser)
-		users.POST("/:user_id/unban", c.UnbanUser)
-		users.DELETE("/:user_id", c.DeleteUserAccount)
-	}
-
-	// 鍐呭瀹℃牳
-	moderation := r.Group("/moderation")
-	{
-		moderation.GET("/queue", c.GetContentModerationQueue)
-		moderation.POST("/:content_id/moderate", c.ModerateContent)
-	}
-
-	// 绯荤粺绠＄悊
-	system := r.Group("/system")
-	{
-		system.GET("/logs", c.GetSystemLogs)
-		system.POST("/broadcast", c.BroadcastMessage)
-	}
 }

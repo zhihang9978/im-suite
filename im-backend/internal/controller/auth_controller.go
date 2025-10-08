@@ -3,8 +3,9 @@ package controller
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"zhihang-messenger/im-backend/internal/service"
+
+	"github.com/gin-gonic/gin"
 )
 
 type AuthController struct {
@@ -36,7 +37,7 @@ func (c *AuthController) Login(ctx *gin.Context) {
 	var req LoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "请求参数错误",
+			"error":   "请求参数错误",
 			"details": err.Error(),
 		})
 		return
@@ -51,7 +52,7 @@ func (c *AuthController) Login(ctx *gin.Context) {
 	response, err := c.authService.Login(loginReq)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{
-			"error": "登录失败",
+			"error":   "登录失败",
 			"details": err.Error(),
 		})
 		return
@@ -65,7 +66,7 @@ func (c *AuthController) Register(ctx *gin.Context) {
 	var req RegisterRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "请求参数错误",
+			"error":   "请求参数错误",
 			"details": err.Error(),
 		})
 		return
@@ -82,7 +83,7 @@ func (c *AuthController) Register(ctx *gin.Context) {
 	response, err := c.authService.Register(registerReq)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "注册失败",
+			"error":   "注册失败",
 			"details": err.Error(),
 		})
 		return
@@ -109,7 +110,7 @@ func (c *AuthController) Logout(ctx *gin.Context) {
 	err := c.authService.Logout(token)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "登出失败",
+			"error":   "登出失败",
 			"details": err.Error(),
 		})
 		return
@@ -138,14 +139,14 @@ func (c *AuthController) ValidateToken(ctx *gin.Context) {
 	user, err := c.authService.ValidateToken(token)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{
-			"error": "令牌验证失败",
+			"error":   "令牌验证失败",
 			"details": err.Error(),
 		})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"user": user,
+		"user":  user,
 		"valid": true,
 	})
 }
@@ -165,10 +166,11 @@ func (c *AuthController) RefreshToken(ctx *gin.Context) {
 		token = token[7:]
 	}
 
-	newToken, err := c.authService.RefreshToken(token)
+	req := service.RefreshRequest{RefreshToken: token}
+	newToken, err := c.authService.RefreshToken(req)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{
-			"error": "令牌刷新失败",
+			"error":   "令牌刷新失败",
 			"details": err.Error(),
 		})
 		return

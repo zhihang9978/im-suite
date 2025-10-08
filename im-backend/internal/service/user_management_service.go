@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"gorm.io/gorm"
 	"zhihang-messenger/im-backend/internal/model"
+
+	"gorm.io/gorm"
 )
 
 // UserManagementService 用户管理服务
@@ -23,14 +24,14 @@ func NewUserManagementService(db *gorm.DB) *UserManagementService {
 
 // BlacklistEntry 黑名单条目
 type BlacklistEntry struct {
-	ID          uint      `json:"id" gorm:"primaryKey"`
-	UserID      uint      `json:"user_id" gorm:"not null"`
-	Reason      string    `json:"reason" gorm:"type:text"`
-	BlacklistType string  `json:"blacklist_type" gorm:"type:varchar(50)"` // temp, permanent, ip, device
-	ExpiresAt   *time.Time `json:"expires_at"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-	CreatedBy   uint      `json:"created_by"` // 管理员ID
+	ID            uint       `json:"id" gorm:"primaryKey"`
+	UserID        uint       `json:"user_id" gorm:"not null"`
+	Reason        string     `json:"reason" gorm:"type:text"`
+	BlacklistType string     `json:"blacklist_type" gorm:"type:varchar(50)"` // temp, permanent, ip, device
+	ExpiresAt     *time.Time `json:"expires_at"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
+	CreatedBy     uint       `json:"created_by"` // 管理员ID
 }
 
 // UserMgmtActivity 用户管理活动记录
@@ -45,14 +46,14 @@ type UserMgmtActivity struct {
 
 // UserRestriction 用户限制
 type UserRestriction struct {
-	ID           uint      `json:"id" gorm:"primaryKey"`
-	UserID       uint      `json:"user_id" gorm:"not null"`
-	RestrictionType string `json:"restriction_type" gorm:"type:varchar(50)"` // message_limit, file_upload, voice_call, etc.
-	LimitValue   int       `json:"limit_value"`
-	CurrentUsage int       `json:"current_usage"`
-	ResetTime    time.Time `json:"reset_time"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID              uint      `json:"id" gorm:"primaryKey"`
+	UserID          uint      `json:"user_id" gorm:"not null"`
+	RestrictionType string    `json:"restriction_type" gorm:"type:varchar(50)"` // message_limit, file_upload, voice_call, etc.
+	LimitValue      int       `json:"limit_value"`
+	CurrentUsage    int       `json:"current_usage"`
+	ResetTime       time.Time `json:"reset_time"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
 }
 
 // AddToBlacklist 添加用户到黑名单
@@ -91,7 +92,7 @@ func (s *UserManagementService) RemoveFromBlacklist(ctx context.Context, userID 
 func (s *UserManagementService) IsBlacklisted(ctx context.Context, userID uint) (bool, *BlacklistEntry, error) {
 	var entry BlacklistEntry
 	err := s.db.WithContext(ctx).Where("user_id = ? AND (expires_at IS NULL OR expires_at > ?)", userID, time.Now()).First(&entry).Error
-	
+
 	if err == gorm.ErrRecordNotFound {
 		return false, nil, nil
 	}
@@ -170,11 +171,11 @@ func (s *UserManagementService) GetUserMgmtActivity(ctx context.Context, userID 
 // SetUserRestriction 设置用户限制
 func (s *UserManagementService) SetUserRestriction(ctx context.Context, userID uint, restrictionType string, limitValue int) error {
 	restriction := &UserRestriction{
-		UserID:           userID,
-		RestrictionType:  restrictionType,
-		LimitValue:       limitValue,
-		CurrentUsage:     0,
-		ResetTime:        time.Now().Add(24 * time.Hour), // 默认24小时重置
+		UserID:          userID,
+		RestrictionType: restrictionType,
+		LimitValue:      limitValue,
+		CurrentUsage:    0,
+		ResetTime:       time.Now().Add(24 * time.Hour), // 默认24小时重置
 	}
 
 	if err := s.db.WithContext(ctx).Create(restriction).Error; err != nil {
@@ -191,7 +192,7 @@ func (s *UserManagementService) SetUserRestriction(ctx context.Context, userID u
 func (s *UserManagementService) CheckUserRestriction(ctx context.Context, userID uint, restrictionType string) (bool, error) {
 	var restriction UserRestriction
 	err := s.db.WithContext(ctx).Where("user_id = ? AND restriction_type = ?", userID, restrictionType).First(&restriction).Error
-	
+
 	if err == gorm.ErrRecordNotFound {
 		return true, nil // 没有限制
 	}
@@ -211,7 +212,7 @@ func (s *UserManagementService) CheckUserRestriction(ctx context.Context, userID
 func (s *UserManagementService) IncrementUserRestriction(ctx context.Context, userID uint, restrictionType string) error {
 	var restriction UserRestriction
 	err := s.db.WithContext(ctx).Where("user_id = ? AND restriction_type = ?", userID, restrictionType).First(&restriction).Error
-	
+
 	if err == gorm.ErrRecordNotFound {
 		return nil // 没有限制
 	}
@@ -238,7 +239,7 @@ func (s *UserManagementService) IncrementUserRestriction(ctx context.Context, us
 // GetUserRestrictions 获取用户限制列表
 func (s *UserManagementService) GetUserRestrictions(ctx context.Context, userID uint) ([]UserRestriction, error) {
 	var restrictions []UserRestriction
-	
+
 	if err := s.db.WithContext(ctx).Where("user_id = ?", userID).Find(&restrictions).Error; err != nil {
 		return nil, fmt.Errorf("获取用户限制失败: %w", err)
 	}
@@ -336,7 +337,7 @@ func (s *UserManagementService) CleanupExpiredBlacklist(ctx context.Context) err
 // GetSuspiciousUsers 获取可疑用户列表
 func (s *UserManagementService) GetSuspiciousUsers(ctx context.Context, page, pageSize int) ([]model.User, error) {
 	var users []model.User
-	
+
 	// 查询有异常活动的用户
 	subQuery := s.db.WithContext(ctx).Model(&UserMgmtActivity{}).
 		Select("user_id").
@@ -353,4 +354,31 @@ func (s *UserManagementService) GetSuspiciousUsers(ctx context.Context, page, pa
 	}
 
 	return users, nil
+}
+
+// GetUserActivity 获取用户活动记录
+func (s *UserManagementService) GetUserActivity(ctx context.Context, userID uint, page, pageSize int) ([]UserMgmtActivity, int64, error) {
+	var activities []UserMgmtActivity
+	var total int64
+
+	offset := (page - 1) * pageSize
+
+	// 统计总数
+	if err := s.db.WithContext(ctx).Model(&UserMgmtActivity{}).
+		Where("user_id = ?", userID).
+		Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// 查询活动记录
+	if err := s.db.WithContext(ctx).
+		Where("user_id = ?", userID).
+		Order("created_at DESC").
+		Limit(pageSize).
+		Offset(offset).
+		Find(&activities).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return activities, total, nil
 }
