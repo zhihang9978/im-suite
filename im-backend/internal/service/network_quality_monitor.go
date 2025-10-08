@@ -149,7 +149,7 @@ func (nqm *NetworkQualityMonitor) calculateRTTScore(rtt int, thresholds *Quality
 		return 60.0 + (20.0*float64(thresholds.RTTPoor-rtt))/float64(thresholds.RTTPoor-thresholds.RTTGood)
 	} else {
 		// 超过200ms，分数急剧下降
-		return max(0, 60.0-float64(rtt-thresholds.RTTPoor)*0.5)
+		return maxQuality(0, 60.0-float64(rtt-thresholds.RTTPoor)*0.5)
 	}
 }
 
@@ -163,7 +163,7 @@ func (nqm *NetworkQualityMonitor) calculatePacketLossScore(packetLoss float64, t
 		return 60.0 + (20.0*(thresholds.PacketLossPoor-packetLoss))/(thresholds.PacketLossPoor-thresholds.PacketLossGood)
 	} else {
 		// 超过10%丢包，分数急剧下降
-		return max(0, 60.0-(packetLoss-thresholds.PacketLossPoor)*5)
+		return maxQuality(0, 60.0-(packetLoss-thresholds.PacketLossPoor)*5)
 	}
 }
 
@@ -177,7 +177,7 @@ func (nqm *NetworkQualityMonitor) calculateJitterScore(jitter float64, threshold
 		return 60.0 + (20.0*(thresholds.JitterPoor-jitter))/(thresholds.JitterPoor-thresholds.JitterGood)
 	} else {
 		// 超过50ms抖动，分数急剧下降
-		return max(0, 60.0-(jitter-thresholds.JitterPoor)*2)
+		return maxQuality(0, 60.0-(jitter-thresholds.JitterPoor)*2)
 	}
 }
 
@@ -191,7 +191,7 @@ func (nqm *NetworkQualityMonitor) calculateBandwidthScore(bandwidth int, thresho
 		return 60.0 + (20.0*float64(bandwidth-thresholds.BandwidthPoor))/float64(thresholds.BandwidthGood-thresholds.BandwidthPoor)
 	} else {
 		// 低于500kbps，分数急剧下降
-		return max(0, 60.0-float64(thresholds.BandwidthPoor-bandwidth)*0.1)
+		return maxQuality(0, 60.0-float64(thresholds.BandwidthPoor-bandwidth)*0.1)
 	}
 }
 
@@ -450,8 +450,8 @@ func (nqm *NetworkQualityMonitor) GetStatistics() map[string]interface{} {
 	}
 }
 
-// max 返回两个浮点数中的较大值
-func max(a, b float64) float64 {
+// maxQuality 返回两个浮点数中的较大值
+func maxQuality(a, b float64) float64 {
 	if a > b {
 		return a
 	}

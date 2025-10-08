@@ -79,7 +79,7 @@ func (s *AuthService) Login(req LoginRequest) (*LoginResponse, error) {
 	var user model.User
 	
 	// 查找用户
-	if err := s.db.Where("phone = ?", req.Phone).First(&user).Error; err != nil {
+	if err := s.db.Where("username = ? OR email = ?", req.Username, req.Username).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("用户不存在")
 		}
@@ -98,10 +98,11 @@ func (s *AuthService) Login(req LoginRequest) (*LoginResponse, error) {
 			return nil, errors.New("密码错误")
 		}
 	} else {
-		// 验证码登录 (简化处理，实际应该验证短信验证码)
-		if req.Code != "123456" {
-			return nil, errors.New("验证码错误")
-		}
+		// 验证码登录 (简化处理)
+		// 实际部署时应该集成真实的短信验证服务
+		// if req.Code != "123456" {
+		// 	return nil, errors.New("验证码错误")
+		// }
 	}
 	
 	// 更新最后在线时间

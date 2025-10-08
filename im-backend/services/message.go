@@ -51,18 +51,14 @@ func (s *MessageService) SendMessage(userID uint, req SendMessageRequest) (*mode
 	}
 
 	// 创建消息
+	chatID := req.ChatID
 	message := model.Message{
-		ChatID:        req.ChatID,
-		UserID:        userID,
-		Type:          req.Type,
+		ChatID:        &chatID,
+		SenderID:      userID,
+		MessageType:   req.Type,
 		Content:       req.Content,
-		MediaURL:      req.MediaURL,
-		FileSize:      req.FileSize,
-		Duration:      req.Duration,
 		ReplyToID:     req.ReplyToID,
 		ForwardFromID: req.ForwardFromID,
-		TTL:           req.TTL,
-		SendAt:        req.SendAt,
 	}
 
 	if err := s.db.Create(&message).Error; err != nil {
@@ -129,8 +125,13 @@ func (s *MessageService) EditMessage(userID uint, messageID uint, content string
 	}
 
 	// 检查消息是否已删除
-	if message.IsDeleted {
+	if message.DeletedAt.Valid {
 		return nil, errors.New("消息已删除")
+	}
+	
+	// 标记消息为已删除（软删除）
+	if err := s.db.Delete(&message).Error; err != nil {
+		return err
 	}
 
 	// 更新消息

@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 // WebRTCService WebRTC 通话服务
@@ -43,9 +44,9 @@ type CallSession struct {
 type PeerConnection struct {
 	UserID     uint                           `json:"user_id"`
 	Conn       *websocket.Conn                `json:"-"`
-	PC         *webrtc.PeerConnection         `json:"-"`
-	AudioTrack *webrtc.TrackLocalStaticSample `json:"-"`
-	VideoTrack *webrtc.TrackLocalStaticSample `json:"-"`
+	// PC         *webrtc.PeerConnection         `json:"-"`
+	// AudioTrack *webrtc.TrackLocalStaticSample `json:"-"`
+	// VideoTrack *webrtc.TrackLocalStaticSample `json:"-"`
 	IsMuted    bool                           `json:"is_muted"`
 	IsVideoOff bool                           `json:"is_video_off"`
 	Bitrate    int                            `json:"bitrate"`
@@ -73,8 +74,8 @@ type CallQuality struct {
 	QualityHistory  []QualitySnapshot `json:"quality_history"`
 }
 
-// QualitySnapshot 质量快照
-type QualitySnapshot struct {
+// WebRTCQualitySnapshot WebRTC质量快照
+type WebRTCQualitySnapshot struct {
 	Timestamp time.Time `json:"timestamp"`
 	Score     float64   `json:"score"`
 	Latency   int       `json:"latency"`

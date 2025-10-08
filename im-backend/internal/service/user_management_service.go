@@ -34,8 +34,8 @@ type BlacklistEntry struct {
 	CreatedBy   uint      `json:"created_by"` // 管理员ID
 }
 
-// UserActivity 用户活动记录
-type UserActivity struct {
+// UserMgmtActivity 用户管理活动记录
+type UserMgmtActivity struct {
 	ID        uint      `json:"id" gorm:"primaryKey"`
 	UserID    uint      `json:"user_id" gorm:"not null"`
 	Activity  string    `json:"activity" gorm:"type:varchar(100)"`
@@ -71,7 +71,7 @@ func (s *UserManagementService) AddToBlacklist(ctx context.Context, userID uint,
 	}
 
 	// 记录用户活动
-	s.LogUserActivity(ctx, userID, "added_to_blacklist", "", "")
+	s.LogUserMgmtActivity(ctx, userID, "added_to_blacklist", "", "")
 
 	return nil
 }
@@ -83,7 +83,7 @@ func (s *UserManagementService) RemoveFromBlacklist(ctx context.Context, userID 
 	}
 
 	// 记录用户活动
-	s.LogUserActivity(ctx, userID, "removed_from_blacklist", "", "")
+	s.LogUserMgmtActivity(ctx, userID, "removed_from_blacklist", "", "")
 
 	return nil
 }
@@ -128,9 +128,9 @@ func (s *UserManagementService) GetBlacklist(ctx context.Context, page, pageSize
 	return entries, total, nil
 }
 
-// LogUserActivity 记录用户活动
-func (s *UserManagementService) LogUserActivity(ctx context.Context, userID uint, activity, ipAddress, userAgent string) error {
-	entry := &UserActivity{
+// LogUserMgmtActivity 记录用户活动
+func (s *UserManagementService) LogUserMgmtActivity(ctx context.Context, userID uint, activity, ipAddress, userAgent string) error {
+	entry := &UserMgmtActivity{
 		UserID:    userID,
 		Activity:  activity,
 		IPAddress: ipAddress,
@@ -144,13 +144,13 @@ func (s *UserManagementService) LogUserActivity(ctx context.Context, userID uint
 	return nil
 }
 
-// GetUserActivity 获取用户活动记录
-func (s *UserManagementService) GetUserActivity(ctx context.Context, userID uint, page, pageSize int) ([]UserActivity, int64, error) {
-	var activities []UserActivity
+// GetUserMgmtActivity 获取用户活动记录
+func (s *UserManagementService) GetUserMgmtActivity(ctx context.Context, userID uint, page, pageSize int) ([]UserMgmtActivity, int64, error) {
+	var activities []UserMgmtActivity
 	var total int64
 
 	// 获取总数
-	if err := s.db.WithContext(ctx).Model(&UserActivity{}).Where("user_id = ?", userID).Count(&total).Error; err != nil {
+	if err := s.db.WithContext(ctx).Model(&UserMgmtActivity{}).Where("user_id = ?", userID).Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("获取用户活动总数失败: %w", err)
 	}
 
@@ -183,7 +183,7 @@ func (s *UserManagementService) SetUserRestriction(ctx context.Context, userID u
 	}
 
 	// 记录用户活动
-	s.LogUserActivity(ctx, userID, "restriction_set", "", "")
+	s.LogUserMgmtActivity(ctx, userID, "restriction_set", "", "")
 
 	return nil
 }
@@ -266,7 +266,7 @@ func (s *UserManagementService) BanUser(ctx context.Context, userID uint, reason
 	}
 
 	// 记录用户活动
-	s.LogUserActivity(ctx, userID, "user_banned", "", "")
+	s.LogUserMgmtActivity(ctx, userID, "user_banned", "", "")
 
 	return nil
 }
@@ -284,7 +284,7 @@ func (s *UserManagementService) UnbanUser(ctx context.Context, userID uint) erro
 	}
 
 	// 记录用户活动
-	s.LogUserActivity(ctx, userID, "user_unbanned", "", "")
+	s.LogUserMgmtActivity(ctx, userID, "user_unbanned", "", "")
 
 	return nil
 }
@@ -316,7 +316,7 @@ func (s *UserManagementService) GetUserStats(ctx context.Context, userID uint) (
 	stats["restrictions"] = restrictions
 
 	// 获取最近活动
-	activities, _, err := s.GetUserActivity(ctx, userID, 1, 10)
+	activities, _, err := s.GetUserMgmtActivity(ctx, userID, 1, 10)
 	if err != nil {
 		return nil, fmt.Errorf("获取用户活动失败: %w", err)
 	}
@@ -339,7 +339,7 @@ func (s *UserManagementService) GetSuspiciousUsers(ctx context.Context, page, pa
 	var users []model.User
 	
 	// 查询有异常活动的用户
-	subQuery := s.db.WithContext(ctx).Model(&UserActivity{}).
+	subQuery := s.db.WithContext(ctx).Model(&UserMgmtActivity{}).
 		Select("user_id").
 		Where("activity IN (?)", []string{"failed_login", "suspicious_activity", "spam_detected"}).
 		Group("user_id").

@@ -32,16 +32,16 @@ type StatisticsRequest struct {
 // StatisticsResponse 统计响应
 type StatisticsResponse struct {
 	ChatID                uint                    `json:"chat_id"`
-	TotalMembers          int                     `json:"total_members"`
-	ActiveMembers         int                     `json:"active_members"`
-	TotalMessages         int                     `json:"total_messages"`
-	MessagesToday         int                     `json:"messages_today"`
-	MessagesThisWeek      int                     `json:"messages_this_week"`
-	MessagesThisMonth     int                     `json:"messages_this_month"`
-	TotalFiles            int                     `json:"total_files"`
-	TotalImages           int                     `json:"total_images"`
-	TotalVideos           int                     `json:"total_videos"`
-	TotalAudios           int                     `json:"total_audios"`
+	TotalMembers          int64                   `json:"total_members"`
+	ActiveMembers         int64                   `json:"active_members"`
+	TotalMessages         int64                   `json:"total_messages"`
+	MessagesToday         int64                   `json:"messages_today"`
+	MessagesThisWeek      int64                   `json:"messages_this_week"`
+	MessagesThisMonth     int64                   `json:"messages_this_month"`
+	TotalFiles            int64                   `json:"total_files"`
+	TotalImages           int64                   `json:"total_images"`
+	TotalVideos           int64                   `json:"total_videos"`
+	TotalAudios           int64                   `json:"total_audios"`
 	TotalVoiceCalls       int                     `json:"total_voice_calls"`
 	TotalVideoCalls       int                     `json:"total_video_calls"`
 	AverageMessageLength  float64                 `json:"average_message_length"`

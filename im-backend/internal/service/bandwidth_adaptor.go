@@ -167,7 +167,7 @@ func (ba *BandwidthAdaptor) calculateRTTScore(rtt int) float64 {
 	case rtt <= 500:
 		return 40.0 + (20.0*float64(500-rtt))/300.0
 	default:
-		return max(0, 40.0-float64(rtt-500)*0.1)
+		return maxFloat(0, 40.0-float64(rtt-500)*0.1)
 	}
 }
 
@@ -181,7 +181,7 @@ func (ba *BandwidthAdaptor) calculatePacketLossScore(packetLoss float64) float64
 	case packetLoss <= 10.0:
 		return 60.0 + (20.0*(10.0-packetLoss))/7.0
 	default:
-		return max(0, 60.0-(packetLoss-10.0)*5.0)
+		return maxFloat(0, 60.0-(packetLoss-10.0)*5.0)
 	}
 }
 
@@ -199,7 +199,7 @@ func (ba *BandwidthAdaptor) calculateBandwidthScore(bandwidth int) float64 {
 	case bandwidth >= 200:
 		return 20.0 + (20.0*float64(bandwidth-200))/300.0
 	default:
-		return max(0, float64(bandwidth)*0.1)
+		return maxFloat(0, float64(bandwidth)*0.1)
 	}
 }
 
@@ -453,8 +453,8 @@ func min(a, b int) int {
 	return b
 }
 
-// max 返回两个浮点数中的较大值
-func max(a, b float64) float64 {
+// maxFloat 返回两个浮点数中的较大值
+func maxFloat(a, b float64) float64 {
 	if a > b {
 		return a
 	}

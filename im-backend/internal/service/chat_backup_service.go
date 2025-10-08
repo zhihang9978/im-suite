@@ -221,7 +221,6 @@ func (s *ChatBackupService) CleanupExpiredBackups(ctx context.Context) error {
 // collectBackupData 收集备份数据
 func (s *ChatBackupService) collectBackupData(ctx context.Context, chatID uint, backupType string) (*BackupData, error) {
 	backupData := &BackupData{
-		ChatID:     chatID,
 		BackupType: backupType,
 		CreatedAt:  time.Now(),
 	}

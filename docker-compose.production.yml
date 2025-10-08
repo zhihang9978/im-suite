@@ -167,8 +167,7 @@ services:
     volumes:
       - ./logs/web:/var/log/nginx
     ports:
-      - "80:80"
-      - "443:443"
+      - "3002:80"
     networks:
       - im-network
     depends_on:

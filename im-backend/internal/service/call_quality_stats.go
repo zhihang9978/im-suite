@@ -564,7 +564,7 @@ func (cqs *CallQualityStatsService) calculateOverallExperienceScore(stats *CallQ
 	networkWeight := 0.3
 	audioWeight := 0.3
 	videoWeight := 0.2
-	eventWeight := 0.2
+	// eventWeight := 0.2 // 未使用的权重，可以在未来版本中使用
 
 	networkScore := stats.NetworkStats.QualityScore
 	audioScore := stats.AudioStats.QualityScore
