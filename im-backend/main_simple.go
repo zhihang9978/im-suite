@@ -42,17 +42,6 @@ func main() {
 		logrus.Fatal("Redis初始化失败:", err)
 	}
 
-	// 启动性能优化服务
-	messagePushService := service.NewMessagePushService()
-	messagePushService.Start()
-	defer messagePushService.Stop()
-
-	storageOptimizationService := service.NewStorageOptimizationService()
-	storageOptimizationService.StartCleanupProcessor()
-
-	networkOptimizationService := service.NewNetworkOptimizationService()
-	networkOptimizationService.StartNetworkOptimization()
-	
 	// 启动系统监控服务
 	systemMonitorService := service.NewSystemMonitorService()
 	go systemMonitorService.StartMonitoring()
@@ -90,9 +79,7 @@ func main() {
 	{
 		// 初始化服务
 		authService := service.NewAuthService()
-		messageService := service.NewMessageService()
 		userManagementService := service.NewUserManagementService(config.DB)
-		messageAdvancedService := service.NewMessageAdvancedService(config.DB)
 		messageEncryptionService := service.NewMessageEncryptionService(config.DB)
 		messageEnhancementService := service.NewMessageEnhancementService(config.DB)
 		contentModerationService := service.NewContentModerationService(config.DB)
@@ -103,18 +90,13 @@ func main() {
 
 		// 初始化控制器
 		authController := controller.NewAuthController(authService)
-		messageController := controller.NewMessageController(messageService)
 		userMgmtController := controller.NewUserManagementController(userManagementService)
-		messageAdvancedController := controller.NewMessageAdvancedController(messageAdvancedService)
 		messageEncryptionController := controller.NewMessageEncryptionController(messageEncryptionService)
 		messageEnhancementController := controller.NewMessageEnhancementController(messageEnhancementService)
 		contentModerationController := controller.NewContentModerationController(contentModerationService)
 		themeController := controller.NewThemeController(themeService)
 		groupMgmtController := controller.NewGroupManagementController(groupMgmtService)
 		fileController := controller.NewFileController()
-
-		// 性能优化控制器
-		performanceController := controller.NewPerformanceOptimizationController()
 		
 		// 超级管理员控制器
 		superAdminController := controller.NewSuperAdminController()

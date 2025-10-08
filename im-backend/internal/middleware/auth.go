@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"zhihang-messenger/im-backend/services"
+	"zhihang-messenger/im-backend/internal/service"
 )
 
 // AuthMiddleware JWT认证中间件
@@ -29,7 +29,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		token := tokenParts[1]
 
 		// 验证令牌
-		authService := services.NewAuthService()
+		authService := service.NewAuthService()
 		user, err := authService.ValidateToken(token)
 		if err != nil {
 			c.JSON(401, gin.H{"error": "认证令牌无效"})
