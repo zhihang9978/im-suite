@@ -128,11 +128,6 @@ func (s *MessageService) EditMessage(userID uint, messageID uint, content string
 	if message.DeletedAt.Valid {
 		return nil, errors.New("消息已删除")
 	}
-	
-	// 标记消息为已删除（软删除）
-	if err := s.db.Delete(&message).Error; err != nil {
-		return err
-	}
 
 	// 更新消息
 	message.Content = content
@@ -152,13 +147,12 @@ func (s *MessageService) DeleteMessage(userID uint, messageID uint) error {
 	var message model.Message
 	
 	// 查找消息
-	if err := s.db.Where("id = ? AND user_id = ?", messageID, userID).First(&message).Error; err != nil {
+	if err := s.db.Where("id = ? AND sender_id = ?", messageID, userID).First(&message).Error; err != nil {
 		return errors.New("消息不存在或无权限")
 	}
 
-	// 软删除消息
-	message.IsDeleted = true
-	if err := s.db.Save(&message).Error; err != nil {
+	// 软删除消息（使用GORM的Delete方法）
+	if err := s.db.Delete(&message).Error; err != nil {
 		return err
 	}
 

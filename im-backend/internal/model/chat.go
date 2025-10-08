@@ -108,16 +108,16 @@ type ChatRule struct {
 type ChatStatistics struct {
 	ID                    uint      `gorm:"primaryKey" json:"id"`
 	ChatID                uint      `gorm:"not null;index" json:"chat_id"`
-	TotalMembers          int       `gorm:"default:0" json:"total_members"`
-	ActiveMembers         int       `gorm:"default:0" json:"active_members"`
-	TotalMessages         int       `gorm:"default:0" json:"total_messages"`
-	MessagesToday         int       `gorm:"default:0" json:"messages_today"`
-	MessagesThisWeek      int       `gorm:"default:0" json:"messages_this_week"`
-	MessagesThisMonth     int       `gorm:"default:0" json:"messages_this_month"`
-	TotalFiles            int       `gorm:"default:0" json:"total_files"`
-	TotalImages           int       `gorm:"default:0" json:"total_images"`
-	TotalVideos           int       `gorm:"default:0" json:"total_videos"`
-	TotalAudios           int       `gorm:"default:0" json:"total_audios"`
+	TotalMembers          int64     `gorm:"default:0" json:"total_members"`
+	ActiveMembers         int64     `gorm:"default:0" json:"active_members"`
+	TotalMessages         int64     `gorm:"default:0" json:"total_messages"`
+	MessagesToday         int64     `gorm:"default:0" json:"messages_today"`
+	MessagesThisWeek      int64     `gorm:"default:0" json:"messages_this_week"`
+	MessagesThisMonth     int64     `gorm:"default:0" json:"messages_this_month"`
+	TotalFiles            int64     `gorm:"default:0" json:"total_files"`
+	TotalImages           int64     `gorm:"default:0" json:"total_images"`
+	TotalVideos           int64     `gorm:"default:0" json:"total_videos"`
+	TotalAudios           int64     `gorm:"default:0" json:"total_audios"`
 	TotalVoiceCalls       int       `gorm:"default:0" json:"total_voice_calls"`
 	TotalVideoCalls       int       `gorm:"default:0" json:"total_video_calls"`
 	AverageMessageLength  float64   `gorm:"default:0" json:"average_message_length"`
