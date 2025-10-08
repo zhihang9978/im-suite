@@ -1,0 +1,33 @@
+[Unit]
+Description=志航密信IM套件
+Requires=docker.service
+After=docker.service
+StartLimitInterval=0
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/im-suite
+ExecStart=/usr/bin/docker-compose -f docker-compose.production.yml up -d
+ExecStop=/usr/bin/docker-compose -f docker-compose.production.yml down
+ExecReload=/usr/bin/docker-compose -f docker-compose.production.yml restart
+TimeoutStartSec=0
+Restart=on-failure
+RestartSec=10
+
+# 环境变量
+Environment=COMPOSE_PROJECT_NAME=im-suite
+Environment=COMPOSE_FILE=docker-compose.production.yml
+
+# 安全配置
+User=root
+Group=docker
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/im-suite
+ReadWritePaths=/var/lib/docker
+ReadWritePaths=/var/run/docker.sock
+
+[Install]
+WantedBy=multi-user.target

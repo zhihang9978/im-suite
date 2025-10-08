@@ -1,0 +1,37 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      httpMethod: POST
+      queryTimeout: 60s
+      timeInterval: 15s
+
+  - name: MySQL
+    type: mysql
+    access: proxy
+    url: mysql:3306
+    database: im_suite_prod
+    user: im_user
+    secureJsonData:
+      password: ${MYSQL_PASSWORD}
+    jsonData:
+      maxOpenConns: 100
+      maxIdleConns: 100
+      connMaxLifetime: 14400
+      maxIdleConnsAuto: true
+
+  - name: Redis
+    type: redis
+    access: proxy
+    url: redis:6379
+    jsonData:
+      client: standalone
+      poolSize: 10
+      timeout: 5
+      pingInterval: 5

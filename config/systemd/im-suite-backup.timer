@@ -1,0 +1,11 @@
+[Unit]
+Description=志航密信数据备份定时器
+Requires=im-suite-backup.service
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

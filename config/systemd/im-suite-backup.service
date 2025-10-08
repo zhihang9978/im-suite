@@ -1,0 +1,20 @@
+[Unit]
+Description=志航密信数据备份服务
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/im-suite
+ExecStart=/opt/im-suite/deploy.sh backup
+User=root
+Group=docker
+
+# 安全配置
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/im-suite
+
+[Install]
+WantedBy=multi-user.target
