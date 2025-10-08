@@ -136,6 +136,9 @@ func main() {
 		// 初始化消息功能增强服务
 		messageEnhancementService := service.NewMessageEnhancementService(config.DB)
 		
+		// 初始化内容审核服务
+		contentModerationService := service.NewContentModerationService(config.DB)
+		
 		// 启动定时任务
 		ctx := context.Background()
 		go schedulerService.StartScheduler(ctx)
@@ -151,6 +154,7 @@ func main() {
 		)
 		fileController := controller.NewFileController()
 		messageEnhancementController := controller.NewMessageEnhancementController(messageEnhancementService)
+		contentModerationController := controller.NewContentModerationController(contentModerationService)
 
 		// 认证相关
 		auth := api.Group("/auth")
@@ -404,6 +408,29 @@ func main() {
 			// 文件版本管理
 			files.GET("/:file_id/versions", fileController.GetFileVersions)
 			files.POST("/:file_id/versions", fileController.CreateFileVersion)
+		}
+
+		// 内容审核相关
+		moderation := api.Group("/moderation")
+		moderation.Use(middleware.AuthMiddleware())
+		{
+			// 举报功能
+			moderation.POST("/report", contentModerationController.ReportContent)
+			moderation.POST("/check", contentModerationController.CheckContent)
+			
+			// 举报管理（管理员）
+			moderation.GET("/reports/pending", contentModerationController.GetPendingReports)
+			moderation.GET("/reports/:report_id", contentModerationController.GetReportDetail)
+			moderation.POST("/reports/handle", contentModerationController.HandleReport)
+			
+			// 过滤规则管理（管理员）
+			moderation.POST("/filters", contentModerationController.CreateFilter)
+			
+			// 用户警告
+			moderation.GET("/users/:user_id/warnings", contentModerationController.GetUserWarnings)
+			
+			// 统计数据
+			moderation.GET("/statistics", contentModerationController.GetStatistics)
 		}
 	}
 

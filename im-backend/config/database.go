@@ -77,6 +77,11 @@ func AutoMigrate() error {
 		&model.FileChunk{},
 		&model.FilePreview{},
 		&model.FileAccess{},
+		&model.ContentReport{},
+		&model.ContentFilter{},
+		&model.UserWarning{},
+		&model.ModerationLog{},
+		&model.ContentStatistics{},
 	)
 	
 	if err != nil {
