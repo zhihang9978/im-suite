@@ -63,6 +63,10 @@ func AutoMigrate() error {
 		&model.ChatMember{},
 		&model.Message{},
 		&model.MessageRead{},
+		&model.File{},
+		&model.FileChunk{},
+		&model.FilePreview{},
+		&model.FileAccess{},
 	)
 	
 	if err != nil {

@@ -129,6 +129,10 @@ func main() {
 		chatStatisticsService := service.NewChatStatisticsService(config.DB)
 		chatBackupService := service.NewChatBackupService(config.DB)
 		
+		// 初始化文件管理服务
+		fileService := service.NewFileService()
+		fileEncryptionService := service.NewFileEncryptionService()
+		
 		// 启动定时任务
 		ctx := context.Background()
 		go schedulerService.StartScheduler(ctx)
@@ -142,6 +146,7 @@ func main() {
 			chatStatisticsService,
 			chatBackupService,
 		)
+		fileController := controller.NewFileController()
 
 		// 认证相关
 		auth := api.Group("/auth")
@@ -361,6 +366,27 @@ func main() {
 			chats.POST("/backups/:backup_id/restore", chatManagementController.RestoreBackup)
 			chats.GET("/:chat_id/backups", chatManagementController.GetBackupList)
 			chats.DELETE("/backups/:backup_id", chatManagementController.DeleteBackup)
+		}
+
+		// 文件管理相关
+		files := api.Group("/files")
+		files.Use(middleware.AuthMiddleware())
+		{
+			// 文件上传
+			files.POST("/upload", fileController.UploadFile)
+			files.POST("/upload-chunk", fileController.UploadChunk)
+			
+			// 文件操作
+			files.GET("/:file_id", fileController.GetFile)
+			files.GET("/:file_id/download", fileController.DownloadFile)
+			files.DELETE("/:file_id", fileController.DeleteFile)
+			
+			// 文件预览
+			files.GET("/:file_id/preview", fileController.GetFilePreview)
+			
+			// 文件版本管理
+			files.GET("/:file_id/versions", fileController.GetFileVersions)
+			files.POST("/:file_id/versions", fileController.CreateFileVersion)
 		}
 	}
 
