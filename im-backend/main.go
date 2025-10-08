@@ -46,6 +46,23 @@ func main() {
 	systemMonitorService := service.NewSystemMonitorService()
 	go systemMonitorService.StartMonitoring()
 
+	// 启动消息推送服务
+	messagePushService := service.NewMessagePushService()
+	messagePushService.Start()
+	defer messagePushService.Stop()
+
+	// 启动存储优化服务
+	storageOptimizationService := service.NewStorageOptimizationService()
+	storageOptimizationService.StartCleanupProcessor()
+
+	// 启动网络优化服务
+	networkOptimizationService := service.NewNetworkOptimizationService()
+	networkOptimizationService.StartNetworkOptimization()
+
+	// 创建WebRTC服务
+	webrtcService := service.NewWebRTCService()
+	_ = webrtcService // WebRTC服务通过WebSocket调用
+
 	// 设置Gin模式
 	ginMode := os.Getenv("GIN_MODE")
 	if ginMode == "" {
@@ -85,6 +102,7 @@ func main() {
 		// 初始化所有服务
 		// ============================================
 		authService := service.NewAuthService()
+		messageService := service.NewMessageService()
 		userManagementService := service.NewUserManagementService(config.DB)
 		messageEncryptionService := service.NewMessageEncryptionService(config.DB)
 		messageEnhancementService := service.NewMessageEnhancementService(config.DB)
@@ -101,6 +119,7 @@ func main() {
 		// 初始化所有控制器
 		// ============================================
 		authController := controller.NewAuthController(authService)
+		messageController := controller.NewMessageController(messageService) // 消息控制器
 		userMgmtController := controller.NewUserManagementController(userManagementService)
 		messageEncryptionController := controller.NewMessageEncryptionController(messageEncryptionService)
 		messageEnhancementController := controller.NewMessageEnhancementController(messageEnhancementService)
@@ -134,6 +153,23 @@ func main() {
 		protected := api.Group("")
 		protected.Use(middleware.AuthMiddleware())
 		{
+			// ------------------------------------
+			// 消息管理
+			// ------------------------------------
+			messages := protected.Group("/messages")
+			{
+				messages.POST("/", messageController.SendMessage)
+				messages.GET("/", messageController.GetMessages)
+				messages.GET("/:id", messageController.GetMessage)
+				messages.DELETE("/:id", messageController.DeleteMessage)
+				messages.POST("/:id/read", messageController.MarkAsRead)
+				messages.POST("/:id/recall", messageController.RecallMessage)
+				messages.PUT("/:id", messageController.EditMessage)
+				messages.POST("/search", messageController.SearchMessages)
+				messages.POST("/forward", messageController.ForwardMessage)
+				messages.GET("/unread/count", messageController.GetUnreadCount)
+			}
+
 			// ------------------------------------
 			// 用户管理
 			// ------------------------------------
