@@ -222,16 +222,6 @@ func (mc *MetricsCollector) GetMetrics() map[string]interface{} {
 
 // RecordAPIMetrics 记录API指标
 func (mc *MetricsCollector) RecordAPIMetrics(endpoint, method string, responseTime time.Duration, statusCode int, userID, ip string) {
-	apiMetrics := &APIMetrics{
-		Endpoint:     endpoint,
-		Method:       method,
-		ResponseTime: responseTime,
-		StatusCode:   statusCode,
-		Timestamp:    time.Now(),
-		UserID:       userID,
-		IP:           ip,
-	}
-
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
 
