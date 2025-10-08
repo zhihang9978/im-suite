@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -10,6 +11,9 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 	"zhihang-messenger/im-backend/config"
+	"zhihang-messenger/im-backend/internal/controller"
+	"zhihang-messenger/im-backend/internal/middleware"
+	"zhihang-messenger/im-backend/internal/service"
 	"zhihang-messenger/im-backend/services"
 )
 
@@ -113,6 +117,31 @@ func main() {
 		// 初始化服务
 		authService := services.NewAuthService()
 		messageService := services.NewMessageService()
+		
+		// 初始化高级消息服务
+		messageAdvancedService := service.NewMessageAdvancedService(config.DB)
+		messageEncryptionService := service.NewMessageEncryptionService(config.DB)
+		schedulerService := service.NewSchedulerService(config.DB, messageAdvancedService, messageEncryptionService)
+		
+		// 初始化群组管理服务
+		chatPermissionService := service.NewChatPermissionService(config.DB)
+		chatAnnouncementService := service.NewChatAnnouncementService(config.DB)
+		chatStatisticsService := service.NewChatStatisticsService(config.DB)
+		chatBackupService := service.NewChatBackupService(config.DB)
+		
+		// 启动定时任务
+		ctx := context.Background()
+		go schedulerService.StartScheduler(ctx)
+		
+		// 初始化控制器
+		messageAdvancedController := controller.NewMessageAdvancedController(messageAdvancedService)
+		messageEncryptionController := controller.NewMessageEncryptionController(messageEncryptionService)
+		chatManagementController := controller.NewChatManagementController(
+			chatPermissionService,
+			chatAnnouncementService,
+			chatStatisticsService,
+			chatBackupService,
+		)
 
 		// 认证相关
 		auth := api.Group("/auth")
@@ -233,19 +262,11 @@ func main() {
 
 		// 消息相关
 		messages := api.Group("/messages")
+		messages.Use(middleware.AuthMiddleware()) // 添加认证中间件
 		{
+			// 基础消息功能
 			messages.POST("/send", func(c *gin.Context) {
-				token := c.GetHeader("Authorization")
-				if token == "" {
-					c.JSON(401, gin.H{"error": "缺少认证令牌"})
-					return
-				}
-				
-				user, err := authService.ValidateToken(token)
-				if err != nil {
-					c.JSON(401, gin.H{"error": err.Error()})
-					return
-				}
+				userID := c.GetUint("user_id")
 				
 				var req services.SendMessageRequest
 				if err := c.ShouldBindJSON(&req); err != nil {
@@ -253,7 +274,7 @@ func main() {
 					return
 				}
 				
-				message, err := messageService.SendMessage(user.ID, req)
+				message, err := messageService.SendMessage(userID, req)
 				if err != nil {
 					c.JSON(400, gin.H{"error": err.Error()})
 					return
@@ -263,17 +284,7 @@ func main() {
 			})
 			
 			messages.GET("", func(c *gin.Context) {
-				token := c.GetHeader("Authorization")
-				if token == "" {
-					c.JSON(401, gin.H{"error": "缺少认证令牌"})
-					return
-				}
-				
-				user, err := authService.ValidateToken(token)
-				if err != nil {
-					c.JSON(401, gin.H{"error": err.Error()})
-					return
-				}
+				userID := c.GetUint("user_id")
 				
 				var req services.GetMessagesRequest
 				if err := c.ShouldBindQuery(&req); err != nil {
@@ -281,7 +292,7 @@ func main() {
 					return
 				}
 				
-				messages, err := messageService.GetMessages(user.ID, req)
+				messages, err := messageService.GetMessages(userID, req)
 				if err != nil {
 					c.JSON(400, gin.H{"error": err.Error()})
 					return
@@ -289,6 +300,67 @@ func main() {
 				
 				c.JSON(200, messages)
 			})
+
+			// 高级消息功能
+			messages.POST("/recall", messageAdvancedController.RecallMessage)
+			messages.POST("/edit", messageAdvancedController.EditMessage)
+			messages.POST("/forward", messageAdvancedController.ForwardMessage)
+			messages.POST("/schedule", messageAdvancedController.ScheduleMessage)
+			messages.GET("/search", messageAdvancedController.SearchMessages)
+			messages.GET("/:message_id/edit-history", messageAdvancedController.GetMessageEditHistory)
+			messages.DELETE("/:message_id/schedule", messageAdvancedController.CancelScheduledMessage)
+			messages.GET("/scheduled", messageAdvancedController.GetScheduledMessages)
+			messages.POST("/reply", messageAdvancedController.ReplyToMessage)
+		}
+
+		// 消息加密相关
+		encryption := api.Group("/encryption")
+		encryption.Use(middleware.AuthMiddleware())
+		{
+			encryption.POST("/encrypt", messageEncryptionController.EncryptMessage)
+			encryption.POST("/decrypt", messageEncryptionController.DecryptMessage)
+			encryption.GET("/:message_id/info", messageEncryptionController.GetEncryptedMessageInfo)
+			encryption.POST("/self-destruct", messageEncryptionController.SetMessageSelfDestruct)
+		}
+
+		// 群组管理相关
+		chats := api.Group("/chats")
+		chats.Use(middleware.AuthMiddleware())
+		{
+			// 权限管理
+			chats.POST("/:chat_id/permissions", chatManagementController.SetChatPermissions)
+			chats.GET("/:chat_id/permissions", chatManagementController.GetChatPermissions)
+			chats.POST("/:chat_id/members/mute", chatManagementController.MuteMember)
+			chats.DELETE("/:chat_id/members/:user_id/mute", chatManagementController.UnmuteMember)
+			chats.POST("/:chat_id/members/ban", chatManagementController.BanMember)
+			chats.DELETE("/:chat_id/members/:user_id/ban", chatManagementController.UnbanMember)
+			chats.POST("/:chat_id/members/promote", chatManagementController.PromoteMember)
+			chats.POST("/:chat_id/members/:user_id/demote", chatManagementController.DemoteMember)
+			chats.GET("/:chat_id/members", chatManagementController.GetChatMembers)
+
+			// 公告管理
+			chats.POST("/:chat_id/announcements", chatManagementController.CreateAnnouncement)
+			chats.PUT("/announcements/:announcement_id", chatManagementController.UpdateAnnouncement)
+			chats.DELETE("/announcements/:announcement_id", chatManagementController.DeleteAnnouncement)
+			chats.GET("/:chat_id/announcements", chatManagementController.GetChatAnnouncements)
+			chats.GET("/:chat_id/announcements/pinned", chatManagementController.GetPinnedAnnouncement)
+			chats.POST("/announcements/:announcement_id/pin", chatManagementController.PinAnnouncement)
+			chats.DELETE("/announcements/:announcement_id/pin", chatManagementController.UnpinAnnouncement)
+
+			// 规则管理
+			chats.POST("/:chat_id/rules", chatManagementController.CreateRule)
+			chats.PUT("/rules/:rule_id", chatManagementController.UpdateRule)
+			chats.DELETE("/rules/:rule_id", chatManagementController.DeleteRule)
+			chats.GET("/:chat_id/rules", chatManagementController.GetChatRules)
+
+			// 统计分析
+			chats.GET("/:chat_id/statistics", chatManagementController.GetChatStatistics)
+
+			// 备份恢复
+			chats.POST("/:chat_id/backups", chatManagementController.CreateBackup)
+			chats.POST("/backups/:backup_id/restore", chatManagementController.RestoreBackup)
+			chats.GET("/:chat_id/backups", chatManagementController.GetBackupList)
+			chats.DELETE("/backups/:backup_id", chatManagementController.DeleteBackup)
 		}
 	}
 
