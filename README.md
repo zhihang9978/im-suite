@@ -4,11 +4,12 @@
 
 志航密信是一个基于 Telegram 前端改造的私有通讯系统，旨在构建一个完全独立可控的即时通讯解决方案。本项目采用自建后端架构，确保数据安全和系统可控性。
 
-**🚀 当前版本**: v1.3.1 - 超级管理后台版  
-**✅ 状态**: 完全生产就绪，无占位符代码  
-**📦 部署**: 支持一键Docker部署到生产环境  
-**⚡ 性能**: 全面性能优化，支持大规模用户  
-**🛡️ 管理**: 超级管理后台，全面掌控系统
+**🚀 当前版本**: v1.3.1 - 完整生产版  
+**✅ 状态**: 100%功能完整，生产就绪  
+**📦 部署**: 支持一键Docker部署  
+**⚡ 性能**: 4维性能优化，支持大规模并发  
+**🛡️ 功能**: 108个API端点，21个核心服务  
+**📞 通话**: WebRTC音视频通话，实时推送
 
 ## 核心特性
 
@@ -338,7 +339,23 @@
 
 ## 快速开始
 
-### 使用 Docker Compose 部署
+### 方式一：一键自动部署（推荐）
+
+```bash
+# 下载并执行部署脚本
+wget https://raw.githubusercontent.com/zhihang9978/im-suite/main/server-deploy.sh
+chmod +x server-deploy.sh
+sudo ./server-deploy.sh
+```
+
+**自动完成**：
+- ✅ 安装Docker和Docker Compose
+- ✅ 克隆项目代码
+- ✅ 配置环境变量
+- ✅ 生成SSL证书
+- ✅ 启动所有服务
+
+### 方式二：使用 Docker Compose 部署
 
 1. **克隆项目**
    ```bash
@@ -348,14 +365,16 @@
 
 2. **启动所有服务**
    ```bash
-   # 启动所有服务（后端、前端、数据库等）
-   docker-compose up -d
+   # 使用生产配置启动
+   docker-compose -f docker-compose.production.yml up -d
    ```
 
 3. **访问应用**
-   - Web 端: http://localhost:3000
-   - 管理后台: http://localhost:8081
-   - API 文档: http://localhost:8080/api/docs
+   - 后端API: http://localhost:8080
+   - Web客户端: http://localhost:3002
+   - 管理后台: http://localhost:3001
+   - Grafana监控: http://localhost:3000
+   - Prometheus: http://localhost:9090
 
 ### 开发环境搭建
 

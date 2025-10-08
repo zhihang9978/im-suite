@@ -81,32 +81,53 @@ fi
 # 6. 创建环境变量文件
 echo -e "${YELLOW}[6/10] 配置环境变量...${NC}"
 cat > .env.production <<EOF
-# 数据库配置
-DB_HOST=mysql
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=zhihang_im_2024_secure_password
-DB_NAME=zhihang_messenger
+# ========================================
+# Docker Compose 配置
+# ========================================
+MYSQL_ROOT_PASSWORD=zhihang_im_2024_secure_password
+MYSQL_DATABASE=zhihang_messenger
+MYSQL_USER=zhihang
+MYSQL_PASSWORD=zhihang_im_2024_secure_password
 
-# Redis配置
-REDIS_HOST=redis
-REDIS_PORT=6379
 REDIS_PASSWORD=zhihang_redis_2024_secure_password
 
-# MinIO配置
+MINIO_ROOT_USER=zhihang_minio_admin
+MINIO_ROOT_PASSWORD=zhihang_minio_2024_secure_key
+
+JWT_SECRET=zhihang_jwt_super_secret_key_2024_production
+
+ADMIN_API_BASE_URL=http://backend:8080
+WEB_API_BASE_URL=http://backend:8080
+WEB_WS_BASE_URL=ws://backend:8080/ws
+
+WEBRTC_ICE_SERVERS=[{"urls":"stun:stun.l.google.com:19302"}]
+
+GRAFANA_PASSWORD=zhihang_grafana_admin_2024
+
+# ========================================
+# 后端应用配置
+# ========================================
+DB_HOST=mysql
+DB_PORT=3306
+DB_NAME=zhihang_messenger
+DB_USER=zhihang
+
+REDIS_HOST=redis
+REDIS_PORT=6379
+
 MINIO_ENDPOINT=minio:9000
 MINIO_ACCESS_KEY=zhihang_minio_admin
 MINIO_SECRET_KEY=zhihang_minio_2024_secure_key
-MINIO_BUCKET=zhihang-messenger-files
+MINIO_USE_SSL=false
 
-# JWT配置
-JWT_SECRET=zhihang_jwt_super_secret_key_2024_production
-JWT_EXPIRES_IN=86400
+JWT_EXPIRES_IN=24h
 
-# 服务器配置
 PORT=8080
 GIN_MODE=release
 LOG_LEVEL=info
+
+MAX_FILE_SIZE=100MB
+UPLOAD_PATH=/app/uploads
 
 # 域名配置（请替换为您的实际域名）
 DOMAIN=im.yourdomain.com
