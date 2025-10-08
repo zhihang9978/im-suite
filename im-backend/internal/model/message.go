@@ -26,8 +26,15 @@ type Message struct {
 	IsScheduled   bool      `gorm:"default:false" json:"is_scheduled"`
 	ScheduledTime *time.Time `json:"scheduled_time"`
 	IsSilent      bool      `gorm:"default:false" json:"is_silent"`
+	IsPinned      bool      `gorm:"default:false" json:"is_pinned"` // 是否置顶
+	PinTime       *time.Time `json:"pin_time"` // 置顶时间
+	IsMarked      bool      `gorm:"default:false" json:"is_marked"` // 是否标记
+	MarkType      string    `gorm:"type:varchar(50)" json:"mark_type"` // 标记类型：important, favorite, archive
+	MarkTime      *time.Time `json:"mark_time"` // 标记时间
 	ReplyToID     *uint     `gorm:"index" json:"reply_to_id"` // 回复的消息ID
 	ForwardFromID *uint     `gorm:"index" json:"forward_from_id"` // 转发的原消息ID
+	ShareCount    int       `gorm:"default:0" json:"share_count"` // 分享次数
+	ViewCount     int       `gorm:"default:0" json:"view_count"` // 查看次数
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
@@ -108,4 +115,84 @@ type MessageSearchIndex struct {
 
 	// 关联
 	Message Message `gorm:"foreignKey:MessageID" json:"message,omitempty"`
+}
+
+// MessagePin 消息置顶记录
+type MessagePin struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	MessageID uint      `gorm:"not null;index" json:"message_id"`
+	PinnedBy  uint      `gorm:"not null" json:"pinned_by"` // 置顶操作者ID
+	PinTime   time.Time `json:"pin_time"`
+	IsActive  bool      `gorm:"default:true" json:"is_active"`
+	UnpinTime *time.Time `json:"unpin_time"`
+	UnpinBy   *uint     `json:"unpin_by"` // 取消置顶操作者ID
+
+	// 关联
+	Message   Message `gorm:"foreignKey:MessageID" json:"message,omitempty"`
+	PinUser   User    `gorm:"foreignKey:PinnedBy" json:"pin_user,omitempty"`
+	UnpinUser *User   `gorm:"foreignKey:UnpinBy" json:"unpin_user,omitempty"`
+}
+
+// MessageMark 消息标记记录
+type MessageMark struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	MessageID uint      `gorm:"not null;index" json:"message_id"`
+	MarkedBy  uint      `gorm:"not null" json:"marked_by"` // 标记操作者ID
+	MarkType  string    `gorm:"type:varchar(50);not null" json:"mark_type"` // important, favorite, archive, etc.
+	MarkTime  time.Time `json:"mark_time"`
+	IsActive  bool      `gorm:"default:true" json:"is_active"`
+	UnmarkTime *time.Time `json:"unmark_time"`
+	UnmarkBy  *uint     `json:"unmark_by"` // 取消标记操作者ID
+
+	// 关联
+	Message   Message `gorm:"foreignKey:MessageID" json:"message,omitempty"`
+	MarkUser  User    `gorm:"foreignKey:MarkedBy" json:"mark_user,omitempty"`
+	UnmarkUser *User  `gorm:"foreignKey:UnmarkBy" json:"unmark_user,omitempty"`
+}
+
+// MessageStatus 消息状态追踪
+type MessageStatus struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	MessageID uint      `gorm:"not null;index" json:"message_id"`
+	UserID    uint      `gorm:"not null;index" json:"user_id"` // 用户ID
+	Status    string    `gorm:"type:varchar(50);not null" json:"status"` // sent, delivered, read, etc.
+	StatusTime time.Time `json:"status_time"`
+	DeviceID  string    `gorm:"type:varchar(255)" json:"device_id"` // 设备ID
+	IPAddress string    `gorm:"type:varchar(45)" json:"ip_address"` // IP地址
+
+	// 关联
+	Message Message `gorm:"foreignKey:MessageID" json:"message,omitempty"`
+	User    User    `gorm:"foreignKey:UserID" json:"user,omitempty"`
+}
+
+// MessageShare 消息分享记录
+type MessageShare struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	MessageID uint      `gorm:"not null;index" json:"message_id"`
+	SharedBy  uint      `gorm:"not null" json:"shared_by"` // 分享者ID
+	SharedTo  *uint     `gorm:"index" json:"shared_to"` // 分享给的用户ID（私聊）
+	SharedToChatID *uint `gorm:"index" json:"shared_to_chat_id"` // 分享到的群聊ID
+	ShareType string    `gorm:"type:varchar(50);default:'copy'" json:"share_type"` // copy, forward, link
+	ShareTime time.Time `json:"share_time"`
+	ShareData string    `gorm:"type:text" json:"share_data"` // 分享的额外数据（如链接、备注等）
+
+	// 关联
+	Message     Message `gorm:"foreignKey:MessageID" json:"message,omitempty"`
+	ShareUser   User    `gorm:"foreignKey:SharedBy" json:"share_user,omitempty"`
+	SharedToUser *User  `gorm:"foreignKey:SharedTo" json:"shared_to_user,omitempty"`
+	SharedToChat *Chat  `gorm:"foreignKey:SharedToChatID" json:"shared_to_chat,omitempty"`
+}
+
+// MessageReply 消息回复链
+type MessageReply struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	MessageID uint      `gorm:"not null;index" json:"message_id"` // 回复的消息ID
+	ReplyToID uint      `gorm:"not null;index" json:"reply_to_id"` // 被回复的消息ID
+	ReplyLevel int      `gorm:"default:1" json:"reply_level"` // 回复层级深度
+	ReplyPath  string   `gorm:"type:text" json:"reply_path"` // 回复路径，如 "1,2,3"
+	CreatedAt time.Time `json:"created_at"`
+
+	// 关联
+	Message Message `gorm:"foreignKey:MessageID" json:"message,omitempty"`
+	ReplyTo Message `gorm:"foreignKey:ReplyToID" json:"reply_to,omitempty"`
 }

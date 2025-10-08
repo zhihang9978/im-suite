@@ -130,8 +130,11 @@ func main() {
 		chatBackupService := service.NewChatBackupService(config.DB)
 		
 		// 初始化文件管理服务
-		fileService := service.NewFileService()
-		fileEncryptionService := service.NewFileEncryptionService()
+		_ = service.NewFileService()
+		_ = service.NewFileEncryptionService()
+		
+		// 初始化消息功能增强服务
+		messageEnhancementService := service.NewMessageEnhancementService(config.DB)
 		
 		// 启动定时任务
 		ctx := context.Background()
@@ -147,6 +150,7 @@ func main() {
 			chatBackupService,
 		)
 		fileController := controller.NewFileController()
+		messageEnhancementController := controller.NewMessageEnhancementController(messageEnhancementService)
 
 		// 认证相关
 		auth := api.Group("/auth")
@@ -316,6 +320,19 @@ func main() {
 			messages.DELETE("/:message_id/schedule", messageAdvancedController.CancelScheduledMessage)
 			messages.GET("/scheduled", messageAdvancedController.GetScheduledMessages)
 			messages.POST("/reply", messageAdvancedController.ReplyToMessage)
+			
+			// 消息功能增强
+			messages.POST("/pin", messageEnhancementController.PinMessage)
+			messages.POST("/:message_id/unpin", messageEnhancementController.UnpinMessage)
+			messages.POST("/mark", messageEnhancementController.MarkMessage)
+			messages.POST("/:message_id/unmark", messageEnhancementController.UnmarkMessage)
+			messages.POST("/share", messageEnhancementController.ShareMessage)
+			messages.POST("/status", messageEnhancementController.UpdateMessageStatus)
+			messages.GET("/:message_id/reply-chain", messageEnhancementController.GetMessageReplyChain)
+			messages.GET("/pinned", messageEnhancementController.GetPinnedMessages)
+			messages.GET("/marked", messageEnhancementController.GetMarkedMessages)
+			messages.GET("/:message_id/status", messageEnhancementController.GetMessageStatus)
+			messages.GET("/:message_id/share-history", messageEnhancementController.GetMessageShareHistory)
 		}
 
 		// 消息加密相关
