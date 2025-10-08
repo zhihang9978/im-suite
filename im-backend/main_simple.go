@@ -37,14 +37,9 @@ func main() {
 		logrus.Fatal("数据库迁移失败:", err)
 	}
 
-	// 初始化Redis
-	if err := config.InitRedis(); err != nil {
-		logrus.Fatal("Redis初始化失败:", err)
-	}
-
-	// 启动系统监控服务
-	systemMonitorService := service.NewSystemMonitorService()
-	go systemMonitorService.StartMonitoring()
+	// 启动系统监控服务（如果需要）
+	// systemMonitorService := service.NewSystemMonitorService()
+	// go systemMonitorService.StartMonitoring()
 
 	// 设置Gin模式
 	gin.SetMode(gin.ReleaseMode)
@@ -97,9 +92,6 @@ func main() {
 		themeController := controller.NewThemeController(themeService)
 		groupMgmtController := controller.NewGroupManagementController(groupMgmtService)
 		fileController := controller.NewFileController()
-		
-		// 超级管理员控制器
-		superAdminController := controller.NewSuperAdminController()
 
 		// 认证路由
 		auth := api.Group("/auth")
@@ -216,16 +208,8 @@ func main() {
 				moderation.GET("/statistics", contentModerationController.GetStatistics)
 			}
 
-			// 性能优化
-			performance := protected.Group("/performance")
-			performanceController.SetupRoutes(performance)
 		}
 		
-		// 超级管理员路由（需要超级管理员权限）
-		superAdmin := api.Group("/super-admin")
-		superAdmin.Use(middleware.Auth())
-		superAdmin.Use(middleware.SuperAdmin())
-		superAdminController.SetupRoutes(superAdmin)
 	}
 
 	// 启动服务器
