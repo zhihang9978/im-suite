@@ -85,6 +85,13 @@ func AutoMigrate() error {
 		&model.Theme{},
 		&model.UserThemeSetting{},
 		&model.ThemeTemplate{},
+		&model.GroupInvite{},
+		&model.GroupInviteUsage{},
+		&model.AdminRole{},
+		&model.ChatAdmin{},
+		&model.GroupJoinRequest{},
+		&model.GroupAuditLog{},
+		&model.GroupPermissionTemplate{},
 	)
 	
 	if err != nil {

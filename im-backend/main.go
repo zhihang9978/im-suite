@@ -144,6 +144,11 @@ func main() {
 		// 初始化内置主题
 		themeService.InitializeBuiltInThemes()
 		
+		// 初始化群组管理服务
+		groupMgmtService := service.NewGroupManagementService(config.DB)
+		// 初始化管理员角色
+		groupMgmtService.InitializeAdminRoles()
+		
 		// 启动定时任务
 		ctx := context.Background()
 		go schedulerService.StartScheduler(ctx)
@@ -161,6 +166,7 @@ func main() {
 		messageEnhancementController := controller.NewMessageEnhancementController(messageEnhancementService)
 		contentModerationController := controller.NewContentModerationController(contentModerationService)
 		themeController := controller.NewThemeController(themeService)
+		groupMgmtController := controller.NewGroupManagementController(groupMgmtService)
 
 		// 认证相关
 		auth := api.Group("/auth")
@@ -455,6 +461,29 @@ func main() {
 				themesAuth.GET("/user", themeController.GetUserTheme)
 				themesAuth.PUT("/user", themeController.UpdateUserTheme)
 			}
+		}
+
+		// 群组管理相关
+		groups := api.Group("/groups")
+		groups.Use(middleware.AuthMiddleware())
+		{
+			// 邀请管理
+			groups.POST("/:chat_id/invites", groupMgmtController.CreateInvite)
+			groups.GET("/:chat_id/invites", groupMgmtController.GetChatInvites)
+			groups.POST("/invites/:invite_code/use", groupMgmtController.UseInvite)
+			groups.POST("/invites/:invite_id/revoke", groupMgmtController.RevokeInvite)
+			
+			// 入群申请
+			groups.GET("/:chat_id/join-requests", groupMgmtController.GetPendingJoinRequests)
+			groups.POST("/join-requests/approve", groupMgmtController.ApproveJoinRequest)
+			
+			// 管理员管理
+			groups.GET("/:chat_id/admins", groupMgmtController.GetChatAdmins)
+			groups.POST("/admins/promote", groupMgmtController.PromoteMember)
+			groups.POST("/:chat_id/admins/:user_id/demote", groupMgmtController.DemoteMember)
+			
+			// 审计日志
+			groups.GET("/:chat_id/audit-logs", groupMgmtController.GetAuditLogs)
 		}
 	}
 
