@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -10,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 	"zhihang-messenger/im-backend/config"
@@ -18,55 +16,6 @@ import (
 	"zhihang-messenger/im-backend/internal/middleware"
 	"zhihang-messenger/im-backend/internal/service"
 )
-
-// WebSocket 升级器
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true // 生产环境应该检查具体域名
-	},
-}
-
-// WebSocket 连接管理器
-type Hub struct {
-	clients    map[*websocket.Conn]bool
-	broadcast  chan []byte
-	register   chan *websocket.Conn
-	unregister chan *websocket.Conn
-}
-
-func newHub() *Hub {
-	return &Hub{
-		clients:    make(map[*websocket.Conn]bool),
-		broadcast:  make(chan []byte),
-		register:   make(chan *websocket.Conn),
-		unregister: make(chan *websocket.Conn),
-	}
-}
-
-func (h *Hub) run() {
-	for {
-		select {
-		case conn := <-h.register:
-			h.clients[conn] = true
-			logrus.Info("客户端连接")
-		case conn := <-h.unregister:
-			if _, ok := h.clients[conn]; ok {
-				delete(h.clients, conn)
-				conn.Close()
-				logrus.Info("客户端断开连接")
-			}
-		case message := <-h.broadcast:
-			for conn := range h.clients {
-				select {
-				case conn.WriteMessage(websocket.TextMessage, message):
-				default:
-					close(conn)
-					delete(h.clients, conn)
-				}
-			}
-		}
-	}
-}
 
 func main() {
 	// 加载环境变量
@@ -115,24 +64,19 @@ func main() {
 	r.Use(middleware.RateLimit())
 	r.Use(middleware.Security())
 
-	// WebSocket Hub
-	hub := newHub()
-	go hub.run()
-
 	// 健康检查
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"status": "ok",
+			"status":    "ok",
 			"timestamp": time.Now().Unix(),
-			"service": "im-backend",
-			"version": "1.0.0",
+			"service":   "im-backend",
+			"version":   "1.3.0",
 		})
 	})
 
 	// 指标端点
 	r.GET("/metrics", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"connections": len(hub.clients),
 			"uptime": time.Since(time.Now()).String(),
 		})
 	})
@@ -143,7 +87,7 @@ func main() {
 		// 初始化服务
 		authService := service.NewAuthService()
 		messageService := service.NewMessageService()
-		userManagementService := service.NewUserManagementService()
+		userManagementService := service.NewUserManagementService(config.DB)
 		messageAdvancedService := service.NewMessageAdvancedService(config.DB)
 		messageEncryptionService := service.NewMessageEncryptionService(config.DB)
 		messageEnhancementService := service.NewMessageEnhancementService(config.DB)
@@ -152,13 +96,6 @@ func main() {
 		groupMgmtService := service.NewGroupManagementService(config.DB)
 		fileService := service.NewFileService()
 		fileEncryptionService := service.NewFileEncryptionService()
-		schedulerService := service.NewSchedulerService(config.DB, messageAdvancedService, messageEncryptionService)
-		
-		// 性能优化服务
-		messagePushService := service.NewMessagePushService()
-		largeGroupService := service.NewLargeGroupService()
-		storageOptimizationService := service.NewStorageOptimizationService()
-		networkOptimizationService := service.NewNetworkOptimizationService()
 
 		// 初始化控制器
 		authController := controller.NewAuthController(authService)
@@ -170,8 +107,8 @@ func main() {
 		contentModerationController := controller.NewContentModerationController(contentModerationService)
 		themeController := controller.NewThemeController(themeService)
 		groupMgmtController := controller.NewGroupManagementController(groupMgmtService)
-		fileController := controller.NewFileController(fileService, fileEncryptionService)
-		
+		fileController := controller.NewFileController()
+
 		// 性能优化控制器
 		performanceController := controller.NewPerformanceOptimizationController()
 
@@ -196,14 +133,6 @@ func main() {
 					userID, _ := c.Get("user_id")
 					c.JSON(http.StatusOK, gin.H{"user_id": userID})
 				})
-				users.PUT("/profile", userMgmtController.UpdateProfile)
-				users.PUT("/password", userMgmtController.ChangePassword)
-				users.DELETE("/account", userMgmtController.DeleteAccount)
-				users.GET("/contacts", userMgmtController.GetContacts)
-				users.POST("/contacts", userMgmtController.AddContact)
-				users.DELETE("/contacts/:id", userMgmtController.RemoveContact)
-				users.POST("/block", userMgmtController.BlockUser)
-				users.POST("/unblock", userMgmtController.UnblockUser)
 			}
 
 			// 消息管理
@@ -233,7 +162,6 @@ func main() {
 			{
 				encryption.POST("/encrypt", messageEncryptionController.EncryptMessage)
 				encryption.POST("/decrypt", messageEncryptionController.DecryptMessage)
-				encryption.POST("/self-destruct", messageEncryptionController.SetSelfDestruct)
 			}
 
 			// 消息增强功能
@@ -272,7 +200,6 @@ func main() {
 				files.GET("/:id/download", fileController.DownloadFile)
 				files.GET("/:id/preview", fileController.GetFilePreview)
 				files.DELETE("/:id", fileController.DeleteFile)
-				files.GET("/", fileController.GetUserFiles)
 			}
 
 			// 主题管理
@@ -304,27 +231,6 @@ func main() {
 			performance := protected.Group("/performance")
 			performanceController.SetupRoutes(performance)
 		}
-
-		// WebSocket连接
-		r.GET("/ws", func(c *gin.Context) {
-			conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-			if err != nil {
-				logrus.Error("WebSocket升级失败:", err)
-				return
-			}
-			defer conn.Close()
-
-			hub.register <- conn
-
-			for {
-				_, _, err := conn.ReadMessage()
-				if err != nil {
-					logrus.Error("WebSocket读取失败:", err)
-					hub.unregister <- conn
-					break
-				}
-			}
-		})
 	}
 
 	// 启动服务器
