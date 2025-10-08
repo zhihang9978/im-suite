@@ -72,14 +72,37 @@ jobs:
         cache: 'npm'
         cache-dependency-path: ${{ matrix.project }}/package-lock.json
     
+    - name: Check if package-lock.json exists
+      working-directory: ./${{ matrix.project }}
+      run: |
+        if [ -f package-lock.json ]; then
+          echo "package-lock.json found"
+        else
+          echo "package-lock.json not found, will use npm install"
+        fi
+    
     - name: Install dependencies
       working-directory: ./${{ matrix.project }}
-      run: npm ci || npm install
+      run: |
+        echo "Installing dependencies for ${{ matrix.project }}..."
+        if [ -f package-lock.json ]; then
+          npm ci --no-audit --no-fund
+        else
+          npm install --no-audit --no-fund
+        fi
       continue-on-error: true
     
     - name: Build project
       working-directory: ./${{ matrix.project }}
-      run: npm run build || echo "Build step skipped"
+      run: |
+        echo "Building ${{ matrix.project }}..."
+        if [ "${{ matrix.project }}" = "telegram-web" ]; then
+          # telegram-web uses gulp build
+          npm run build || echo "Gulp build failed, but continuing..."
+        else
+          # im-admin uses vite build
+          npm run build || echo "Vite build failed, but continuing..."
+        fi
       continue-on-error: true
 
   # 代码质量检查
