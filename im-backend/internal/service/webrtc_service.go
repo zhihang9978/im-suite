@@ -15,62 +15,62 @@ import (
 
 // WebRTCService WebRTC 通话服务
 type WebRTCService struct {
-	db              *gorm.DB
-	activeCalls     map[string]*CallSession
-	callMutex       sync.RWMutex
-	networkMonitor  *NetworkQualityMonitor
-	codecManager    *CodecManager
+	db               *gorm.DB
+	activeCalls      map[string]*CallSession
+	callMutex        sync.RWMutex
+	networkMonitor   *NetworkQualityMonitor
+	codecManager     *CodecManager
 	bandwidthAdaptor *BandwidthAdaptor
 }
 
 // CallSession 通话会话
 type CallSession struct {
-	ID           string                    `json:"id"`
-	CallerID     uint                      `json:"caller_id"`
-	CalleeID     uint                      `json:"callee_id"`
-	Type         string                    `json:"type"` // audio, video
-	Status       string                    `json:"status"` // ringing, connecting, connected, ended
-	StartTime    time.Time                 `json:"start_time"`
-	EndTime      *time.Time                `json:"end_time,omitempty"`
-	Duration     int64                     `json:"duration,omitempty"`
-	Quality      *CallQuality              `json:"quality,omitempty"`
-	Connections  map[uint]*PeerConnection  `json:"connections"`
-	NetworkStats map[uint]*NetworkStats    `json:"network_stats"`
-	Mutex        sync.RWMutex              `json:"-"`
+	ID           string                   `json:"id"`
+	CallerID     uint                     `json:"caller_id"`
+	CalleeID     uint                     `json:"callee_id"`
+	Type         string                   `json:"type"`   // audio, video
+	Status       string                   `json:"status"` // ringing, connecting, connected, ended
+	StartTime    time.Time                `json:"start_time"`
+	EndTime      *time.Time               `json:"end_time,omitempty"`
+	Duration     int64                    `json:"duration,omitempty"`
+	Quality      *CallQuality             `json:"quality,omitempty"`
+	Connections  map[uint]*PeerConnection `json:"connections"`
+	NetworkStats map[uint]*NetworkStats   `json:"network_stats"`
+	Mutex        sync.RWMutex             `json:"-"`
 }
 
 // PeerConnection 对等连接
 type PeerConnection struct {
-	UserID      uint                      `json:"user_id"`
-	Conn        *websocket.Conn           `json:"-"`
-	PC          *webrtc.PeerConnection    `json:"-"`
-	AudioTrack  *webrtc.TrackLocalStaticSample `json:"-"`
-	VideoTrack  *webrtc.TrackLocalStaticSample `json:"-"`
-	IsMuted     bool                      `json:"is_muted"`
-	IsVideoOff  bool                      `json:"is_video_off"`
-	Bitrate     int                       `json:"bitrate"`
-	Resolution  string                    `json:"resolution"`
-	Codec       string                    `json:"codec"`
-	LastPing    time.Time                 `json:"last_ping"`
-	PingCount   int                       `json:"ping_count"`
+	UserID     uint                           `json:"user_id"`
+	Conn       *websocket.Conn                `json:"-"`
+	PC         *webrtc.PeerConnection         `json:"-"`
+	AudioTrack *webrtc.TrackLocalStaticSample `json:"-"`
+	VideoTrack *webrtc.TrackLocalStaticSample `json:"-"`
+	IsMuted    bool                           `json:"is_muted"`
+	IsVideoOff bool                           `json:"is_video_off"`
+	Bitrate    int                            `json:"bitrate"`
+	Resolution string                         `json:"resolution"`
+	Codec      string                         `json:"codec"`
+	LastPing   time.Time                      `json:"last_ping"`
+	PingCount  int                            `json:"ping_count"`
 }
 
 // CallQuality 通话质量
 type CallQuality struct {
-	OverallScore     float64 `json:"overall_score"`     // 0-100
-	AudioQuality     float64 `json:"audio_quality"`     // 0-100
-	VideoQuality     float64 `json:"video_quality"`     // 0-100
-	NetworkQuality   float64 `json:"network_quality"`   // 0-100
-	Latency          int     `json:"latency"`           // ms
-	PacketLoss       float64 `json:"packet_loss"`       // %
-	Jitter           float64 `json:"jitter"`            // ms
-	Bitrate          int     `json:"bitrate"`           // kbps
-	Resolution       string  `json:"resolution"`
-	FrameRate        int     `json:"frame_rate"`
-	AudioCodec       string  `json:"audio_codec"`
-	VideoCodec       string  `json:"video_codec"`
-	AdaptiveQuality  bool    `json:"adaptive_quality"`
-	QualityHistory   []QualitySnapshot `json:"quality_history"`
+	OverallScore    float64           `json:"overall_score"`   // 0-100
+	AudioQuality    float64           `json:"audio_quality"`   // 0-100
+	VideoQuality    float64           `json:"video_quality"`   // 0-100
+	NetworkQuality  float64           `json:"network_quality"` // 0-100
+	Latency         int               `json:"latency"`         // ms
+	PacketLoss      float64           `json:"packet_loss"`     // %
+	Jitter          float64           `json:"jitter"`          // ms
+	Bitrate         int               `json:"bitrate"`         // kbps
+	Resolution      string            `json:"resolution"`
+	FrameRate       int               `json:"frame_rate"`
+	AudioCodec      string            `json:"audio_codec"`
+	VideoCodec      string            `json:"video_codec"`
+	AdaptiveQuality bool              `json:"adaptive_quality"`
+	QualityHistory  []QualitySnapshot `json:"quality_history"`
 }
 
 // QualitySnapshot 质量快照
@@ -83,15 +83,15 @@ type QualitySnapshot struct {
 
 // NetworkStats 网络统计
 type NetworkStats struct {
-	UserID           uint    `json:"user_id"`
-	RTT              int     `json:"rtt"`              // Round Trip Time (ms)
-	PacketLoss       float64 `json:"packet_loss"`      // %
-	Jitter           float64 `json:"jitter"`           // ms
-	Bandwidth        int     `json:"bandwidth"`        // kbps
-	AvailableBitrate int     `json:"available_bitrate"` // kbps
-	NetworkType      string  `json:"network_type"`     // wifi, 4g, 3g, 2g
-	SignalStrength   int     `json:"signal_strength"`  // 0-100
-	IsStable         bool    `json:"is_stable"`
+	UserID           uint      `json:"user_id"`
+	RTT              int       `json:"rtt"`               // Round Trip Time (ms)
+	PacketLoss       float64   `json:"packet_loss"`       // %
+	Jitter           float64   `json:"jitter"`            // ms
+	Bandwidth        int       `json:"bandwidth"`         // kbps
+	AvailableBitrate int       `json:"available_bitrate"` // kbps
+	NetworkType      string    `json:"network_type"`      // wifi, 4g, 3g, 2g
+	SignalStrength   int       `json:"signal_strength"`   // 0-100
+	IsStable         bool      `json:"is_stable"`
 	LastUpdate       time.Time `json:"last_update"`
 }
 
@@ -103,8 +103,8 @@ type CallRequest struct {
 
 // CallResponse 通话响应
 type CallResponse struct {
-	CallID   string        `json:"call_id"`
-	Status   string        `json:"status"`
+	CallID     string      `json:"call_id"`
+	Status     string      `json:"status"`
 	ICEServers []ICEServer `json:"ice_servers"`
 }
 
@@ -118,10 +118,10 @@ type ICEServer struct {
 // NewWebRTCService 创建 WebRTC 服务
 func NewWebRTCService(db *gorm.DB) *WebRTCService {
 	return &WebRTCService{
-		db:              db,
-		activeCalls:     make(map[string]*CallSession),
-		networkMonitor:  NewNetworkQualityMonitor(),
-		codecManager:    NewCodecManager(),
+		db:               db,
+		activeCalls:      make(map[string]*CallSession),
+		networkMonitor:   NewNetworkQualityMonitor(),
+		codecManager:     NewCodecManager(),
 		bandwidthAdaptor: NewBandwidthAdaptor(),
 	}
 }
@@ -151,14 +151,14 @@ func (s *WebRTCService) StartCall(callerID uint, req CallRequest) (*CallResponse
 	// 创建通话会话
 	callID := s.generateCallID()
 	callSession := &CallSession{
-		ID:          callID,
-		CallerID:    callerID,
-		CalleeID:    req.CalleeID,
-		Type:        req.Type,
-		Status:      "ringing",
-		StartTime:   time.Now(),
-		Quality:     &CallQuality{},
-		Connections: make(map[uint]*PeerConnection),
+		ID:           callID,
+		CallerID:     callerID,
+		CalleeID:     req.CalleeID,
+		Type:         req.Type,
+		Status:       "ringing",
+		StartTime:    time.Now(),
+		Quality:      &CallQuality{},
+		Connections:  make(map[uint]*PeerConnection),
 		NetworkStats: make(map[uint]*NetworkStats),
 	}
 
@@ -416,7 +416,7 @@ func (s *WebRTCService) handleQualityReport(call *CallSession, userID uint, mess
 		Bitrate:   call.Quality.Bitrate,
 	}
 	call.Quality.QualityHistory = append(call.Quality.QualityHistory, snapshot)
-	
+
 	// 限制历史记录数量
 	if len(call.Quality.QualityHistory) > 100 {
 		call.Quality.QualityHistory = call.Quality.QualityHistory[1:]
@@ -442,9 +442,9 @@ func (s *WebRTCService) handleMute(call *CallSession, userID uint, message map[s
 
 	// 广播静音状态
 	return s.broadcastToCall(call, userID, map[string]interface{}{
-		"type":   "mute",
-		"from":   userID,
-		"muted":  muted,
+		"type":  "mute",
+		"from":  userID,
+		"muted": muted,
 	})
 }
 
@@ -523,7 +523,7 @@ func (s *WebRTCService) getICEServers() []ICEServer {
 func (s *WebRTCService) adaptToNetworkQuality(call *CallSession, userID uint, stats *NetworkStats) {
 	// 根据网络质量调整码率和分辨率
 	adaptation := s.bandwidthAdaptor.Adapt(stats)
-	
+
 	// 发送调整建议给客户端
 	message := map[string]interface{}{
 		"type": "quality-adaptation",
@@ -591,11 +591,11 @@ func (s *WebRTCService) calculateOverallQuality(call *CallSession) {
 // recordCallStart 记录通话开始
 func (s *WebRTCService) recordCallStart(call *CallSession) error {
 	callRecord := model.Call{
-		CallID:   call.ID,
-		CallerID: call.CallerID,
-		CalleeID: call.CalleeID,
-		Type:     call.Type,
-		Status:   call.Status,
+		CallID:    call.ID,
+		CallerID:  call.CallerID,
+		CalleeID:  call.CalleeID,
+		Type:      call.Type,
+		Status:    call.Status,
 		StartTime: call.StartTime,
 	}
 

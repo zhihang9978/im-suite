@@ -175,3 +175,5 @@ func (Message) TableName() string {
 func (MessageRead) TableName() string {
 	return "message_reads"
 }
+
+

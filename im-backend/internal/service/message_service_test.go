@@ -366,3 +366,5 @@ func (suite *MessageServiceTestSuite) TestGetChats() {
 func TestMessageServiceSuite(t *testing.T) {
 	suite.Run(t, new(MessageServiceTestSuite))
 }
+
+

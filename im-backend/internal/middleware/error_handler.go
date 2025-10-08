@@ -1,10 +1,7 @@
 package middleware
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"runtime"
 	"strings"
 	"time"
 	"zhihang-messenger/im-backend/internal/utils"
@@ -17,7 +14,7 @@ import (
 func ErrorHandler() gin.HandlerFunc {
 	return gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
 		var appErr *utils.AppError
-		
+
 		// 处理不同类型的错误
 		switch err := recovered.(type) {
 		case *utils.AppError:
@@ -33,15 +30,15 @@ func ErrorHandler() gin.HandlerFunc {
 			// 其他类型错误
 			appErr = utils.NewAppErrorWithStack(utils.ErrCodeInternalError, "服务器内部错误", fmt.Sprintf("%v", err))
 		}
-		
+
 		// 设置请求ID
 		if requestID, exists := c.Get("request_id"); exists {
 			appErr.SetRequestID(fmt.Sprintf("%v", requestID))
 		}
-		
+
 		// 记录错误日志
 		logError(c, appErr)
-		
+
 		// 返回错误响应
 		c.JSON(appErr.GetHTTPStatus(), appErr.ToErrorResponse())
 		c.Abort()
@@ -52,7 +49,7 @@ func ErrorHandler() gin.HandlerFunc {
 func ErrorHandlerWithLogger(logger *logrus.Logger) gin.HandlerFunc {
 	return gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
 		var appErr *utils.AppError
-		
+
 		// 处理不同类型的错误
 		switch err := recovered.(type) {
 		case *utils.AppError:
@@ -64,15 +61,15 @@ func ErrorHandlerWithLogger(logger *logrus.Logger) gin.HandlerFunc {
 		default:
 			appErr = utils.NewAppErrorWithStack(utils.ErrCodeInternalError, "服务器内部错误", fmt.Sprintf("%v", err))
 		}
-		
+
 		// 设置请求ID
 		if requestID, exists := c.Get("request_id"); exists {
 			appErr.SetRequestID(fmt.Sprintf("%v", requestID))
 		}
-		
+
 		// 记录错误日志
 		logErrorWithLogger(c, appErr, logger)
-		
+
 		// 返回错误响应
 		c.JSON(appErr.GetHTTPStatus(), appErr.ToErrorResponse())
 		c.Abort()
@@ -83,11 +80,11 @@ func ErrorHandlerWithLogger(logger *logrus.Logger) gin.HandlerFunc {
 func ValidationErrorHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()
-		
+
 		// 检查是否有验证错误
 		if len(c.Errors) > 0 {
 			var validationErrors []string
-			
+
 			for _, err := range c.Errors {
 				// 提取字段验证错误
 				if fieldErr, ok := err.Err.(*FieldError); ok {
@@ -96,22 +93,22 @@ func ValidationErrorHandler() gin.HandlerFunc {
 					validationErrors = append(validationErrors, err.Error())
 				}
 			}
-			
+
 			// 创建验证错误响应
 			appErr := utils.NewAppError(
 				utils.ErrCodeInvalidParams,
 				"请求参数验证失败",
 				strings.Join(validationErrors, "; "),
 			)
-			
+
 			// 设置请求ID
 			if requestID, exists := c.Get("request_id"); exists {
 				appErr.SetRequestID(fmt.Sprintf("%v", requestID))
 			}
-			
+
 			// 记录错误日志
 			logError(c, appErr)
-			
+
 			// 返回错误响应
 			c.JSON(appErr.GetHTTPStatus(), appErr.ToErrorResponse())
 			c.Abort()
@@ -152,7 +149,7 @@ func NewFieldError(field, tag, value, message string) *FieldError {
 func logError(c *gin.Context, err *utils.AppError) {
 	// 获取请求信息
 	requestInfo := getRequestInfo(c)
-	
+
 	// 记录错误日志
 	logrus.WithFields(logrus.Fields{
 		"error_code":    err.Code,
@@ -168,7 +165,7 @@ func logError(c *gin.Context, err *utils.AppError) {
 func logErrorWithLogger(c *gin.Context, err *utils.AppError, logger *logrus.Logger) {
 	// 获取请求信息
 	requestInfo := getRequestInfo(c)
-	
+
 	// 记录错误日志
 	logger.WithFields(logrus.Fields{
 		"error_code":    err.Code,
@@ -196,7 +193,7 @@ func getRequestInfo(c *gin.Context) map[string]interface{} {
 // HandleError 处理错误并返回响应
 func HandleError(c *gin.Context, err error) {
 	var appErr *utils.AppError
-	
+
 	// 检查是否为应用错误
 	if utils.IsAppError(err) {
 		appErr = utils.GetAppError(err)
@@ -204,15 +201,15 @@ func HandleError(c *gin.Context, err error) {
 		// 转换为应用错误
 		appErr = utils.WrapErrorWithStack(err, utils.ErrCodeInternalError, "服务器内部错误")
 	}
-	
+
 	// 设置请求ID
 	if requestID, exists := c.Get("request_id"); exists {
 		appErr.SetRequestID(fmt.Sprintf("%v", requestID))
 	}
-	
+
 	// 记录错误日志
 	logError(c, appErr)
-	
+
 	// 返回错误响应
 	c.JSON(appErr.GetHTTPStatus(), appErr.ToErrorResponse())
 }
@@ -220,21 +217,21 @@ func HandleError(c *gin.Context, err error) {
 // HandleValidationError 处理验证错误
 func HandleValidationError(c *gin.Context, field, tag, value, message string) {
 	fieldErr := NewFieldError(field, tag, value, message)
-	
+
 	appErr := utils.NewAppError(
 		utils.ErrCodeInvalidParams,
 		"请求参数验证失败",
 		fieldErr.Error(),
 	)
-	
+
 	// 设置请求ID
 	if requestID, exists := c.Get("request_id"); exists {
 		appErr.SetRequestID(fmt.Sprintf("%v", requestID))
 	}
-	
+
 	// 记录错误日志
 	logError(c, appErr)
-	
+
 	// 返回错误响应
 	c.JSON(appErr.GetHTTPStatus(), appErr.ToErrorResponse())
 }
@@ -242,15 +239,15 @@ func HandleValidationError(c *gin.Context, field, tag, value, message string) {
 // HandleBusinessError 处理业务错误
 func HandleBusinessError(c *gin.Context, code utils.ErrorCode, message string, details ...string) {
 	appErr := utils.NewAppError(code, message, details...)
-	
+
 	// 设置请求ID
 	if requestID, exists := c.Get("request_id"); exists {
 		appErr.SetRequestID(fmt.Sprintf("%v", requestID))
 	}
-	
+
 	// 记录错误日志
 	logError(c, appErr)
-	
+
 	// 返回错误响应
 	c.JSON(appErr.GetHTTPStatus(), appErr.ToErrorResponse())
 }
@@ -345,11 +342,11 @@ func NewRetryableError(code utils.ErrorCode, message string, retryDelay time.Dur
 // Retry 重试函数
 func Retry(fn func() error, maxRetries int, delay time.Duration) error {
 	var lastErr error
-	
+
 	for i := 0; i < maxRetries; i++ {
 		if err := fn(); err != nil {
 			lastErr = err
-			
+
 			// 检查是否可重试
 			if retryableErr, ok := err.(RetryableError); ok {
 				if !retryableErr.IsRetryable() {
@@ -363,6 +360,6 @@ func Retry(fn func() error, maxRetries int, delay time.Duration) error {
 		}
 		return nil
 	}
-	
+
 	return lastErr
 }

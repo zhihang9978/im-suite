@@ -333,3 +333,5 @@ window.IMWebSocket = new IMWebSocket();
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = IMWebSocket;
 }
+
+

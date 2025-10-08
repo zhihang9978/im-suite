@@ -13,24 +13,24 @@ type BandwidthAdaptor struct {
 
 // AdaptationRecord 自适应记录
 type AdaptationRecord struct {
-	Timestamp      time.Time `json:"timestamp"`
-	NetworkStats   *NetworkStats `json:"network_stats"`
-	Adaptation     *AdaptationSettings `json:"adaptation"`
-	QualityScore   float64 `json:"quality_score"`
-	Success        bool    `json:"success"`
+	Timestamp    time.Time           `json:"timestamp"`
+	NetworkStats *NetworkStats       `json:"network_stats"`
+	Adaptation   *AdaptationSettings `json:"adaptation"`
+	QualityScore float64             `json:"quality_score"`
+	Success      bool                `json:"success"`
 }
 
 // AdaptationSettings 自适应设置
 type AdaptationSettings struct {
-	VideoBitrate   int    `json:"video_bitrate"`   // kbps
-	AudioBitrate   int    `json:"audio_bitrate"`   // kbps
-	Resolution     string `json:"resolution"`      // 如: 1920x1080, 1280x720, 640x480
-	FrameRate      int    `json:"frame_rate"`      // fps
-	Codec          string `json:"codec"`           // 编解码器
-	AudioCodec     string `json:"audio_codec"`     // 音频编解码器
-	VideoCodec     string `json:"video_codec"`     // 视频编解码器
-	AdaptiveMode   string `json:"adaptive_mode"`   // auto, manual, conservative, aggressive
-	QualityLevel   string `json:"quality_level"`   // high, medium, low, very_low
+	VideoBitrate int    `json:"video_bitrate"` // kbps
+	AudioBitrate int    `json:"audio_bitrate"` // kbps
+	Resolution   string `json:"resolution"`    // 如: 1920x1080, 1280x720, 640x480
+	FrameRate    int    `json:"frame_rate"`    // fps
+	Codec        string `json:"codec"`         // 编解码器
+	AudioCodec   string `json:"audio_codec"`   // 音频编解码器
+	VideoCodec   string `json:"video_codec"`   // 视频编解码器
+	AdaptiveMode string `json:"adaptive_mode"` // auto, manual, conservative, aggressive
+	QualityLevel string `json:"quality_level"` // high, medium, low, very_low
 }
 
 // QualityPresets 质量预设
@@ -105,7 +105,7 @@ func (ba *BandwidthAdaptor) Adapt(stats *NetworkStats) *AdaptationSettings {
 
 	// 计算网络质量分数
 	qualityScore := ba.calculateNetworkQualityScore(stats)
-	
+
 	// 根据质量分数选择预设
 	var selectedPreset string
 	switch {
@@ -125,13 +125,13 @@ func (ba *BandwidthAdaptor) Adapt(stats *NetworkStats) *AdaptationSettings {
 
 	// 获取基础设置
 	baseSettings := QualityPresets[selectedPreset]
-	
+
 	// 根据网络条件进一步调整
 	adaptedSettings := ba.fineTuneSettings(baseSettings, stats)
-	
+
 	// 记录自适应历史
 	ba.recordAdaptation(stats.UserID, stats, adaptedSettings, qualityScore, true)
-	
+
 	return adaptedSettings
 }
 
@@ -139,19 +139,19 @@ func (ba *BandwidthAdaptor) Adapt(stats *NetworkStats) *AdaptationSettings {
 func (ba *BandwidthAdaptor) calculateNetworkQualityScore(stats *NetworkStats) float64 {
 	// 延迟分数 (权重: 30%)
 	rttScore := ba.calculateRTTScore(stats.RTT)
-	
+
 	// 丢包率分数 (权重: 25%)
 	packetLossScore := ba.calculatePacketLossScore(stats.PacketLoss)
-	
+
 	// 带宽分数 (权重: 25%)
 	bandwidthScore := ba.calculateBandwidthScore(stats.Bandwidth)
-	
+
 	// 信号强度分数 (权重: 20%)
 	signalScore := ba.calculateSignalScore(stats.SignalStrength)
-	
+
 	// 加权计算总分
 	totalScore := rttScore*0.3 + packetLossScore*0.25 + bandwidthScore*0.25 + signalScore*0.2
-	
+
 	return totalScore
 }
 
@@ -161,13 +161,13 @@ func (ba *BandwidthAdaptor) calculateRTTScore(rtt int) float64 {
 	case rtt <= 50:
 		return 100.0
 	case rtt <= 100:
-		return 80.0 + (20.0 * float64(100-rtt)) / 50.0
+		return 80.0 + (20.0*float64(100-rtt))/50.0
 	case rtt <= 200:
-		return 60.0 + (20.0 * float64(200-rtt)) / 100.0
+		return 60.0 + (20.0*float64(200-rtt))/100.0
 	case rtt <= 500:
-		return 40.0 + (20.0 * float64(500-rtt)) / 300.0
+		return 40.0 + (20.0*float64(500-rtt))/300.0
 	default:
-		return max(0, 40.0 - float64(rtt-500)*0.1)
+		return max(0, 40.0-float64(rtt-500)*0.1)
 	}
 }
 
@@ -177,11 +177,11 @@ func (ba *BandwidthAdaptor) calculatePacketLossScore(packetLoss float64) float64
 	case packetLoss <= 1.0:
 		return 100.0
 	case packetLoss <= 3.0:
-		return 80.0 + (20.0 * (3.0 - packetLoss)) / 2.0
+		return 80.0 + (20.0*(3.0-packetLoss))/2.0
 	case packetLoss <= 10.0:
-		return 60.0 + (20.0 * (10.0 - packetLoss)) / 7.0
+		return 60.0 + (20.0*(10.0-packetLoss))/7.0
 	default:
-		return max(0, 60.0 - (packetLoss - 10.0) * 5.0)
+		return max(0, 60.0-(packetLoss-10.0)*5.0)
 	}
 }
 
@@ -191,15 +191,15 @@ func (ba *BandwidthAdaptor) calculateBandwidthScore(bandwidth int) float64 {
 	case bandwidth >= 5000:
 		return 100.0
 	case bandwidth >= 2000:
-		return 80.0 + (20.0 * float64(bandwidth-2000)) / 3000.0
+		return 80.0 + (20.0*float64(bandwidth-2000))/3000.0
 	case bandwidth >= 1000:
-		return 60.0 + (20.0 * float64(bandwidth-1000)) / 1000.0
+		return 60.0 + (20.0*float64(bandwidth-1000))/1000.0
 	case bandwidth >= 500:
-		return 40.0 + (20.0 * float64(bandwidth-500)) / 500.0
+		return 40.0 + (20.0*float64(bandwidth-500))/500.0
 	case bandwidth >= 200:
-		return 20.0 + (20.0 * float64(bandwidth-200)) / 300.0
+		return 20.0 + (20.0*float64(bandwidth-200))/300.0
 	default:
-		return max(0, float64(bandwidth) * 0.1)
+		return max(0, float64(bandwidth)*0.1)
 	}
 }
 
@@ -208,11 +208,11 @@ func (ba *BandwidthAdaptor) calculateSignalScore(signalStrength int) float64 {
 	if signalStrength >= 80 {
 		return 100.0
 	} else if signalStrength >= 60 {
-		return 80.0 + (20.0 * float64(signalStrength-60)) / 20.0
+		return 80.0 + (20.0*float64(signalStrength-60))/20.0
 	} else if signalStrength >= 40 {
-		return 60.0 + (20.0 * float64(signalStrength-40)) / 20.0
+		return 60.0 + (20.0*float64(signalStrength-40))/20.0
 	} else if signalStrength >= 20 {
-		return 40.0 + (20.0 * float64(signalStrength-20)) / 20.0
+		return 40.0 + (20.0*float64(signalStrength-20))/20.0
 	} else {
 		return float64(signalStrength) * 2.0
 	}
@@ -388,8 +388,8 @@ func (ba *BandwidthAdaptor) GetAdaptationStats(userID uint) map[string]interface
 	if !exists {
 		return map[string]interface{}{
 			"total_adaptations": 0,
-			"success_rate":     0.0,
-			"average_quality":  0.0,
+			"success_rate":      0.0,
+			"average_quality":   0.0,
 		}
 	}
 
@@ -416,9 +416,9 @@ func (ba *BandwidthAdaptor) GetAdaptationStats(userID uint) map[string]interface
 
 	return map[string]interface{}{
 		"total_adaptations": totalAdaptations,
-		"success_rate":     successRate,
-		"average_quality":  averageQuality,
-		"last_adaptation":  history[len(history)-1].Timestamp,
+		"success_rate":      successRate,
+		"average_quality":   averageQuality,
+		"last_adaptation":   history[len(history)-1].Timestamp,
 	}
 }
 

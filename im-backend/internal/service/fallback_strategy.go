@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"sync"
 	"time"
 	"zhihang-messenger/im-backend/internal/utils"
@@ -20,44 +19,44 @@ type FallbackStrategy struct {
 
 // CallFallbackState 通话降级状态
 type CallFallbackState struct {
-	CallID           string                    `json:"call_id"`
-	CurrentQuality   string                    `json:"current_quality"`
-	FallbackLevel    int                       `json:"fallback_level"`
-	QualityHistory   []QualityTransition       `json:"quality_history"`
-	NetworkHistory   []NetworkQualitySnapshot  `json:"network_history"`
-	LastFallback     time.Time                 `json:"last_fallback"`
-	FallbackCount    int                       `json:"fallback_count"`
-	RecoveryAttempts int                       `json:"recovery_attempts"`
-	IsRecovering     bool                      `json:"is_recovering"`
-	FallbackReason   string                    `json:"fallback_reason"`
+	CallID           string                   `json:"call_id"`
+	CurrentQuality   string                   `json:"current_quality"`
+	FallbackLevel    int                      `json:"fallback_level"`
+	QualityHistory   []QualityTransition      `json:"quality_history"`
+	NetworkHistory   []NetworkQualitySnapshot `json:"network_history"`
+	LastFallback     time.Time                `json:"last_fallback"`
+	FallbackCount    int                      `json:"fallback_count"`
+	RecoveryAttempts int                      `json:"recovery_attempts"`
+	IsRecovering     bool                     `json:"is_recovering"`
+	FallbackReason   string                   `json:"fallback_reason"`
 }
 
 // QualityTransition 质量转换记录
 type QualityTransition struct {
-	Timestamp    time.Time `json:"timestamp"`
-	FromQuality  string    `json:"from_quality"`
-	ToQuality    string    `json:"to_quality"`
-	Reason       string    `json:"reason"`
+	Timestamp    time.Time     `json:"timestamp"`
+	FromQuality  string        `json:"from_quality"`
+	ToQuality    string        `json:"to_quality"`
+	Reason       string        `json:"reason"`
 	NetworkStats *NetworkStats `json:"network_stats"`
-	Success      bool      `json:"success"`
+	Success      bool          `json:"success"`
 }
 
 // NetworkQualitySnapshot 网络质量快照
 type NetworkQualitySnapshot struct {
-	Timestamp     time.Time `json:"timestamp"`
-	RTT           int       `json:"rtt"`
-	PacketLoss    float64   `json:"packet_loss"`
-	Jitter        float64   `json:"jitter"`
-	Bandwidth     int       `json:"bandwidth"`
-	QualityScore  float64   `json:"quality_score"`
-	QualityLevel  string    `json:"quality_level"`
+	Timestamp    time.Time `json:"timestamp"`
+	RTT          int       `json:"rtt"`
+	PacketLoss   float64   `json:"packet_loss"`
+	Jitter       float64   `json:"jitter"`
+	Bandwidth    int       `json:"bandwidth"`
+	QualityScore float64   `json:"quality_score"`
+	QualityLevel string    `json:"quality_level"`
 }
 
 // FallbackLevel 降级等级
 type FallbackLevel int
 
 const (
-	LevelHighQuality FallbackLevel = iota    // 高质量
+	LevelHighQuality    FallbackLevel = iota // 高质量
 	LevelMediumQuality                       // 中等质量
 	LevelLowQuality                          // 低质量
 	LevelVeryLowQuality                      // 很低质量
@@ -81,19 +80,19 @@ const (
 
 // QualityPreset 质量预设
 type QualityPreset struct {
-	Level           FallbackLevel `json:"level"`
-	Name            string        `json:"name"`
-	VideoBitrate    int           `json:"video_bitrate"`
-	AudioBitrate    int           `json:"audio_bitrate"`
-	Resolution      string        `json:"resolution"`
-	FrameRate       int           `json:"frame_rate"`
-	AudioCodec      string        `json:"audio_codec"`
-	VideoCodec      string        `json:"video_codec"`
-	Enabled         bool          `json:"enabled"`
-	MinBandwidth    int           `json:"min_bandwidth"`
-	MaxLatency      int           `json:"max_latency"`
-	MaxPacketLoss   float64       `json:"max_packet_loss"`
-	Description     string        `json:"description"`
+	Level         FallbackLevel `json:"level"`
+	Name          string        `json:"name"`
+	VideoBitrate  int           `json:"video_bitrate"`
+	AudioBitrate  int           `json:"audio_bitrate"`
+	Resolution    string        `json:"resolution"`
+	FrameRate     int           `json:"frame_rate"`
+	AudioCodec    string        `json:"audio_codec"`
+	VideoCodec    string        `json:"video_codec"`
+	Enabled       bool          `json:"enabled"`
+	MinBandwidth  int           `json:"min_bandwidth"`
+	MaxLatency    int           `json:"max_latency"`
+	MaxPacketLoss float64       `json:"max_packet_loss"`
+	Description   string        `json:"description"`
 }
 
 // NewFallbackStrategy 创建降级策略服务
@@ -116,16 +115,16 @@ func (fs *FallbackStrategy) RegisterCall(callID string, initialQuality string) e
 	defer fs.mutex.Unlock()
 
 	fs.activeCalls[callID] = &CallFallbackState{
-		CallID:         callID,
-		CurrentQuality: initialQuality,
-		FallbackLevel:  int(LevelHighQuality),
-		QualityHistory: make([]QualityTransition, 0),
-		NetworkHistory: make([]NetworkQualitySnapshot, 0),
-		LastFallback:   time.Now(),
-		FallbackCount:  0,
+		CallID:           callID,
+		CurrentQuality:   initialQuality,
+		FallbackLevel:    int(LevelHighQuality),
+		QualityHistory:   make([]QualityTransition, 0),
+		NetworkHistory:   make([]NetworkQualitySnapshot, 0),
+		LastFallback:     time.Now(),
+		FallbackCount:    0,
 		RecoveryAttempts: 0,
-		IsRecovering:   false,
-		FallbackReason: "",
+		IsRecovering:     false,
+		FallbackReason:   "",
 	}
 
 	logrus.WithFields(logrus.Fields{
@@ -301,10 +300,10 @@ func (fs *FallbackStrategy) executeFallback(callState *CallFallbackState, target
 	preset := fs.getQualityPreset(newQuality)
 
 	logrus.WithFields(logrus.Fields{
-		"call_id":     callState.CallID,
-		"old_quality": oldQuality,
-		"new_quality": newQuality,
-		"reason":      reason,
+		"call_id":        callState.CallID,
+		"old_quality":    oldQuality,
+		"new_quality":    newQuality,
+		"reason":         reason,
 		"fallback_count": callState.FallbackCount,
 	}).Info("执行通话降级")
 
@@ -385,9 +384,9 @@ func (fs *FallbackStrategy) attemptRecovery(callState *CallFallbackState, stats 
 	preset := fs.getQualityPreset(newQuality)
 
 	logrus.WithFields(logrus.Fields{
-		"call_id":     callState.CallID,
-		"old_quality": oldQuality,
-		"new_quality": newQuality,
+		"call_id":          callState.CallID,
+		"old_quality":      oldQuality,
+		"new_quality":      newQuality,
 		"recovery_attempt": callState.RecoveryAttempts,
 	}).Info("执行通话恢复")
 
@@ -421,83 +420,83 @@ func (fs *FallbackStrategy) getQualityPreset(quality string) *QualityPreset {
 	switch quality {
 	case "high":
 		return &QualityPreset{
-			Level:        LevelHighQuality,
-			Name:         "高质量",
-			VideoBitrate: 4000,
-			AudioBitrate: 192,
-			Resolution:   "1920x1080",
-			FrameRate:    30,
-			AudioCodec:   "opus",
-			VideoCodec:   "vp8",
-			Enabled:      true,
-			MinBandwidth: 3000,
-			MaxLatency:   100,
+			Level:         LevelHighQuality,
+			Name:          "高质量",
+			VideoBitrate:  4000,
+			AudioBitrate:  192,
+			Resolution:    "1920x1080",
+			FrameRate:     30,
+			AudioCodec:    "opus",
+			VideoCodec:    "vp8",
+			Enabled:       true,
+			MinBandwidth:  3000,
+			MaxLatency:    100,
 			MaxPacketLoss: 2,
-			Description:  "高清视频通话，适合稳定网络环境",
+			Description:   "高清视频通话，适合稳定网络环境",
 		}
 	case "medium":
 		return &QualityPreset{
-			Level:        LevelMediumQuality,
-			Name:         "中等质量",
-			VideoBitrate: 2000,
-			AudioBitrate: 128,
-			Resolution:   "1280x720",
-			FrameRate:    30,
-			AudioCodec:   "opus",
-			VideoCodec:   "vp8",
-			Enabled:      true,
-			MinBandwidth: 1500,
-			MaxLatency:   150,
+			Level:         LevelMediumQuality,
+			Name:          "中等质量",
+			VideoBitrate:  2000,
+			AudioBitrate:  128,
+			Resolution:    "1280x720",
+			FrameRate:     30,
+			AudioCodec:    "opus",
+			VideoCodec:    "vp8",
+			Enabled:       true,
+			MinBandwidth:  1500,
+			MaxLatency:    150,
 			MaxPacketLoss: 5,
-			Description:  "标清视频通话，适合一般网络环境",
+			Description:   "标清视频通话，适合一般网络环境",
 		}
 	case "low":
 		return &QualityPreset{
-			Level:        LevelLowQuality,
-			Name:         "低质量",
-			VideoBitrate: 1000,
-			AudioBitrate: 96,
-			Resolution:   "854x480",
-			FrameRate:    24,
-			AudioCodec:   "opus",
-			VideoCodec:   "vp8",
-			Enabled:      true,
-			MinBandwidth: 800,
-			MaxLatency:   200,
+			Level:         LevelLowQuality,
+			Name:          "低质量",
+			VideoBitrate:  1000,
+			AudioBitrate:  96,
+			Resolution:    "854x480",
+			FrameRate:     24,
+			AudioCodec:    "opus",
+			VideoCodec:    "vp8",
+			Enabled:       true,
+			MinBandwidth:  800,
+			MaxLatency:    200,
 			MaxPacketLoss: 8,
-			Description:  "低清视频通话，适合较差网络环境",
+			Description:   "低清视频通话，适合较差网络环境",
 		}
 	case "very_low":
 		return &QualityPreset{
-			Level:        LevelVeryLowQuality,
-			Name:         "很低质量",
-			VideoBitrate: 500,
-			AudioBitrate: 64,
-			Resolution:   "640x360",
-			FrameRate:    15,
-			AudioCodec:   "opus",
-			VideoCodec:   "vp8",
-			Enabled:      true,
-			MinBandwidth: 400,
-			MaxLatency:   300,
+			Level:         LevelVeryLowQuality,
+			Name:          "很低质量",
+			VideoBitrate:  500,
+			AudioBitrate:  64,
+			Resolution:    "640x360",
+			FrameRate:     15,
+			AudioCodec:    "opus",
+			VideoCodec:    "vp8",
+			Enabled:       true,
+			MinBandwidth:  400,
+			MaxLatency:    300,
 			MaxPacketLoss: 12,
-			Description:  "极低清视频通话，适合很差网络环境",
+			Description:   "极低清视频通话，适合很差网络环境",
 		}
 	case "audio_only":
 		return &QualityPreset{
-			Level:        LevelAudioOnly,
-			Name:         "仅音频",
-			VideoBitrate: 0,
-			AudioBitrate: 64,
-			Resolution:   "0x0",
-			FrameRate:    0,
-			AudioCodec:   "opus",
-			VideoCodec:   "",
-			Enabled:      true,
-			MinBandwidth: 100,
-			MaxLatency:   500,
+			Level:         LevelAudioOnly,
+			Name:          "仅音频",
+			VideoBitrate:  0,
+			AudioBitrate:  64,
+			Resolution:    "0x0",
+			FrameRate:     0,
+			AudioCodec:    "opus",
+			VideoCodec:    "",
+			Enabled:       true,
+			MinBandwidth:  100,
+			MaxLatency:    500,
 			MaxPacketLoss: 20,
-			Description:  "纯音频通话，适合网络极差环境",
+			Description:   "纯音频通话，适合网络极差环境",
 		}
 	default:
 		return fs.getQualityPreset("medium")
@@ -528,11 +527,11 @@ func (fs *FallbackStrategy) GetFallbackStatistics() map[string]interface{} {
 	defer fs.mutex.RUnlock()
 
 	stats := map[string]interface{}{
-		"active_calls":        len(fs.activeCalls),
-		"total_fallbacks":     0,
-		"total_recoveries":    0,
+		"active_calls":         len(fs.activeCalls),
+		"total_fallbacks":      0,
+		"total_recoveries":     0,
 		"quality_distribution": make(map[string]int),
-		"reason_distribution": make(map[string]int),
+		"reason_distribution":  make(map[string]int),
 	}
 
 	qualityDist := stats["quality_distribution"].(map[string]int)
@@ -571,15 +570,15 @@ func (fs *FallbackStrategy) GetFallbackRecommendations(callID string) []string {
 	// 基于网络历史提供建议
 	if len(callState.NetworkHistory) > 0 {
 		recent := callState.NetworkHistory[len(callState.NetworkHistory)-1]
-		
+
 		if recent.RTT > 200 {
 			recommendations = append(recommendations, "网络延迟较高，建议使用有线网络")
 		}
-		
+
 		if recent.PacketLoss > 5 {
 			recommendations = append(recommendations, "网络丢包率较高，建议检查网络连接")
 		}
-		
+
 		if recent.Bandwidth < 1000 {
 			recommendations = append(recommendations, "网络带宽不足，建议关闭其他占用网络的应用程序")
 		}

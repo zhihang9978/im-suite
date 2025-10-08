@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 )
@@ -14,35 +15,35 @@ type CodecManager struct {
 
 // CodecInfo 编解码器信息
 type CodecInfo struct {
-	Name            string  `json:"name"`
-	Type            string  `json:"type"`            // audio, video
-	MimeType        string  `json:"mime_type"`
-	ClockRate       int     `json:"clock_rate"`
-	Channels        int     `json:"channels"`
-	Bitrate         int     `json:"bitrate"`
-	Complexity      int     `json:"complexity"`
-	Latency         int     `json:"latency"`         // ms
-	CPUUsage        float64 `json:"cpu_usage"`       // 0-100
-	Bandwidth       int     `json:"bandwidth"`       // kbps
-	PacketLoss      float64 `json:"packet_loss"`     // %
-	NetworkAdaptive bool    `json:"network_adaptive"`
-	HardwareAccel   bool    `json:"hardware_accel"`
+	Name            string          `json:"name"`
+	Type            string          `json:"type"` // audio, video
+	MimeType        string          `json:"mime_type"`
+	ClockRate       int             `json:"clock_rate"`
+	Channels        int             `json:"channels"`
+	Bitrate         int             `json:"bitrate"`
+	Complexity      int             `json:"complexity"`
+	Latency         int             `json:"latency"`     // ms
+	CPUUsage        float64         `json:"cpu_usage"`   // 0-100
+	Bandwidth       int             `json:"bandwidth"`   // kbps
+	PacketLoss      float64         `json:"packet_loss"` // %
+	NetworkAdaptive bool            `json:"network_adaptive"`
+	HardwareAccel   bool            `json:"hardware_accel"`
 	BrowserSupport  map[string]bool `json:"browser_support"`
-	MobileSupport   bool    `json:"mobile_support"`
-	Description     string  `json:"description"`
+	MobileSupport   bool            `json:"mobile_support"`
+	Description     string          `json:"description"`
 }
 
 // CodecPreferences 编解码器偏好设置
 type CodecPreferences struct {
-	NetworkType      string `json:"network_type"`      // wifi, 4g, 3g, 2g
-	Bandwidth        int    `json:"bandwidth"`         // kbps
-	Latency          int    `json:"latency"`           // ms
-	PacketLoss       float64 `json:"packet_loss"`      // %
-	DeviceType       string `json:"device_type"`       // desktop, mobile, tablet
-	OS               string `json:"os"`                // windows, macos, linux, android, ios
-	Browser          string `json:"browser"`           // chrome, firefox, safari, edge
-	HardwareAccel    bool   `json:"hardware_accel"`
-	BatteryOptimized bool   `json:"battery_optimized"`
+	NetworkType      string  `json:"network_type"` // wifi, 4g, 3g, 2g
+	Bandwidth        int     `json:"bandwidth"`    // kbps
+	Latency          int     `json:"latency"`      // ms
+	PacketLoss       float64 `json:"packet_loss"`  // %
+	DeviceType       string  `json:"device_type"`  // desktop, mobile, tablet
+	OS               string  `json:"os"`           // windows, macos, linux, android, ios
+	Browser          string  `json:"browser"`      // chrome, firefox, safari, edge
+	HardwareAccel    bool    `json:"hardware_accel"`
+	BatteryOptimized bool    `json:"battery_optimized"`
 }
 
 // NewCodecManager 创建编解码器管理器
@@ -51,13 +52,13 @@ func NewCodecManager() *CodecManager {
 		supportedCodecs: make(map[string]*CodecInfo),
 		preferences:     make(map[string][]string),
 	}
-	
+
 	// 初始化支持的编解码器
 	cm.initializeCodecs()
-	
+
 	// 初始化偏好设置
 	cm.initializePreferences()
-	
+
 	return cm
 }
 
@@ -228,16 +229,16 @@ func (cm *CodecManager) initializePreferences() {
 
 	// 音频编解码器偏好（按优先级排序）
 	cm.preferences["audio"] = []string{"opus", "g722", "pcmu"}
-	
+
 	// 视频编解码器偏好（按优先级排序）
 	cm.preferences["video"] = []string{"vp8", "h264", "vp9"}
-	
+
 	// 网络类型偏好
 	cm.preferences["wifi"] = []string{"vp8", "h264", "opus"}
 	cm.preferences["4g"] = []string{"vp8", "h264", "opus"}
 	cm.preferences["3g"] = []string{"vp8", "opus", "g722"}
 	cm.preferences["2g"] = []string{"opus", "g722", "pcmu"}
-	
+
 	// 设备类型偏好
 	cm.preferences["desktop"] = []string{"vp8", "h264", "opus"}
 	cm.preferences["mobile"] = []string{"vp8", "opus", "g722"}
@@ -426,9 +427,9 @@ func (cm *CodecManager) CompareCodecs(codec1, codec2 string) (*CodecComparison, 
 	}
 
 	comparison := &CodecComparison{
-		Codec1: info1,
-		Codec2: info2,
-		Winner: "tie",
+		Codec1:  info1,
+		Codec2:  info2,
+		Winner:  "tie",
 		Reasons: []string{},
 	}
 

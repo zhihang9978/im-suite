@@ -13,14 +13,14 @@ type NetworkQualityMonitor struct {
 
 // QualitySnapshot 质量快照
 type QualitySnapshot struct {
-	Timestamp       time.Time `json:"timestamp"`
-	RTT             int       `json:"rtt"`
-	PacketLoss      float64   `json:"packet_loss"`
-	Jitter          float64   `json:"jitter"`
-	Bandwidth       int       `json:"bandwidth"`
-	NetworkType     string    `json:"network_type"`
-	SignalStrength  int       `json:"signal_strength"`
-	QualityScore    float64   `json:"quality_score"`
+	Timestamp      time.Time `json:"timestamp"`
+	RTT            int       `json:"rtt"`
+	PacketLoss     float64   `json:"packet_loss"`
+	Jitter         float64   `json:"jitter"`
+	Bandwidth      int       `json:"bandwidth"`
+	NetworkType    string    `json:"network_type"`
+	SignalStrength int       `json:"signal_strength"`
+	QualityScore   float64   `json:"quality_score"`
 }
 
 // NetworkQualityLevel 网络质量等级
@@ -36,18 +36,18 @@ const (
 
 // QualityThresholds 质量阈值
 type QualityThresholds struct {
-	RTTExcellent      int     // < 50ms
-	RTTGood           int     // < 100ms
-	RTTPoor           int     // < 200ms
-	
+	RTTExcellent int // < 50ms
+	RTTGood      int // < 100ms
+	RTTPoor      int // < 200ms
+
 	PacketLossExcellent float64 // < 1%
 	PacketLossGood      float64 // < 3%
 	PacketLossPoor      float64 // < 10%
-	
-	JitterExcellent    float64 // < 10ms
-	JitterGood         float64 // < 20ms
-	JitterPoor         float64 // < 50ms
-	
+
+	JitterExcellent float64 // < 10ms
+	JitterGood      float64 // < 20ms
+	JitterPoor      float64 // < 50ms
+
 	BandwidthExcellent int // > 2000 kbps
 	BandwidthGood      int // > 1000 kbps
 	BandwidthPoor      int // > 500 kbps
@@ -55,18 +55,18 @@ type QualityThresholds struct {
 
 // DefaultQualityThresholds 默认质量阈值
 var DefaultQualityThresholds = QualityThresholds{
-	RTTExcellent:      50,
-	RTTGood:           100,
-	RTTPoor:           200,
-	
+	RTTExcellent: 50,
+	RTTGood:      100,
+	RTTPoor:      200,
+
 	PacketLossExcellent: 1.0,
 	PacketLossGood:      3.0,
 	PacketLossPoor:      10.0,
-	
-	JitterExcellent:    10.0,
-	JitterGood:         20.0,
-	JitterPoor:         50.0,
-	
+
+	JitterExcellent: 10.0,
+	JitterGood:      20.0,
+	JitterPoor:      50.0,
+
 	BandwidthExcellent: 2000,
 	BandwidthGood:      1000,
 	BandwidthPoor:      500,
@@ -120,22 +120,22 @@ func (nqm *NetworkQualityMonitor) CalculateQualityScore(stats *NetworkStats) flo
 func (nqm *NetworkQualityMonitor) calculateQualityScoreWithThresholds(stats *NetworkStats, thresholds *QualityThresholds) float64 {
 	// RTT 分数 (权重: 30%)
 	rttScore := nqm.calculateRTTScore(stats.RTT, thresholds)
-	
+
 	// 丢包率分数 (权重: 25%)
 	packetLossScore := nqm.calculatePacketLossScore(stats.PacketLoss, thresholds)
-	
+
 	// 抖动分数 (权重: 20%)
 	jitterScore := nqm.calculateJitterScore(stats.Jitter, thresholds)
-	
+
 	// 带宽分数 (权重: 15%)
 	bandwidthScore := nqm.calculateBandwidthScore(stats.Bandwidth, thresholds)
-	
+
 	// 信号强度分数 (权重: 10%)
 	signalScore := nqm.calculateSignalScore(stats.SignalStrength)
-	
+
 	// 加权计算总分
 	totalScore := rttScore*0.3 + packetLossScore*0.25 + jitterScore*0.2 + bandwidthScore*0.15 + signalScore*0.1
-	
+
 	return totalScore
 }
 
@@ -144,12 +144,12 @@ func (nqm *NetworkQualityMonitor) calculateRTTScore(rtt int, thresholds *Quality
 	if rtt <= thresholds.RTTExcellent {
 		return 100.0
 	} else if rtt <= thresholds.RTTGood {
-		return 80.0 + (20.0 * float64(thresholds.RTTGood-rtt)) / float64(thresholds.RTTGood-thresholds.RTTExcellent)
+		return 80.0 + (20.0*float64(thresholds.RTTGood-rtt))/float64(thresholds.RTTGood-thresholds.RTTExcellent)
 	} else if rtt <= thresholds.RTTPoor {
-		return 60.0 + (20.0 * float64(thresholds.RTTPoor-rtt)) / float64(thresholds.RTTPoor-thresholds.RTTGood)
+		return 60.0 + (20.0*float64(thresholds.RTTPoor-rtt))/float64(thresholds.RTTPoor-thresholds.RTTGood)
 	} else {
 		// 超过200ms，分数急剧下降
-		return max(0, 60.0 - float64(rtt-thresholds.RTTPoor)*0.5)
+		return max(0, 60.0-float64(rtt-thresholds.RTTPoor)*0.5)
 	}
 }
 
@@ -158,12 +158,12 @@ func (nqm *NetworkQualityMonitor) calculatePacketLossScore(packetLoss float64, t
 	if packetLoss <= thresholds.PacketLossExcellent {
 		return 100.0
 	} else if packetLoss <= thresholds.PacketLossGood {
-		return 80.0 + (20.0 * (thresholds.PacketLossGood - packetLoss)) / (thresholds.PacketLossGood - thresholds.PacketLossExcellent)
+		return 80.0 + (20.0*(thresholds.PacketLossGood-packetLoss))/(thresholds.PacketLossGood-thresholds.PacketLossExcellent)
 	} else if packetLoss <= thresholds.PacketLossPoor {
-		return 60.0 + (20.0 * (thresholds.PacketLossPoor - packetLoss)) / (thresholds.PacketLossPoor - thresholds.PacketLossGood)
+		return 60.0 + (20.0*(thresholds.PacketLossPoor-packetLoss))/(thresholds.PacketLossPoor-thresholds.PacketLossGood)
 	} else {
 		// 超过10%丢包，分数急剧下降
-		return max(0, 60.0 - (packetLoss - thresholds.PacketLossPoor) * 5)
+		return max(0, 60.0-(packetLoss-thresholds.PacketLossPoor)*5)
 	}
 }
 
@@ -172,12 +172,12 @@ func (nqm *NetworkQualityMonitor) calculateJitterScore(jitter float64, threshold
 	if jitter <= thresholds.JitterExcellent {
 		return 100.0
 	} else if jitter <= thresholds.JitterGood {
-		return 80.0 + (20.0 * (thresholds.JitterGood - jitter)) / (thresholds.JitterGood - thresholds.JitterExcellent)
+		return 80.0 + (20.0*(thresholds.JitterGood-jitter))/(thresholds.JitterGood-thresholds.JitterExcellent)
 	} else if jitter <= thresholds.JitterPoor {
-		return 60.0 + (20.0 * (thresholds.JitterPoor - jitter)) / (thresholds.JitterPoor - thresholds.JitterGood)
+		return 60.0 + (20.0*(thresholds.JitterPoor-jitter))/(thresholds.JitterPoor-thresholds.JitterGood)
 	} else {
 		// 超过50ms抖动，分数急剧下降
-		return max(0, 60.0 - (jitter - thresholds.JitterPoor) * 2)
+		return max(0, 60.0-(jitter-thresholds.JitterPoor)*2)
 	}
 }
 
@@ -186,12 +186,12 @@ func (nqm *NetworkQualityMonitor) calculateBandwidthScore(bandwidth int, thresho
 	if bandwidth >= thresholds.BandwidthExcellent {
 		return 100.0
 	} else if bandwidth >= thresholds.BandwidthGood {
-		return 80.0 + (20.0 * float64(bandwidth - thresholds.BandwidthGood)) / float64(thresholds.BandwidthExcellent - thresholds.BandwidthGood)
+		return 80.0 + (20.0*float64(bandwidth-thresholds.BandwidthGood))/float64(thresholds.BandwidthExcellent-thresholds.BandwidthGood)
 	} else if bandwidth >= thresholds.BandwidthPoor {
-		return 60.0 + (20.0 * float64(bandwidth - thresholds.BandwidthPoor)) / float64(thresholds.BandwidthGood - thresholds.BandwidthPoor)
+		return 60.0 + (20.0*float64(bandwidth-thresholds.BandwidthPoor))/float64(thresholds.BandwidthGood-thresholds.BandwidthPoor)
 	} else {
 		// 低于500kbps，分数急剧下降
-		return max(0, 60.0 - float64(thresholds.BandwidthPoor - bandwidth) * 0.1)
+		return max(0, 60.0-float64(thresholds.BandwidthPoor-bandwidth)*0.1)
 	}
 }
 
@@ -200,11 +200,11 @@ func (nqm *NetworkQualityMonitor) calculateSignalScore(signalStrength int) float
 	if signalStrength >= 80 {
 		return 100.0
 	} else if signalStrength >= 60 {
-		return 80.0 + (20.0 * float64(signalStrength - 60)) / 20.0
+		return 80.0 + (20.0*float64(signalStrength-60))/20.0
 	} else if signalStrength >= 40 {
-		return 60.0 + (20.0 * float64(signalStrength - 40)) / 20.0
+		return 60.0 + (20.0*float64(signalStrength-40))/20.0
 	} else if signalStrength >= 20 {
-		return 40.0 + (20.0 * float64(signalStrength - 20)) / 20.0
+		return 40.0 + (20.0*float64(signalStrength-20))/20.0
 	} else {
 		return float64(signalStrength) * 2.0
 	}
@@ -342,10 +342,10 @@ func (nqm *NetworkQualityMonitor) PredictNetworkQuality(userID uint) (float64, e
 
 	// 计算斜率
 	slope := (n*sumXY - sumX*sumY) / (n*sumXX - sumX*sumX)
-	
+
 	// 预测下一个时间点的质量
 	nextX := n
-	predictedY := (sumY/n) + slope*(nextX - sumX/n)
+	predictedY := (sumY / n) + slope*(nextX-sumX/n)
 
 	// 限制预测值在合理范围内
 	if predictedY > 100 {
@@ -443,10 +443,10 @@ func (nqm *NetworkQualityMonitor) GetStatistics() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"total_users":      totalUsers,
-		"total_snapshots":  totalSnapshots,
-		"average_quality":  avgQuality,
-		"quality_level":    nqm.GetQualityLevelName(nqm.GetQualityLevel(avgQuality)),
+		"total_users":     totalUsers,
+		"total_snapshots": totalSnapshots,
+		"average_quality": avgQuality,
+		"quality_level":   nqm.GetQualityLevelName(nqm.GetQualityLevel(avgQuality)),
 	}
 }
 

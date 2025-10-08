@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
-	"strings"
 )
 
 // ErrorCode 错误码类型
@@ -26,12 +25,12 @@ const (
 	ErrCodePermissionDenied ErrorCode = 10010 // 权限不足
 
 	// 聊天相关错误 (20000-29999)
-	ErrCodeChatNotFound     ErrorCode = 20001 // 聊天不存在
-	ErrCodeNotChatMember    ErrorCode = 20002 // 用户不是聊天成员
-	ErrCodeMessageNotFound  ErrorCode = 20003 // 消息不存在
-	ErrCodeNoPermission     ErrorCode = 20004 // 无权限操作此消息
-	ErrCodeChatFull         ErrorCode = 20005 // 聊天已满
-	ErrCodeInvalidChatType  ErrorCode = 20006 // 无效的聊天类型
+	ErrCodeChatNotFound    ErrorCode = 20001 // 聊天不存在
+	ErrCodeNotChatMember   ErrorCode = 20002 // 用户不是聊天成员
+	ErrCodeMessageNotFound ErrorCode = 20003 // 消息不存在
+	ErrCodeNoPermission    ErrorCode = 20004 // 无权限操作此消息
+	ErrCodeChatFull        ErrorCode = 20005 // 聊天已满
+	ErrCodeInvalidChatType ErrorCode = 20006 // 无效的聊天类型
 
 	// 文件相关错误 (30000-39999)
 	ErrCodeFileNotFound     ErrorCode = 30001 // 文件不存在
@@ -41,26 +40,26 @@ const (
 	ErrCodeDownloadFailed   ErrorCode = 30005 // 文件下载失败
 
 	// 系统相关错误 (40000-49999)
-	ErrCodeTooManyRequests  ErrorCode = 40001 // 请求过于频繁
-	ErrCodeInvalidParams    ErrorCode = 40002 // 请求参数错误
-	ErrCodeDatabaseError    ErrorCode = 40003 // 数据库错误
-	ErrCodeCacheError       ErrorCode = 40004 // 缓存错误
-	ErrCodeNetworkError     ErrorCode = 40005 // 网络错误
+	ErrCodeTooManyRequests ErrorCode = 40001 // 请求过于频繁
+	ErrCodeInvalidParams   ErrorCode = 40002 // 请求参数错误
+	ErrCodeDatabaseError   ErrorCode = 40003 // 数据库错误
+	ErrCodeCacheError      ErrorCode = 40004 // 缓存错误
+	ErrCodeNetworkError    ErrorCode = 40005 // 网络错误
 
 	// 服务器错误 (50000-59999)
-	ErrCodeInternalError    ErrorCode = 50001 // 服务器内部错误
+	ErrCodeInternalError      ErrorCode = 50001 // 服务器内部错误
 	ErrCodeServiceUnavailable ErrorCode = 50002 // 服务不可用
-	ErrCodeTimeout          ErrorCode = 50003 // 请求超时
+	ErrCodeTimeout            ErrorCode = 50003 // 请求超时
 )
 
 // AppError 应用错误结构
 type AppError struct {
-	Code      ErrorCode `json:"code"`                // 错误码
-	Message   string    `json:"message"`             // 错误消息
-	Details   string    `json:"details,omitempty"`   // 详细错误信息
+	Code      ErrorCode `json:"code"`                 // 错误码
+	Message   string    `json:"message"`              // 错误消息
+	Details   string    `json:"details,omitempty"`    // 详细错误信息
 	RequestID string    `json:"request_id,omitempty"` // 请求ID
-	Timestamp string    `json:"timestamp"`           // 时间戳
-	Stack     string    `json:"stack,omitempty"`     // 错误堆栈（仅开发环境）
+	Timestamp string    `json:"timestamp"`            // 时间戳
+	Stack     string    `json:"stack,omitempty"`      // 错误堆栈（仅开发环境）
 }
 
 // Error 实现 error 接口
@@ -138,12 +137,12 @@ var ErrorMessages = map[ErrorCode]string{
 	ErrCodePermissionDenied: "权限不足",
 
 	// 聊天相关错误
-	ErrCodeChatNotFound:     "聊天不存在",
-	ErrCodeNotChatMember:    "用户不是聊天成员",
-	ErrCodeMessageNotFound:  "消息不存在",
-	ErrCodeNoPermission:     "无权限操作此消息",
-	ErrCodeChatFull:         "聊天已满",
-	ErrCodeInvalidChatType:  "无效的聊天类型",
+	ErrCodeChatNotFound:    "聊天不存在",
+	ErrCodeNotChatMember:   "用户不是聊天成员",
+	ErrCodeMessageNotFound: "消息不存在",
+	ErrCodeNoPermission:    "无权限操作此消息",
+	ErrCodeChatFull:        "聊天已满",
+	ErrCodeInvalidChatType: "无效的聊天类型",
 
 	// 文件相关错误
 	ErrCodeFileNotFound:     "文件不存在",
@@ -153,16 +152,16 @@ var ErrorMessages = map[ErrorCode]string{
 	ErrCodeDownloadFailed:   "文件下载失败",
 
 	// 系统相关错误
-	ErrCodeTooManyRequests:  "请求过于频繁",
-	ErrCodeInvalidParams:    "请求参数错误",
-	ErrCodeDatabaseError:    "数据库错误",
-	ErrCodeCacheError:       "缓存错误",
-	ErrCodeNetworkError:     "网络错误",
+	ErrCodeTooManyRequests: "请求过于频繁",
+	ErrCodeInvalidParams:   "请求参数错误",
+	ErrCodeDatabaseError:   "数据库错误",
+	ErrCodeCacheError:      "缓存错误",
+	ErrCodeNetworkError:    "网络错误",
 
 	// 服务器错误
-	ErrCodeInternalError:    "服务器内部错误",
+	ErrCodeInternalError:      "服务器内部错误",
 	ErrCodeServiceUnavailable: "服务不可用",
-	ErrCodeTimeout:          "请求超时",
+	ErrCodeTimeout:            "请求超时",
 }
 
 // GetErrorMessage 获取错误消息
@@ -180,7 +179,7 @@ func WrapError(err error, code ErrorCode, message string) *AppError {
 	if appErr, ok := err.(*AppError); ok {
 		return appErr
 	}
-	
+
 	return NewAppError(code, message, err.Error())
 }
 
@@ -189,7 +188,7 @@ func WrapErrorWithStack(err error, code ErrorCode, message string) *AppError {
 	if appErr, ok := err.(*AppError); ok {
 		return appErr
 	}
-	
+
 	return NewAppErrorWithStack(code, message, err.Error())
 }
 
@@ -236,7 +235,7 @@ func RecoverPanic() *AppError {
 	if r := recover(); r != nil {
 		var message string
 		var details string
-		
+
 		switch v := r.(type) {
 		case error:
 			message = v.Error()
@@ -245,11 +244,11 @@ func RecoverPanic() *AppError {
 		default:
 			message = fmt.Sprintf("%v", v)
 		}
-		
+
 		// 获取堆栈信息
 		stack := getStackTrace()
 		details = fmt.Sprintf("Panic recovered: %s\nStack: %s", message, stack)
-		
+
 		return NewAppError(ErrCodeInternalError, "服务器内部错误", details)
 	}
 	return nil
@@ -307,11 +306,11 @@ func LogErrorWithFields(err *AppError, fields map[string]interface{}) {
 		"request_id":    err.RequestID,
 		"timestamp":     err.Timestamp,
 	}
-	
+
 	// 添加额外字段
 	for k, v := range fields {
 		logData[k] = v
 	}
-	
+
 	LogError(err, logData)
 }

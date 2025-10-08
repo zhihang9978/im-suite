@@ -608,3 +608,5 @@ export const networkMonitor = NetworkMonitor.getInstance();
 
 // 默认导出
 export default networkMonitor;
+
+

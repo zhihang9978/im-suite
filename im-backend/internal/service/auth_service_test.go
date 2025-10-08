@@ -276,3 +276,5 @@ func (suite *AuthServiceTestSuite) TestLogout() {
 func TestRegisterSuite(t *testing.T) {
 	suite.Run(t, new(AuthServiceTestSuite))
 }
+
+

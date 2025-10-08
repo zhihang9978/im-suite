@@ -31,42 +31,42 @@ func NewPerformanceMonitor(threshold time.Duration) *PerformanceMonitor {
 func PerformanceMiddleware(monitor *PerformanceMonitor) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
-		
+
 		// 处理请求
 		c.Next()
-		
+
 		// 计算响应时间
 		duration := time.Since(start)
-		
+
 		// 获取请求信息
 		method := c.Request.Method
 		path := c.FullPath()
 		status := c.Writer.Status()
-		
+
 		// 记录请求统计
 		key := method + " " + path
 		monitor.requestCounts[key]++
-		
+
 		// 记录响应时间
 		if monitor.responseTimes[key] == nil {
 			monitor.responseTimes[key] = make([]time.Duration, 0, 100)
 		}
 		monitor.responseTimes[key] = append(monitor.responseTimes[key], duration)
-		
+
 		// 限制响应时间记录数量
 		if len(monitor.responseTimes[key]) > 100 {
 			monitor.responseTimes[key] = monitor.responseTimes[key][1:]
 		}
-		
+
 		// 记录错误统计
 		if status >= 400 {
 			monitor.errorCounts[key]++
 		}
-		
+
 		// 记录慢请求
 		if duration > monitor.threshold {
 			monitor.slowRequestCount++
-			
+
 			// 记录慢请求日志
 			logrus.WithFields(logrus.Fields{
 				"method":     method,
@@ -77,7 +77,7 @@ func PerformanceMiddleware(monitor *PerformanceMonitor) gin.HandlerFunc {
 				"user_agent": c.Request.UserAgent(),
 			}).Warn("Slow request detected")
 		}
-		
+
 		// 记录性能日志
 		logrus.WithFields(logrus.Fields{
 			"method":   method,
@@ -96,10 +96,10 @@ func CacheMiddleware(ttl time.Duration) gin.HandlerFunc {
 			c.Next()
 			return
 		}
-		
+
 		// 生成缓存键
 		cacheKey := generateCacheKey(c)
-		
+
 		// 尝试从缓存获取
 		if cachedData := getFromCache(cacheKey); cachedData != nil {
 			c.Header("X-Cache", "HIT")
@@ -108,13 +108,13 @@ func CacheMiddleware(ttl time.Duration) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		
+
 		// 设置缓存头
 		c.Header("X-Cache", "MISS")
-		
+
 		// 继续处理请求
 		c.Next()
-		
+
 		// 如果响应成功，缓存结果
 		if c.Writer.Status() == 200 {
 			if data := getResponseData(c); data != nil {
@@ -133,10 +133,10 @@ func CompressionMiddleware() gin.HandlerFunc {
 			c.Next()
 			return
 		}
-		
+
 		// 设置压缩头
 		c.Header("Vary", "Accept-Encoding")
-		
+
 		// 继续处理请求
 		c.Next()
 	}
@@ -146,11 +146,11 @@ func CompressionMiddleware() gin.HandlerFunc {
 func RateLimitMiddleware(requestsPerMinute int) gin.HandlerFunc {
 	// 简单的内存限流器
 	rateLimiter := make(map[string][]time.Time)
-	
+
 	return func(c *gin.Context) {
 		clientIP := c.ClientIP()
 		now := time.Now()
-		
+
 		// 清理过期记录
 		if records, exists := rateLimiter[clientIP]; exists {
 			validRecords := make([]time.Time, 0)
@@ -161,7 +161,7 @@ func RateLimitMiddleware(requestsPerMinute int) gin.HandlerFunc {
 			}
 			rateLimiter[clientIP] = validRecords
 		}
-		
+
 		// 检查是否超过限制
 		if len(rateLimiter[clientIP]) >= requestsPerMinute {
 			appErr := utils.NewAppError(
@@ -169,15 +169,15 @@ func RateLimitMiddleware(requestsPerMinute int) gin.HandlerFunc {
 				"请求过于频繁",
 				"请稍后再试",
 			)
-			
+
 			c.JSON(appErr.GetHTTPStatus(), appErr.ToErrorResponse())
 			c.Abort()
 			return
 		}
-		
+
 		// 记录请求时间
 		rateLimiter[clientIP] = append(rateLimiter[clientIP], now)
-		
+
 		c.Next()
 	}
 }
@@ -188,7 +188,7 @@ func ConnectionPoolMiddleware() gin.HandlerFunc {
 		// 设置连接池相关头
 		c.Header("Connection", "keep-alive")
 		c.Header("Keep-Alive", "timeout=30, max=100")
-		
+
 		c.Next()
 	}
 }
@@ -228,7 +228,7 @@ func OptimizeDatabaseQuery() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 设置数据库查询优化相关头
 		c.Header("X-DB-Optimized", "true")
-		
+
 		c.Next()
 	}
 }
@@ -239,7 +239,7 @@ func OptimizeStaticFiles() gin.HandlerFunc {
 		// 设置静态文件优化相关头
 		c.Header("Cache-Control", "public, max-age=31536000")
 		c.Header("ETag", generateETag(c.Request.URL.Path))
-		
+
 		c.Next()
 	}
 }
@@ -256,7 +256,7 @@ func generateETag(path string) string {
 // GetPerformanceStats 获取性能统计
 func (pm *PerformanceMonitor) GetPerformanceStats() map[string]interface{} {
 	stats := make(map[string]interface{})
-	
+
 	// 计算平均响应时间
 	avgResponseTimes := make(map[string]time.Duration)
 	for endpoint, times := range pm.responseTimes {
@@ -268,12 +268,12 @@ func (pm *PerformanceMonitor) GetPerformanceStats() map[string]interface{} {
 			avgResponseTimes[endpoint] = total / time.Duration(len(times))
 		}
 	}
-	
+
 	stats["request_counts"] = pm.requestCounts
 	stats["avg_response_times"] = avgResponseTimes
 	stats["error_counts"] = pm.errorCounts
 	stats["slow_request_count"] = pm.slowRequestCount
-	
+
 	return stats
 }
 
