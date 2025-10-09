@@ -62,7 +62,6 @@ func main() {
 
 	// 创建WebRTC服务
 	webrtcService := service.NewWebRTCService()
-	_ = webrtcService // WebRTC服务通过WebSocket调用
 
 	// 设置Gin模式
 	ginMode := os.Getenv("GIN_MODE")
@@ -139,6 +138,9 @@ func main() {
 		deviceMgmtController := controller.NewDeviceManagementController()
 		botController := controller.NewBotController()
 		botUserController := controller.NewBotUserController()
+		webrtcController := controller.NewWebRTCController(webrtcService)
+		screenShareEnhancedService := service.NewScreenShareEnhancedService(webrtcService)
+		screenShareEnhancedController := controller.NewScreenShareEnhancedController(screenShareEnhancedService)
 
 		// ============================================
 		// 认证路由（公开）
@@ -233,6 +235,38 @@ func main() {
 			// 机器人权限查询
 			// ------------------------------------
 			protected.GET("/bot-permissions", botUserController.GetUserPermissions) // 查看自己的机器人使用权限
+
+			// ------------------------------------
+			// WebRTC 音视频通话
+			// ------------------------------------
+			calls := protected.Group("/calls")
+			{
+				calls.POST("", webrtcController.CreateCall)                                             // 创建通话
+				calls.POST("/:call_id/end", webrtcController.EndCall)                                   // 结束通话
+				calls.GET("/:call_id/stats", webrtcController.GetCallStats)                             // 获取统计
+				calls.POST("/:call_id/mute", webrtcController.ToggleMute)                               // 切换静音
+				calls.POST("/:call_id/video", webrtcController.ToggleVideo)                             // 切换视频
+				calls.POST("/:call_id/screen-share/start", webrtcController.StartScreenShare)           // 开始屏幕共享
+				calls.POST("/:call_id/screen-share/stop", webrtcController.StopScreenShare)             // 停止屏幕共享
+				calls.GET("/:call_id/screen-share/status", webrtcController.GetScreenShareStatus)       // 屏幕共享状态
+				calls.POST("/:call_id/screen-share/quality", webrtcController.ChangeScreenShareQuality) // 更改质量
+			}
+
+			// ------------------------------------
+			// 屏幕共享增强API
+			// ------------------------------------
+			screenShare := protected.Group("/screen-share")
+			{
+				screenShare.GET("/history", screenShareEnhancedController.GetSessionHistory)                     // 会话历史
+				screenShare.GET("/statistics", screenShareEnhancedController.GetUserStatistics)                  // 用户统计
+				screenShare.GET("/sessions/:session_id", screenShareEnhancedController.GetSessionDetails)        // 会话详情
+				screenShare.POST("/:call_id/recording/start", screenShareEnhancedController.StartRecording)      // 开始录制
+				screenShare.POST("/recordings/:recording_id/end", screenShareEnhancedController.EndRecording)    // 结束录制
+				screenShare.GET("/sessions/:session_id/recordings", screenShareEnhancedController.GetRecordings) // 录制列表
+				screenShare.GET("/export", screenShareEnhancedController.ExportStatistics)                       // 导出统计
+				screenShare.GET("/check-permission", screenShareEnhancedController.CheckPermission)              // 检查权限
+				screenShare.POST("/:call_id/quality-change", screenShareEnhancedController.RecordQualityChange)  // 记录质量变更
+			}
 
 			// ------------------------------------
 			// 文件管理

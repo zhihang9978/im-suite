@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>屏幕共享功能演示 - 志航密信</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .demo-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .demo-section h2 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 20px;
+            border-left: 4px solid #667eea;
+            padding-left: 10px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        button.primary {
+            background: #667eea;
+            color: white;
+        }
+
+        button.primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button.danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        button.danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        select {
+            padding: 10px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            background: white;
+            transition: border-color 0.3s;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 6px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s;
+        }
+
+        .checkbox-label:hover {
+            border-color: #667eea;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .video-container.active {
+            display: block;
+        }
+
+        video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .status {
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .status.active {
+            display: block;
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            display: block;
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.remote {
+            display: block;
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+
+        .info-box h3 {
+            color: #1976D2;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .info-box ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .info-box li {
+            padding: 4px 0;
+            color: #555;
+        }
+
+        .info-box li:before {
+            content: "✓ ";
+            color: #4CAF50;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .logs {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-entry.success { color: #4CAF50; }
+        .log-entry.error { color: #f44336; }
+        .log-entry.info { color: #2196F3; }
+        .log-entry.warning { color: #ff9800; }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .setting-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .setting-item label {
+            display: block;
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📺 屏幕共享功能演示</h1>
+        <p class="subtitle">志航密信 v1.6.0 - WebRTC 屏幕共享</p>
+
+        <!-- 配置区域 -->
+        <div class="demo-section">
+            <h2>🔧 配置</h2>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <label for="callIdInput">通话 ID</label>
+                    <input type="text" id="callIdInput" value="call_demo_123456" 
+                           style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div class="setting-item">
+                    <label for="apiBaseUrl">API 地址</label>
+                    <input type="text" id="apiBaseUrl" value="http://localhost:8080/api" 
+                           style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+            </div>
+        </div>
+
+        <!-- 控制区域 -->
+        <div class="demo-section">
+            <h2>🎮 屏幕共享控制</h2>
+            <div class="controls">
+                <button id="startShareBtn" class="primary">
+                    📺 开始共享屏幕
+                </button>
+                <button id="stopShareBtn" class="danger" style="display: none;">
+                    🛑 停止共享
+                </button>
+                <select id="qualitySelect">
+                    <option value="low">流畅（480p）</option>
+                    <option value="medium" selected>标准（720p）</option>
+                    <option value="high">高清（1080p）</option>
+                </select>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="shareAudioCheck">
+                    <span>共享系统音频</span>
+                </label>
+                <button id="statusBtn" class="primary">
+                    🔍 查询状态
+                </button>
+            </div>
+
+            <!-- 视频显示 -->
+            <div id="videoContainer" class="video-container">
+                <video id="screenShareVideo" autoplay playsinline></video>
+            </div>
+
+            <!-- 状态显示 -->
+            <div id="statusDiv" class="status"></div>
+
+            <!-- 功能说明 -->
+            <div class="info-box">
+                <h3>📋 功能说明</h3>
+                <ul>
+                    <li>支持三种质量级别：流畅（480p）、标准（720p）、高清（1080p）</li>
+                    <li>可选择是否包含系统音频</li>
+                    <li>支持动态调整共享质量</li>
+                    <li>自动检测用户停止共享操作</li>
+                    <li>实时显示共享状态</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 日志区域 -->
+        <div class="demo-section">
+            <h2>📝 操作日志</h2>
+            <div id="logs" class="logs">
+                <div class="log-entry info">[系统] 屏幕共享演示已就绪</div>
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <div class="footer">
+            <p>志航密信 (ZhiHang Messenger) - 企业级即时通讯系统</p>
+            <p>v1.6.0 | © 2025 All Rights Reserved</p>
+        </div>
+    </div>
+
+    <!-- 引入屏幕共享管理器 -->
+    <script src="screen-share-example.js"></script>
+
+    <script>
+        // 全局变量
+        let screenShareManager = null;
+
+        // 日志记录
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logsDiv.appendChild(logEntry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        // 状态显示
+        function showStatus(message, type = 'active') {
+            const statusDiv = document.getElementById('statusDiv');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        function hideStatus() {
+            const statusDiv = document.getElementById('statusDiv');
+            statusDiv.className = 'status';
+        }
+
+        // 初始化
+        function initialize() {
+            const callId = document.getElementById('callIdInput').value;
+            const apiBaseUrl = document.getElementById('apiBaseUrl').value;
+            
+            screenShareManager = new ScreenShareManager(callId, apiBaseUrl);
+            log('屏幕共享管理器已初始化', 'success');
+        }
+
+        // 开始屏幕共享
+        async function startScreenShare() {
+            try {
+                const callId = document.getElementById('callIdInput').value;
+                const apiBaseUrl = document.getElementById('apiBaseUrl').value;
+                const quality = document.getElementById('qualitySelect').value;
+                const withAudio = document.getElementById('shareAudioCheck').checked;
+
+                log(`准备开始屏幕共享 [质量:${quality}, 音频:${withAudio}]`, 'info');
+
+                // 重新初始化（以防配置改变）
+                screenShareManager = new ScreenShareManager(callId, apiBaseUrl);
+
+                // 开始共享
+                const stream = await screenShareManager.startScreenShare({
+                    quality: quality,
+                    withAudio: withAudio
+                });
+
+                // 显示视频
+                const videoElement = document.getElementById('screenShareVideo');
+                videoElement.srcObject = stream;
+                document.getElementById('videoContainer').classList.add('active');
+
+                // 切换按钮
+                document.getElementById('startShareBtn').style.display = 'none';
+                document.getElementById('stopShareBtn').style.display = 'inline-flex';
+
+                // 显示状态
+                showStatus(`✅ 正在共享屏幕 (${getQualityLabel(quality)})`, 'active');
+                log('屏幕共享已开始', 'success');
+
+                // 监听轨道结束事件
+                stream.getVideoTracks()[0].addEventListener('ended', () => {
+                    log('用户主动停止了屏幕共享', 'warning');
+                    stopScreenShare();
+                });
+
+            } catch (error) {
+                log(`开始屏幕共享失败: ${error.message}`, 'error');
+                showStatus(`❌ ${error.message}`, 'error');
+                
+                // 恢复按钮状态
+                document.getElementById('startShareBtn').style.display = 'inline-flex';
+                document.getElementById('stopShareBtn').style.display = 'none';
+            }
+        }
+
+        // 停止屏幕共享
+        async function stopScreenShare() {
+            try {
+                if (!screenShareManager) {
+                    return;
+                }
+
+                log('停止屏幕共享...', 'info');
+                await screenShareManager.stopScreenShare();
+
+                // 清除视频
+                const videoElement = document.getElementById('screenShareVideo');
+                videoElement.srcObject = null;
+                document.getElementById('videoContainer').classList.remove('active');
+
+                // 切换按钮
+                document.getElementById('startShareBtn').style.display = 'inline-flex';
+                document.getElementById('stopShareBtn').style.display = 'none';
+
+                // 清除状态
+                hideStatus();
+                log('屏幕共享已停止', 'success');
+
+            } catch (error) {
+                log(`停止屏幕共享失败: ${error.message}`, 'error');
+                showStatus(`❌ ${error.message}`, 'error');
+            }
+        }
+
+        // 查询状态
+        async function checkStatus() {
+            try {
+                if (!screenShareManager) {
+                    initialize();
+                }
+
+                log('查询屏幕共享状态...', 'info');
+                const status = await screenShareManager.getStatus();
+
+                if (status && status.is_active) {
+                    const msg = `📺 ${status.sharer_name} 正在共享屏幕 [质量:${status.quality}, 音频:${status.with_audio ? '是' : '否'}]`;
+                    log(msg, 'info');
+                    showStatus(msg, 'remote');
+                } else {
+                    log('当前没有屏幕共享', 'info');
+                    showStatus('⏸️ 当前没有屏幕共享', 'active');
+                    setTimeout(hideStatus, 3000);
+                }
+
+            } catch (error) {
+                log(`查询状态失败: ${error.message}`, 'error');
+                showStatus(`❌ ${error.message}`, 'error');
+            }
+        }
+
+        // 质量改变
+        async function onQualityChange() {
+            if (!screenShareManager || !screenShareManager.isSharing) {
+                return;
+            }
+
+            try {
+                const quality = document.getElementById('qualitySelect').value;
+                log(`更改屏幕共享质量为: ${quality}`, 'info');
+
+                const newStream = await screenShareManager.changeQuality(quality);
+
+                // 更新视频
+                const videoElement = document.getElementById('screenShareVideo');
+                videoElement.srcObject = newStream;
+
+                log(`质量已更改为: ${getQualityLabel(quality)}`, 'success');
+                showStatus(`✅ 正在共享屏幕 (${getQualityLabel(quality)})`, 'active');
+
+            } catch (error) {
+                log(`更改质量失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 辅助函数
+        function getQualityLabel(quality) {
+            const labels = {
+                'high': '高清 1080p',
+                'medium': '标准 720p',
+                'low': '流畅 480p'
+            };
+            return labels[quality] || quality;
+        }
+
+        // 事件绑定
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('startShareBtn').addEventListener('click', startScreenShare);
+            document.getElementById('stopShareBtn').addEventListener('click', stopScreenShare);
+            document.getElementById('statusBtn').addEventListener('click', checkStatus);
+            document.getElementById('qualitySelect').addEventListener('change', onQualityChange);
+
+            // 模拟token（实际应该从登录获取）
+            localStorage.setItem('token', 'demo_token_123456');
+            localStorage.setItem('userName', '测试用户');
+            localStorage.setItem('userId', '1');
+
+            log('页面加载完成，准备就绪', 'success');
+        });
+    </script>
+</body>
+</html>
+
+
+

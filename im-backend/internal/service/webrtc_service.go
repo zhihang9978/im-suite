@@ -7,11 +7,12 @@ import (
 	"sync"
 	"time"
 
+	"zhihang-messenger/im-backend/config"
+
 	"github.com/gorilla/websocket"
 	"github.com/pion/webrtc/v3"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"zhihang-messenger/im-backend/config"
 )
 
 // WebRTCService WebRTC通话服务
@@ -24,26 +25,39 @@ type WebRTCService struct {
 
 // CallSession 通话会话
 type CallSession struct {
-	ID        string                     `json:"id"`
-	CallerID  uint                       `json:"caller_id"`
-	CalleeID  uint                       `json:"callee_id"`
-	Type      string                     `json:"type"` // audio, video
-	Status    string                     `json:"status"` // ringing, connecting, connected, ended
-	StartTime time.Time                  `json:"start_time"`
-	EndTime   *time.Time                 `json:"end_time,omitempty"`
-	Duration  int64                      `json:"duration,omitempty"`
-	Peers     map[uint]*PeerConnection   `json:"peers"`
-	Mutex     sync.RWMutex               `json:"-"`
+	ID            string                   `json:"id"`
+	CallerID      uint                     `json:"caller_id"`
+	CalleeID      uint                     `json:"callee_id"`
+	Type          string                   `json:"type"`   // audio, video, screen_share
+	Status        string                   `json:"status"` // ringing, connecting, connected, ended
+	StartTime     time.Time                `json:"start_time"`
+	EndTime       *time.Time               `json:"end_time,omitempty"`
+	Duration      int64                    `json:"duration,omitempty"`
+	Peers         map[uint]*PeerConnection `json:"peers"`
+	ScreenSharing *ScreenShareInfo         `json:"screen_sharing,omitempty"` // 屏幕共享信息
+	Mutex         sync.RWMutex             `json:"-"`
+}
+
+// ScreenShareInfo 屏幕共享信息
+type ScreenShareInfo struct {
+	SharerID   uint      `json:"sharer_id"`   // 共享者用户ID
+	SharerName string    `json:"sharer_name"` // 共享者名称
+	IsActive   bool      `json:"is_active"`   // 是否正在共享
+	StartTime  time.Time `json:"start_time"`  // 开始时间
+	Quality    string    `json:"quality"`     // 质量: high, medium, low
+	WithAudio  bool      `json:"with_audio"`  // 是否包含音频
 }
 
 // PeerConnection 对等连接
 type PeerConnection struct {
-	UserID     uint                      `json:"user_id"`
-	Conn       *websocket.Conn           `json:"-"`
-	PC         *webrtc.PeerConnection    `json:"-"`
-	IsMuted    bool                      `json:"is_muted"`
-	IsVideoOff bool                      `json:"is_video_off"`
-	JoinTime   time.Time                 `json:"join_time"`
+	UserID          uint                   `json:"user_id"`
+	Conn            *websocket.Conn        `json:"-"`
+	PC              *webrtc.PeerConnection `json:"-"`
+	ScreenSharePC   *webrtc.PeerConnection `json:"-"` // 屏幕共享专用连接
+	IsMuted         bool                   `json:"is_muted"`
+	IsVideoOff      bool                   `json:"is_video_off"`
+	IsScreenSharing bool                   `json:"is_screen_sharing"` // 是否正在共享屏幕
+	JoinTime        time.Time              `json:"join_time"`
 }
 
 // NewWebRTCService 创建WebRTC服务
@@ -205,6 +219,12 @@ func (s *WebRTCService) HandleSignaling(callID string, userID uint, signalType s
 		return s.handleAnswer(peer, payload)
 	case "ice_candidate":
 		return s.handleICECandidate(peer, payload)
+	case "screen_share_offer":
+		return s.handleScreenShareOffer(peer, payload)
+	case "screen_share_answer":
+		return s.handleScreenShareAnswer(peer, payload)
+	case "screen_share_ice_candidate":
+		return s.handleScreenShareICECandidate(peer, payload)
 	default:
 		return fmt.Errorf("未知的信令类型: %s", signalType)
 	}
@@ -308,14 +328,215 @@ func (s *WebRTCService) GetCallStats(callID string) (map[string]interface{}, err
 	defer session.Mutex.RUnlock()
 
 	stats := map[string]interface{}{
-		"call_id":      session.ID,
-		"type":         session.Type,
-		"status":       session.Status,
-		"start_time":   session.StartTime,
-		"peer_count":   len(session.Peers),
-		"duration":     time.Since(session.StartTime).Seconds(),
+		"call_id":        session.ID,
+		"type":           session.Type,
+		"status":         session.Status,
+		"start_time":     session.StartTime,
+		"peer_count":     len(session.Peers),
+		"duration":       time.Since(session.StartTime).Seconds(),
+		"screen_sharing": session.ScreenSharing,
 	}
 
 	return stats, nil
 }
 
+// StartScreenShare 开始屏幕共享
+func (s *WebRTCService) StartScreenShare(callID string, userID uint, userName string, quality string, withAudio bool) error {
+	session, err := s.GetActiveCall(callID)
+	if err != nil {
+		return err
+	}
+
+	session.Mutex.Lock()
+	defer session.Mutex.Unlock()
+
+	// 检查用户是否在通话中
+	peer, exists := session.Peers[userID]
+	if !exists {
+		return fmt.Errorf("用户未加入通话")
+	}
+
+	// 检查是否已有人在共享
+	if session.ScreenSharing != nil && session.ScreenSharing.IsActive {
+		return fmt.Errorf("已有用户正在共享屏幕，共享者: %s", session.ScreenSharing.SharerName)
+	}
+
+	// 创建屏幕共享专用PeerConnection
+	config := webrtc.Configuration{
+		ICEServers: []webrtc.ICEServer{
+			{
+				URLs: []string{"stun:stun.l.google.com:19302"},
+			},
+		},
+	}
+
+	screenSharePC, err := webrtc.NewPeerConnection(config)
+	if err != nil {
+		return fmt.Errorf("创建屏幕共享连接失败: %w", err)
+	}
+
+	peer.ScreenSharePC = screenSharePC
+	peer.IsScreenSharing = true
+
+	// 设置屏幕共享信息
+	session.ScreenSharing = &ScreenShareInfo{
+		SharerID:   userID,
+		SharerName: userName,
+		IsActive:   true,
+		StartTime:  time.Now(),
+		Quality:    quality,
+		WithAudio:  withAudio,
+	}
+
+	logrus.Infof("用户 %d (%s) 开始屏幕共享，通话: %s, 质量: %s, 音频: %v",
+		userID, userName, callID, quality, withAudio)
+
+	return nil
+}
+
+// StopScreenShare 停止屏幕共享
+func (s *WebRTCService) StopScreenShare(callID string, userID uint) error {
+	session, err := s.GetActiveCall(callID)
+	if err != nil {
+		return err
+	}
+
+	session.Mutex.Lock()
+	defer session.Mutex.Unlock()
+
+	// 检查是否是共享者
+	if session.ScreenSharing == nil || session.ScreenSharing.SharerID != userID {
+		return fmt.Errorf("您没有正在进行的屏幕共享")
+	}
+
+	peer, exists := session.Peers[userID]
+	if !exists {
+		return fmt.Errorf("用户未加入通话")
+	}
+
+	// 关闭屏幕共享连接
+	if peer.ScreenSharePC != nil {
+		peer.ScreenSharePC.Close()
+		peer.ScreenSharePC = nil
+	}
+
+	peer.IsScreenSharing = false
+
+	// 清除屏幕共享信息
+	duration := time.Since(session.ScreenSharing.StartTime).Seconds()
+	session.ScreenSharing = nil
+
+	logrus.Infof("用户 %d 停止屏幕共享，通话: %s, 共享时长: %.0f秒", userID, callID, duration)
+
+	return nil
+}
+
+// GetScreenShareStatus 获取屏幕共享状态
+func (s *WebRTCService) GetScreenShareStatus(callID string) (*ScreenShareInfo, error) {
+	session, err := s.GetActiveCall(callID)
+	if err != nil {
+		return nil, err
+	}
+
+	session.Mutex.RLock()
+	defer session.Mutex.RUnlock()
+
+	return session.ScreenSharing, nil
+}
+
+// handleScreenShareOffer 处理屏幕共享Offer
+func (s *WebRTCService) handleScreenShareOffer(peer *PeerConnection, payload interface{}) error {
+	offerData, _ := json.Marshal(payload)
+	var offer webrtc.SessionDescription
+	if err := json.Unmarshal(offerData, &offer); err != nil {
+		return err
+	}
+
+	// 如果还没有屏幕共享连接，创建一个
+	if peer.ScreenSharePC == nil {
+		config := webrtc.Configuration{
+			ICEServers: []webrtc.ICEServer{
+				{
+					URLs: []string{"stun:stun.l.google.com:19302"},
+				},
+			},
+		}
+
+		pc, err := webrtc.NewPeerConnection(config)
+		if err != nil {
+			return fmt.Errorf("创建屏幕共享连接失败: %w", err)
+		}
+		peer.ScreenSharePC = pc
+	}
+
+	if err := peer.ScreenSharePC.SetRemoteDescription(offer); err != nil {
+		return fmt.Errorf("设置屏幕共享远程描述失败: %w", err)
+	}
+
+	return nil
+}
+
+// handleScreenShareAnswer 处理屏幕共享Answer
+func (s *WebRTCService) handleScreenShareAnswer(peer *PeerConnection, payload interface{}) error {
+	answerData, _ := json.Marshal(payload)
+	var answer webrtc.SessionDescription
+	if err := json.Unmarshal(answerData, &answer); err != nil {
+		return err
+	}
+
+	if peer.ScreenSharePC == nil {
+		return fmt.Errorf("屏幕共享连接不存在")
+	}
+
+	if err := peer.ScreenSharePC.SetRemoteDescription(answer); err != nil {
+		return fmt.Errorf("设置屏幕共享远程描述失败: %w", err)
+	}
+
+	return nil
+}
+
+// handleScreenShareICECandidate 处理屏幕共享ICE候选
+func (s *WebRTCService) handleScreenShareICECandidate(peer *PeerConnection, payload interface{}) error {
+	candidateData, _ := json.Marshal(payload)
+	var candidate webrtc.ICECandidateInit
+	if err := json.Unmarshal(candidateData, &candidate); err != nil {
+		return err
+	}
+
+	if peer.ScreenSharePC == nil {
+		return fmt.Errorf("屏幕共享连接不存在")
+	}
+
+	if err := peer.ScreenSharePC.AddICECandidate(candidate); err != nil {
+		return fmt.Errorf("添加屏幕共享ICE候选失败: %w", err)
+	}
+
+	return nil
+}
+
+// ChangeScreenShareQuality 更改屏幕共享质量
+func (s *WebRTCService) ChangeScreenShareQuality(callID string, userID uint, quality string) error {
+	session, err := s.GetActiveCall(callID)
+	if err != nil {
+		return err
+	}
+
+	session.Mutex.Lock()
+	defer session.Mutex.Unlock()
+
+	// 检查是否是共享者
+	if session.ScreenSharing == nil || session.ScreenSharing.SharerID != userID {
+		return fmt.Errorf("您没有正在进行的屏幕共享")
+	}
+
+	// 验证质量参数
+	if quality != "high" && quality != "medium" && quality != "low" {
+		return fmt.Errorf("无效的质量参数，应为: high, medium, low")
+	}
+
+	session.ScreenSharing.Quality = quality
+
+	logrus.Infof("用户 %d 更改屏幕共享质量为: %s", userID, quality)
+
+	return nil
+}

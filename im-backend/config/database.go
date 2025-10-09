@@ -109,6 +109,12 @@ func AutoMigrate() error {
 		&model.BotAPILog{},
 		&model.BotUser{},
 		&model.BotUserPermission{},
+		// 屏幕共享相关表
+		&model.ScreenShareSession{},
+		&model.ScreenShareQualityChange{},
+		&model.ScreenShareParticipant{},
+		&model.ScreenShareStatistics{},
+		&model.ScreenShareRecording{},
 	)
 
 	if err != nil {
