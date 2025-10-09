@@ -94,8 +94,8 @@ func (s *DeviceManagementService) RegisterDevice(ctx context.Context, userID uin
 }
 
 // GetUserDevices 获取用户的所有设备
-func (s *DeviceManagementService) GetUserDevices(ctx context.Context, userID uint) ([]DeviceSession, error) {
-	var devices []DeviceSession
+func (s *DeviceManagementService) GetUserDevices(ctx context.Context, userID uint) ([]model.DeviceSession, error) {
+	var devices []model.DeviceSession
 	err := s.db.WithContext(ctx).
 		Where("user_id = ? AND is_active = ?", userID, true).
 		Order("last_active_at DESC").
@@ -104,8 +104,8 @@ func (s *DeviceManagementService) GetUserDevices(ctx context.Context, userID uin
 }
 
 // GetDeviceByID 获取设备详情
-func (s *DeviceManagementService) GetDeviceByID(ctx context.Context, userID uint, deviceID string) (*DeviceSession, error) {
-	var device DeviceSession
+func (s *DeviceManagementService) GetDeviceByID(ctx context.Context, userID uint, deviceID string) (*model.DeviceSession, error) {
+	var device model.DeviceSession
 	err := s.db.WithContext(ctx).
 		Where("user_id = ? AND device_id = ?", userID, deviceID).
 		First(&device).Error
@@ -117,7 +117,7 @@ func (s *DeviceManagementService) GetDeviceByID(ctx context.Context, userID uint
 
 // UpdateDeviceActivity 更新设备活动
 func (s *DeviceManagementService) UpdateDeviceActivity(ctx context.Context, userID uint, deviceID string, ip string) error {
-	var device DeviceSession
+	var device model.DeviceSession
 	err := s.db.WithContext(ctx).Where("user_id = ? AND device_id = ?", userID, deviceID).First(&device).Error
 	if err != nil {
 		return fmt.Errorf("设备不存在: %w", err)
@@ -131,7 +131,7 @@ func (s *DeviceManagementService) UpdateDeviceActivity(ctx context.Context, user
 
 // RevokeDevice 撤销设备（强制下线）
 func (s *DeviceManagementService) RevokeDevice(ctx context.Context, userID uint, deviceID string) error {
-	var device DeviceSession
+	var device model.DeviceSession
 	err := s.db.WithContext(ctx).Where("user_id = ? AND device_id = ?", userID, deviceID).First(&device).Error
 	if err != nil {
 		return fmt.Errorf("设备不存在: %w", err)
@@ -151,7 +151,7 @@ func (s *DeviceManagementService) RevokeDevice(ctx context.Context, userID uint,
 // RevokeAllDevices 撤销用户的所有设备（除当前设备）
 func (s *DeviceManagementService) RevokeAllDevices(ctx context.Context, userID uint, exceptDeviceID string) error {
 	result := s.db.WithContext(ctx).
-		Model(&DeviceSession{}).
+		Model(&model.DeviceSession{}).
 		Where("user_id = ? AND device_id != ? AND is_active = ?", userID, exceptDeviceID, true).
 		Update("is_active", false)
 
@@ -161,14 +161,14 @@ func (s *DeviceManagementService) RevokeAllDevices(ctx context.Context, userID u
 
 	// 记录活动
 	s.recordActivity(ctx, userID, "all", "all_devices_revoked",
-		fmt.Sprintf("撤销了%d台设备", result.RowsAffected), "")
+		fmt.Sprintf("撤销了%d台设备", result.RowsAffected), "", "")
 
 	return nil
 }
 
 // GetDeviceActivities 获取设备活动历史
-func (s *DeviceManagementService) GetDeviceActivities(ctx context.Context, userID uint, deviceID string, limit int) ([]DeviceActivity, error) {
-	var activities []DeviceActivity
+func (s *DeviceManagementService) GetDeviceActivities(ctx context.Context, userID uint, deviceID string, limit int) ([]model.DeviceActivity, error) {
+	var activities []model.DeviceActivity
 	query := s.db.WithContext(ctx).Where("user_id = ?", userID)
 
 	if deviceID != "" {
@@ -184,8 +184,8 @@ func (s *DeviceManagementService) GetDeviceActivities(ctx context.Context, userI
 }
 
 // GetSuspiciousDevices 获取可疑设备
-func (s *DeviceManagementService) GetSuspiciousDevices(ctx context.Context, userID uint) ([]DeviceSession, error) {
-	var devices []DeviceSession
+func (s *DeviceManagementService) GetSuspiciousDevices(ctx context.Context, userID uint) ([]model.DeviceSession, error) {
+	var devices []model.DeviceSession
 	err := s.db.WithContext(ctx).
 		Where("user_id = ? AND is_suspicious = ? AND is_active = ?", userID, true, true).
 		Order("risk_score DESC").
@@ -199,14 +199,14 @@ func (s *DeviceManagementService) GetDeviceStatistics(ctx context.Context, userI
 
 	// 活跃设备数
 	var activeCount int64
-	s.db.WithContext(ctx).Model(&DeviceSession{}).
+	s.db.WithContext(ctx).Model(&model.DeviceSession{}).
 		Where("user_id = ? AND is_active = ?", userID, true).
 		Count(&activeCount)
 	stats["active_devices"] = activeCount
 
 	// 可疑设备数
 	var suspiciousCount int64
-	s.db.WithContext(ctx).Model(&DeviceSession{}).
+	s.db.WithContext(ctx).Model(&model.DeviceSession{}).
 		Where("user_id = ? AND is_suspicious = ? AND is_active = ?", userID, true, true).
 		Count(&suspiciousCount)
 	stats["suspicious_devices"] = suspiciousCount
@@ -216,7 +216,7 @@ func (s *DeviceManagementService) GetDeviceStatistics(ctx context.Context, userI
 		DeviceType string
 		Count      int64
 	}
-	s.db.WithContext(ctx).Model(&DeviceSession{}).
+	s.db.WithContext(ctx).Model(&model.DeviceSession{}).
 		Select("device_type, count(*) as count").
 		Where("user_id = ? AND is_active = ?", userID, true).
 		Group("device_type").
@@ -224,7 +224,7 @@ func (s *DeviceManagementService) GetDeviceStatistics(ctx context.Context, userI
 	stats["by_type"] = typeStats
 
 	// 最近活动
-	var lastActivity DeviceActivity
+	var lastActivity model.DeviceActivity
 	s.db.WithContext(ctx).
 		Where("user_id = ?", userID).
 		Order("timestamp DESC").
@@ -248,7 +248,7 @@ func (s *DeviceManagementService) calculateRiskScore(ctx context.Context, userID
 
 	// 1. 检查是否是新IP
 	var count int64
-	s.db.WithContext(ctx).Model(&DeviceSession{}).
+	s.db.WithContext(ctx).Model(&model.DeviceSession{}).
 		Where("user_id = ? AND ip = ?", userID, deviceInfo.IP).
 		Count(&count)
 	if count == 0 {
@@ -256,7 +256,7 @@ func (s *DeviceManagementService) calculateRiskScore(ctx context.Context, userID
 	}
 
 	// 2. 检查是否是新设备类型
-	s.db.WithContext(ctx).Model(&DeviceSession{}).
+	s.db.WithContext(ctx).Model(&model.DeviceSession{}).
 		Where("user_id = ? AND device_type = ?", userID, deviceInfo.DeviceType).
 		Count(&count)
 	if count == 0 {
@@ -264,7 +264,7 @@ func (s *DeviceManagementService) calculateRiskScore(ctx context.Context, userID
 	}
 
 	// 3. 检查是否是新平台
-	s.db.WithContext(ctx).Model(&DeviceSession{}).
+	s.db.WithContext(ctx).Model(&model.DeviceSession{}).
 		Where("user_id = ? AND platform = ?", userID, deviceInfo.Platform).
 		Count(&count)
 	if count == 0 {
@@ -272,7 +272,7 @@ func (s *DeviceManagementService) calculateRiskScore(ctx context.Context, userID
 	}
 
 	// 4. 检查最近登录时间
-	var lastDevice DeviceSession
+	var lastDevice model.DeviceSession
 	err := s.db.WithContext(ctx).
 		Where("user_id = ?", userID).
 		Order("last_active_at DESC").
@@ -295,7 +295,7 @@ func (s *DeviceManagementService) calculateRiskScore(ctx context.Context, userID
 
 // recordActivity 记录设备活动
 func (s *DeviceManagementService) recordActivity(ctx context.Context, userID uint, deviceID string, activityType string, description string, ip string, location string) {
-	activity := DeviceActivity{
+	activity := model.DeviceActivity{
 		UserID:       userID,
 		DeviceID:     deviceID,
 		ActivityType: activityType,
@@ -310,11 +310,11 @@ func (s *DeviceManagementService) recordActivity(ctx context.Context, userID uin
 // ExportDeviceData 导出设备数据（GDPR合规）
 func (s *DeviceManagementService) ExportDeviceData(ctx context.Context, userID uint) (string, error) {
 	// 获取所有设备
-	var devices []DeviceSession
+	var devices []model.DeviceSession
 	s.db.WithContext(ctx).Where("user_id = ?", userID).Find(&devices)
 
 	// 获取所有活动
-	var activities []DeviceActivity
+	var activities []model.DeviceActivity
 	s.db.WithContext(ctx).Where("user_id = ?", userID).Find(&activities)
 
 	// 组装数据
@@ -337,7 +337,7 @@ func (s *DeviceManagementService) ExportDeviceData(ctx context.Context, userID u
 func (s *DeviceManagementService) CleanupExpiredDevices(ctx context.Context) error {
 	// 标记过期设备为不活跃
 	result := s.db.WithContext(ctx).
-		Model(&DeviceSession{}).
+		Model(&model.DeviceSession{}).
 		Where("expires_at < ? AND is_active = ?", time.Now(), true).
 		Update("is_active", false)
 

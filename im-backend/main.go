@@ -85,7 +85,7 @@ func main() {
 			"status":    "ok",
 			"timestamp": time.Now().Unix(),
 			"service":   "zhihang-messenger-backend",
-			"version":   "1.3.1",
+			"version":   "1.4.0",
 		})
 	})
 
@@ -136,6 +136,7 @@ func main() {
 		fileController := controller.NewFileController()
 		superAdminController := controller.NewSuperAdminController()
 		twoFactorController := controller.NewTwoFactorController()
+		deviceMgmtController := controller.NewDeviceManagementController()
 
 		// ============================================
 		// 认证路由（公开）
@@ -207,6 +208,22 @@ func main() {
 				twoFactor.POST("/backup-codes/regenerate", twoFactorController.RegenerateBackupCodes)
 				twoFactor.GET("/trusted-devices", twoFactorController.GetTrustedDevices)
 				twoFactor.DELETE("/trusted-devices/:device_id", twoFactorController.RemoveTrustedDevice)
+			}
+
+			// ------------------------------------
+			// 设备管理
+			// ------------------------------------
+			devices := protected.Group("/devices")
+			{
+				devices.POST("/register", deviceMgmtController.RegisterDevice)
+				devices.GET("", deviceMgmtController.GetUserDevices)
+				devices.GET("/:device_id", deviceMgmtController.GetDeviceByID)
+				devices.DELETE("/:device_id", deviceMgmtController.RevokeDevice)
+				devices.POST("/revoke-all", deviceMgmtController.RevokeAllDevices)
+				devices.GET("/activities", deviceMgmtController.GetDeviceActivities)
+				devices.GET("/suspicious", deviceMgmtController.GetSuspiciousDevices)
+				devices.GET("/statistics", deviceMgmtController.GetDeviceStatistics)
+				devices.GET("/export", deviceMgmtController.ExportDeviceData)
 			}
 
 			// ------------------------------------

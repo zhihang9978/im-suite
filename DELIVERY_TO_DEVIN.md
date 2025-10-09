@@ -23,52 +23,9 @@
 
 ---
 
-## 🚀 快速开始（5分钟上手）
+## 🚀 快速开始（3分钟上手）
 
-### Step 1: 修复代码（2分钟）
-
-#### 修复1：类型引用
-**文件**: `im-backend/internal/service/device_management_service.go`
-
-使用查找替换（Ctrl+H或Cmd+H）：
-```
-查找: DeviceSession
-替换为: model.DeviceSession
-
-查找: DeviceActivity  
-替换为: model.DeviceActivity
-```
-
-**注意**: 不要替换函数名和字符串中的内容
-
-#### 修复2：添加路由
-**文件**: `im-backend/main.go`
-
-在第137行后添加：
-```go
-deviceMgmtController := controller.NewDeviceManagementController()
-```
-
-在第209行后（2FA路由之后）添加：
-```go
-// ------------------------------------
-// 设备管理
-// ------------------------------------
-devices := protected.Group("/devices")
-{
-    devices.POST("/register", deviceMgmtController.RegisterDevice)
-    devices.GET("", deviceMgmtController.GetUserDevices)
-    devices.GET("/:device_id", deviceMgmtController.GetDeviceByID)
-    devices.DELETE("/:device_id", deviceMgmtController.RevokeDevice)
-    devices.POST("/revoke-all", deviceMgmtController.RevokeAllDevices)
-    devices.GET("/activities", deviceMgmtController.GetDeviceActivities)
-    devices.GET("/suspicious", deviceMgmtController.GetSuspiciousDevices)
-    devices.GET("/statistics", deviceMgmtController.GetDeviceStatistics)
-    devices.GET("/export", deviceMgmtController.ExportDeviceData)
-}
-```
-
-### Step 2: 编译测试（1分钟）
+### Step 1: 编译测试（1分钟）
 
 ```bash
 cd im-backend
@@ -78,7 +35,7 @@ go build
 
 预期结果：✅ 成功编译，无错误
 
-### Step 3: 运行应用（1分钟）
+### Step 2: 运行应用（1分钟）
 
 ```bash
 go run main.go

@@ -70,7 +70,10 @@ func (s *FileEncryptionService) EncryptFile(req EncryptFileRequest) (*EncryptFil
 			return nil, fmt.Errorf("密钥格式错误: %v", err)
 		}
 	} else {
-		key = s.generateKey()
+		key, err = s.generateKey()
+		if err != nil {
+			return nil, fmt.Errorf("生成密钥失败: %v", err)
+		}
 	}
 
 	// 选择加密算法
@@ -183,7 +186,10 @@ func (s *FileEncryptionService) DecryptData(encryptedData []byte, key string) ([
 
 // GenerateKey 生成加密密钥
 func (s *FileEncryptionService) GenerateKey() string {
-	key := s.generateKey()
+	key, err := s.generateKey()
+	if err != nil {
+		return ""
+	}
 	return hex.EncodeToString(key)
 }
 
