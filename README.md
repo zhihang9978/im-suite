@@ -46,7 +46,7 @@
 │   ├── rules.json             # 开发规则配置
 │   └── modes.json             # AI 模式配置
 ├── telegram-web/              # Web 端 (基于 Telegram Web)
-├── telegram-android/          # Android 端 (基于 Telegram Android)
+├── telegram-android/          # Android 端 (基于 Telegram Android) ⏳ 子模块待推送
 ├── im-backend/                # 后端服务 (Go + Gin + GORM)
 ├── im-admin/                  # 管理后台 (Vue3 + Element Plus)
 ├── assets/                    # 资源文件
@@ -447,10 +447,39 @@ kubectl apply -f k8s/
 
 本项目基于 Telegram 开源协议，遵循相应的开源许可证。
 
+## 子模块说明
+
+### telegram-android 子模块状态 ⏳
+
+**仓库地址**: https://github.com/zhihang9978/telegram-android.git  
+**状态**: 本地完整，远程待推送
+
+**说明**：
+- ✅ 本地代码完整可用
+- ✅ 可以直接编译和运行
+- ⏳ 由于仓库规模大（16,561个文件），需要手动推送
+- 📱 不影响v1.4.0核心功能（后端、Web端、管理后台）
+
+**推送方法**（可选）：
+```bash
+cd telegram-android
+git push -u origin master
+# 预计需要5-15分钟
+```
+
+**Devin测试说明**：
+- 主项目所有代码已完整推送 ✅
+- 后端、Web端、管理后台可以直接测试 ✅  
+- Android应用本地已有完整代码，可本地编译测试 ✅
+- 如需从GitHub获取Android代码，请等待子模块推送完成
+
+---
+
 ## 联系方式
 
 - 项目维护者: [zhihang9978](https://github.com/zhihang9978)
-- 项目地址: https://github.com/zhihang9978/im-suite
+- 主项目地址: https://github.com/zhihang9978/im-suite
+- Android子模块: https://github.com/zhihang9978/telegram-android （待推送）
 - 问题反馈: [Issues](https://github.com/zhihang9978/im-suite/issues)
 
 ---
