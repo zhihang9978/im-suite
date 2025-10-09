@@ -56,13 +56,23 @@ func AutoMigrate() error {
 		return fmt.Errorf("数据库未初始化")
 	}
 
-	// 自动迁移所有模型
-	err := DB.AutoMigrate(
+	fmt.Println("========================================")
+	fmt.Println("开始数据库表迁移...")
+	fmt.Println("========================================")
+
+	// 定义迁移顺序（重要：被引用的表必须先创建）
+	models := []interface{}{
+		// 基础表（无外键依赖）
 		&model.User{},
 		&model.Contact{},
 		&model.Session{},
 		&model.Chat{},
 		&model.ChatMember{},
+		
+		// MessageReply 必须在 Message 之前（Message.reply_to_id 引用 MessageReply）
+		&model.MessageReply{},
+		
+		// 消息相关表
 		&model.Message{},
 		&model.MessageRead{},
 		&model.MessageEdit{},
@@ -74,19 +84,26 @@ func AutoMigrate() error {
 		&model.MessageMark{},
 		&model.MessageStatus{},
 		&model.MessageShare{},
-		&model.MessageReply{},
+		
+		// 文件相关表
 		&model.File{},
 		&model.FileChunk{},
 		&model.FilePreview{},
 		&model.FileAccess{},
+		
+		// 内容审核相关表
 		&model.ContentReport{},
 		&model.ContentFilter{},
 		&model.UserWarning{},
 		&model.ModerationLog{},
 		&model.ContentStatistics{},
+		
+		// 主题相关表
 		&model.Theme{},
 		&model.UserThemeSetting{},
 		&model.ThemeTemplate{},
+		
+		// 群组管理相关表
 		&model.GroupInvite{},
 		&model.GroupInviteUsage{},
 		&model.AdminRole{},
@@ -94,9 +111,13 @@ func AutoMigrate() error {
 		&model.GroupJoinRequest{},
 		&model.GroupAuditLog{},
 		&model.GroupPermissionTemplate{},
+		
+		// 系统管理相关表
 		&model.Alert{},
 		&model.AdminOperationLog{},
 		&model.SystemConfig{},
+		
+		// 安全相关表
 		&model.IPBlacklist{},
 		&model.UserBlacklist{},
 		&model.LoginAttempt{},
@@ -105,21 +126,39 @@ func AutoMigrate() error {
 		&model.TrustedDevice{},
 		&model.DeviceSession{},
 		&model.DeviceActivity{},
+		
+		// 机器人相关表
 		&model.Bot{},
 		&model.BotAPILog{},
 		&model.BotUser{},
 		&model.BotUserPermission{},
+		
 		// 屏幕共享相关表
 		&model.ScreenShareSession{},
 		&model.ScreenShareQualityChange{},
 		&model.ScreenShareParticipant{},
 		&model.ScreenShareStatistics{},
 		&model.ScreenShareRecording{},
-	)
+	}
+
+	// 打印迁移顺序
+	fmt.Println("迁移顺序：")
+	for i, m := range models {
+		fmt.Printf("  %d. %T\n", i+1, m)
+	}
+	fmt.Println("----------------------------------------")
+
+	// 执行自动迁移
+	err := DB.AutoMigrate(models...)
 
 	if err != nil {
+		fmt.Printf("❌ 数据库迁移失败: %v\n", err)
+		fmt.Println("========================================")
 		return fmt.Errorf("数据库迁移失败: %v", err)
 	}
+
+	fmt.Println("✅ 数据库迁移成功！")
+	fmt.Println("========================================")
 
 	return nil
 }
