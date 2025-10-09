@@ -366,7 +366,7 @@ func main() {
 		superAdmin.Use(middleware.SuperAdmin())
 		{
 			superAdminController.SetupRoutes(superAdmin)
-			
+
 			// 机器人管理
 			superAdmin.POST("/bots", botController.CreateBot)
 			superAdmin.GET("/bots", botController.GetBotList)
@@ -378,18 +378,16 @@ func main() {
 			superAdmin.GET("/bots/:id/stats", botController.GetBotStats)
 			superAdmin.POST("/bots/:id/regenerate-secret", botController.RegenerateAPISecret)
 		}
-		
+
 		// ============================================
 		// 机器人API路由（使用Bot认证）
 		// ============================================
 		botAPI := api.Group("/bot")
 		botAPI.Use(middleware.BotAuthMiddleware())
 		{
-			// 用户管理
-			botAPI.POST("/users", botController.BotCreateUser)
-			botAPI.POST("/users/ban", botController.BotBanUser)
-			botAPI.POST("/users/:user_id/unban", botController.BotUnbanUser)
-			botAPI.DELETE("/users", botController.BotDeleteUser)
+			// 用户管理（仅限创建和删除普通用户）
+			botAPI.POST("/users", botController.BotCreateUser)      // 创建普通用户
+			botAPI.DELETE("/users", botController.BotDeleteUser)    // 删除自己创建的用户
 		}
 	}
 

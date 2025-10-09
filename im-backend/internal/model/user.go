@@ -44,6 +44,10 @@ type User struct {
 	Language string `json:"language" gorm:"default:'zh-CN'"` // 语言设置
 	Theme    string `json:"theme" gorm:"default:'auto'"`     // 主题设置
 
+	// 机器人管理信息
+	CreatedByBotID *uint `json:"created_by_bot_id,omitempty"` // 创建该用户的机器人ID（null表示非机器人创建）
+	BotManageable  bool  `json:"bot_manageable" gorm:"default:false"` // 是否允许机器人管理
+
 	// 关联关系
 	Contacts []Contact `json:"contacts" gorm:"foreignKey:UserID"`   // 联系人
 	Chats    []Chat    `json:"chats" gorm:"many2many:chat_members"` // 参与的聊天

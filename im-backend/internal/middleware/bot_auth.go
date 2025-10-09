@@ -4,10 +4,11 @@ import (
 	"net/http"
 	"strings"
 	"time"
-	
-	"github.com/gin-gonic/gin"
+
 	"zhihang-messenger/im-backend/internal/model"
 	"zhihang-messenger/im-backend/internal/service"
+
+	"github.com/gin-gonic/gin"
 )
 
 // BotAuthMiddleware 机器人认证中间件
@@ -22,7 +23,7 @@ func BotAuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		
+
 		// 解析 API Key 和 Secret
 		// 格式: "Bot {api_key}:{api_secret}"
 		if !strings.HasPrefix(authHeader, "Bot ") {
@@ -32,7 +33,7 @@ func BotAuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		
+
 		credentials := strings.TrimPrefix(authHeader, "Bot ")
 		parts := strings.Split(credentials, ":")
 		if len(parts) != 2 {
@@ -42,10 +43,10 @@ func BotAuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		
+
 		apiKey := parts[0]
 		apiSecret := parts[1]
-		
+
 		// 验证机器人
 		botService := service.NewBotService()
 		bot, err := botService.ValidateBotAPIKey(c.Request.Context(), apiKey, apiSecret)
@@ -56,7 +57,7 @@ func BotAuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		
+
 		// 检查速率限制
 		if err := botService.CheckRateLimit(c.Request.Context(), bot); err != nil {
 			c.JSON(http.StatusTooManyRequests, gin.H{
@@ -65,22 +66,22 @@ func BotAuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		
+
 		// 将机器人信息存储到上下文
 		c.Set("bot", &service.BotModel{Bot: bot})
 		c.Set("bot_id", bot.ID)
 		c.Set("bot_name", bot.Name)
-		
+
 		// 记录请求开始时间
 		startTime := time.Now()
-		
+
 		// 继续处理请求
 		c.Next()
-		
+
 		// 记录API调用
 		duration := time.Since(startTime).Milliseconds()
 		statusCode := c.Writer.Status()
-		
+
 		// 异步记录日志
 		go func() {
 			botService.RecordBotAPICall(
@@ -109,23 +110,22 @@ func BotPermissionMiddleware(requiredPermission string) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		
+
 		botModel := bot.(*service.BotModel)
 		botService := service.NewBotService()
-		
+
 		// 检查权限
 		hasPermission := botService.CheckBotPermission(botModel.Bot, model.BotPermission(requiredPermission))
 		if !hasPermission {
 			c.JSON(http.StatusForbidden, gin.H{
-				"error":                "权限不足",
-				"required_permission":  requiredPermission,
-				"message":              "机器人没有执行此操作的权限",
+				"error":               "权限不足",
+				"required_permission": requiredPermission,
+				"message":             "机器人没有执行此操作的权限",
 			})
 			c.Abort()
 			return
 		}
-		
+
 		c.Next()
 	}
 }
-

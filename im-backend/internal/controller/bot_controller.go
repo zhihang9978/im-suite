@@ -3,9 +3,10 @@ package controller
 import (
 	"net/http"
 	"strconv"
-	
-	"github.com/gin-gonic/gin"
+
 	"zhihang-messenger/im-backend/internal/service"
+
+	"github.com/gin-gonic/gin"
 )
 
 // BotController 机器人控制器
@@ -23,19 +24,19 @@ func NewBotController() *BotController {
 // CreateBot 创建机器人（需要super_admin权限）
 func (c *BotController) CreateBot(ctx *gin.Context) {
 	adminID := ctx.GetUint("user_id")
-	
+
 	var req service.CreateBotRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	resp, err := c.botService.CreateBot(ctx.Request.Context(), adminID, &req)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    resp,
@@ -51,7 +52,7 @@ func (c *BotController) GetBotList(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    bots,
@@ -66,13 +67,13 @@ func (c *BotController) GetBotByID(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的机器人ID"})
 		return
 	}
-	
+
 	bot, err := c.botService.GetBotByID(ctx.Request.Context(), uint(botID))
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    bot,
@@ -86,21 +87,21 @@ func (c *BotController) UpdateBotPermissions(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的机器人ID"})
 		return
 	}
-	
+
 	var req struct {
 		Permissions []string `json:"permissions" binding:"required"`
 	}
-	
+
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	if err := c.botService.UpdateBotPermissions(ctx.Request.Context(), uint(botID), req.Permissions); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "权限已更新",
@@ -114,21 +115,21 @@ func (c *BotController) ToggleBotStatus(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的机器人ID"})
 		return
 	}
-	
+
 	var req struct {
 		IsActive bool `json:"is_active"`
 	}
-	
+
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	if err := c.botService.ToggleBotStatus(ctx.Request.Context(), uint(botID), req.IsActive); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "状态已更新",
@@ -142,12 +143,12 @@ func (c *BotController) DeleteBot(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的机器人ID"})
 		return
 	}
-	
+
 	if err := c.botService.DeleteBot(ctx.Request.Context(), uint(botID)); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "机器人已删除",
@@ -161,16 +162,16 @@ func (c *BotController) GetBotLogs(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的机器人ID"})
 		return
 	}
-	
+
 	limitStr := ctx.DefaultQuery("limit", "100")
 	limit, _ := strconv.Atoi(limitStr)
-	
+
 	logs, err := c.botService.GetBotLogs(ctx.Request.Context(), uint(botID), limit)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    logs,
@@ -185,13 +186,13 @@ func (c *BotController) GetBotStats(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的机器人ID"})
 		return
 	}
-	
+
 	stats, err := c.botService.GetBotStats(ctx.Request.Context(), uint(botID))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    stats,
@@ -205,13 +206,13 @@ func (c *BotController) RegenerateAPISecret(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的机器人ID"})
 		return
 	}
-	
+
 	apiSecret, err := c.botService.RegenerateAPISecret(ctx.Request.Context(), uint(botID))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"success":    true,
 		"api_secret": apiSecret,
@@ -222,95 +223,51 @@ func (c *BotController) RegenerateAPISecret(ctx *gin.Context) {
 
 // ========================================
 // 机器人API端点（使用API Key认证）
+// 限制：仅能创建普通用户和删除自己创建的用户
 // ========================================
 
-// BotCreateUser 机器人创建用户
+// BotCreateUser 机器人创建用户（仅限普通用户）
 func (c *BotController) BotCreateUser(ctx *gin.Context) {
 	bot, _ := ctx.Get("bot")
 	botModel := bot.(*service.BotModel)
-	
+
 	var req service.BotCreateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	user, err := c.botService.BotCreateUser(ctx.Request.Context(), botModel.Bot, &req)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	ctx.JSON(http.StatusCreated, gin.H{
 		"success": true,
 		"data":    user,
-		"message": "用户创建成功",
+		"message": "用户创建成功（角色：普通用户）",
 	})
 }
 
-// BotBanUser 机器人封禁用户
-func (c *BotController) BotBanUser(ctx *gin.Context) {
-	bot, _ := ctx.Get("bot")
-	botModel := bot.(*service.BotModel)
-	
-	var req service.BotBanUserRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	
-	if err := c.botService.BotBanUser(ctx.Request.Context(), botModel.Bot, &req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	
-	ctx.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "用户已封禁",
-	})
-}
-
-// BotUnbanUser 机器人解封用户
-func (c *BotController) BotUnbanUser(ctx *gin.Context) {
-	bot, _ := ctx.Get("bot")
-	botModel := bot.(*service.BotModel)
-	
-	userID, err := strconv.ParseUint(ctx.Param("user_id"), 10, 32)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的用户ID"})
-		return
-	}
-	
-	if err := c.botService.BotUnbanUser(ctx.Request.Context(), botModel.Bot, uint(userID)); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	
-	ctx.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "用户已解封",
-	})
-}
-
-// BotDeleteUser 机器人删除用户
+// BotDeleteUser 机器人删除用户（仅限自己创建的用户）
 func (c *BotController) BotDeleteUser(ctx *gin.Context) {
 	bot, _ := ctx.Get("bot")
 	botModel := bot.(*service.BotModel)
-	
+
 	var req service.BotDeleteUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	if err := c.botService.BotDeleteUser(ctx.Request.Context(), botModel.Bot, &req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "用户已删除",
 	})
 }
-
