@@ -105,6 +105,8 @@ func AutoMigrate() error {
 		&model.TrustedDevice{},
 		&model.DeviceSession{},
 		&model.DeviceActivity{},
+		&model.Bot{},
+		&model.BotAPILog{},
 	)
 
 	if err != nil {
