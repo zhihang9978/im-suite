@@ -136,4 +136,3 @@ func (ScreenShareRecording) TableName() string {
 	return "screen_share_recordings"
 }
 
-

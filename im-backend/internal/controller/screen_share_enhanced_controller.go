@@ -345,4 +345,3 @@ func (c *ScreenShareEnhancedController) RecordQualityChange(ctx *gin.Context) {
 	})
 }
 
-

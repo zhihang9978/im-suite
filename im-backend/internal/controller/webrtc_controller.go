@@ -284,4 +284,3 @@ func (c *WebRTCController) ChangeScreenShareQuality(ctx *gin.Context) {
 	})
 }
 
-
