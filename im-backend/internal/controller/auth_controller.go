@@ -9,9 +9,9 @@ import (
 )
 
 type AuthController struct {
-	authService *service.AuthService
+	authService      *service.AuthService
 	twoFactorService *service.TwoFactorService
-	deviceService *service.DeviceManagementService
+	deviceService    *service.DeviceManagementService
 }
 
 func NewAuthController(authService *service.AuthService) *AuthController {
@@ -188,13 +188,13 @@ func (c *AuthController) RefreshToken(ctx *gin.Context) {
 // LoginWith2FA 使用2FA验证码完成登录
 func (c *AuthController) LoginWith2FA(ctx *gin.Context) {
 	var req struct {
-		UserID     uint              `json:"user_id" binding:"required"`
-		Code       string            `json:"code" binding:"required"`
-		DeviceID   string            `json:"device_id"`
-		DeviceInfo map[string]string `json:"device_info"`
-		TrustDevice bool             `json:"trust_device"` // 是否信任此设备
+		UserID      uint              `json:"user_id" binding:"required"`
+		Code        string            `json:"code" binding:"required"`
+		DeviceID    string            `json:"device_id"`
+		DeviceInfo  map[string]string `json:"device_info"`
+		TrustDevice bool              `json:"trust_device"` // 是否信任此设备
 	}
-	
+
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error":   "请求参数错误",
@@ -202,14 +202,14 @@ func (c *AuthController) LoginWith2FA(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	// 补充设备信息
 	if req.DeviceInfo == nil {
 		req.DeviceInfo = make(map[string]string)
 	}
 	req.DeviceInfo["ip"] = ctx.ClientIP()
 	req.DeviceInfo["user_agent"] = ctx.GetHeader("User-Agent")
-	
+
 	// 调用服务层完成2FA登录
 	response, err := c.authService.LoginWith2FA(req.UserID, req.Code, req.DeviceID, req.DeviceInfo)
 	if err != nil {
@@ -219,7 +219,7 @@ func (c *AuthController) LoginWith2FA(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	// 如果用户选择信任此设备
 	if req.TrustDevice && req.DeviceID != "" {
 		c.twoFactorService.AddTrustedDevice(
@@ -231,6 +231,6 @@ func (c *AuthController) LoginWith2FA(ctx *gin.Context) {
 			ctx.ClientIP(),
 		)
 	}
-	
+
 	ctx.JSON(http.StatusOK, response)
 }

@@ -339,14 +339,21 @@ func main() {
 			// ------------------------------------
 			moderation := protected.Group("/moderation")
 			{
+				// 用户可以举报内容
 				moderation.POST("/reports", contentModerationController.ReportContent)
-				moderation.GET("/reports/pending", contentModerationController.GetPendingReports)
-				moderation.GET("/reports/:id", contentModerationController.GetReportDetail)
-				moderation.POST("/reports/:id/handle", contentModerationController.HandleReport)
-				moderation.POST("/filters", contentModerationController.CreateFilter)
-				moderation.GET("/users/:id/warnings", contentModerationController.GetUserWarnings)
-				moderation.GET("/statistics", contentModerationController.GetStatistics)
-				moderation.POST("/content/check", contentModerationController.CheckContent)
+			}
+			
+			// 内容审核管理（需要管理员权限）
+			moderationAdmin := protected.Group("/moderation")
+			moderationAdmin.Use(middleware.Admin())
+			{
+				moderationAdmin.GET("/reports/pending", contentModerationController.GetPendingReports)
+				moderationAdmin.GET("/reports/:id", contentModerationController.GetReportDetail)
+				moderationAdmin.POST("/reports/:id/handle", contentModerationController.HandleReport)
+				moderationAdmin.POST("/filters", contentModerationController.CreateFilter)
+				moderationAdmin.GET("/users/:id/warnings", contentModerationController.GetUserWarnings)
+				moderationAdmin.GET("/statistics", contentModerationController.GetStatistics)
+				moderationAdmin.POST("/content/check", contentModerationController.CheckContent)
 			}
 		}
 

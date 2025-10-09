@@ -37,7 +37,7 @@ func (s *TwoFactorService) check2FAFailedAttempts(ctx context.Context, userID ui
 	if redis != nil {
 		key := fmt.Sprintf("2fa:failed:%d", userID)
 		count, _ := redis.Get(ctx, key).Int()
-		
+
 		// 超过5次失败，锁定10分钟
 		if count >= 5 {
 			ttl, _ := redis.TTL(ctx, key).Result()
@@ -228,7 +228,7 @@ func (s *TwoFactorService) ValidateTwoFactorCode(ctx context.Context, userID uin
 	if err := s.check2FAFailedAttempts(ctx, userID); err != nil {
 		return err
 	}
-	
+
 	// 查找用户
 	var user model.User
 	if err := s.db.WithContext(ctx).First(&user, userID).Error; err != nil {

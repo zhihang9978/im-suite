@@ -46,12 +46,12 @@ type RefreshRequest struct {
 
 // LoginResponse 登录响应
 type LoginResponse struct {
-	User          *model.User `json:"user"`
-	AccessToken   string      `json:"access_token"`
-	RefreshToken  string      `json:"refresh_token"`
-	ExpiresIn     int64       `json:"expires_in"`
-	Requires2FA   bool        `json:"requires_2fa"`   // 是否需要2FA验证
-	TempToken     string      `json:"temp_token"`     // 临时令牌（用于2FA验证）
+	User         *model.User `json:"user"`
+	AccessToken  string      `json:"access_token"`
+	RefreshToken string      `json:"refresh_token"`
+	ExpiresIn    int64       `json:"expires_in"`
+	Requires2FA  bool        `json:"requires_2fa"` // 是否需要2FA验证
+	TempToken    string      `json:"temp_token"`   // 临时令牌（用于2FA验证）
 }
 
 // RegisterResponse 注册响应
@@ -118,7 +118,7 @@ func (s *AuthService) Login(req LoginRequest) (*LoginResponse, error) {
 		// 检查设备是否受信任（需要设备ID从请求中获取）
 		// 注意：这里简化处理，实际应该在Controller层获取设备信息
 		// 现在返回需要2FA验证的响应
-		
+
 		return &LoginResponse{
 			User:         &user,
 			AccessToken:  "",
@@ -361,40 +361,40 @@ func (s *AuthService) LoginWith2FA(userID uint, code string, deviceID string, de
 	if err := s.db.Where("id = ?", userID).First(&user).Error; err != nil {
 		return nil, errors.New("用户不存在")
 	}
-	
+
 	// 检查用户状态
 	if !user.IsActive {
 		return nil, errors.New("用户已被禁用")
 	}
-	
+
 	// 检查是否启用2FA
 	if !user.TwoFactorEnabled {
 		return nil, errors.New("用户未启用双因子认证")
 	}
-	
+
 	// 验证2FA验证码
 	twoFactorService := NewTwoFactorService()
 	if err := twoFactorService.ValidateTwoFactorCode(context.Background(), userID, code); err != nil {
 		return nil, err
 	}
-	
+
 	// 2FA验证成功，注册设备（如果提供了设备信息）
 	// 注意：设备注册在Controller层处理，避免循环依赖
 	// 这里仅完成2FA验证和token生成
-	_ = deviceID      // 标记使用
-	_ = deviceInfo    // 标记使用
-	
+	_ = deviceID   // 标记使用
+	_ = deviceInfo // 标记使用
+
 	// 更新在线状态
 	user.LastSeen = time.Now()
 	user.Online = true
 	s.db.Save(&user)
-	
+
 	// 生成正式令牌
 	accessToken, refreshToken, expiresIn, err := s.generateTokens(&user)
 	if err != nil {
 		return nil, fmt.Errorf("生成令牌失败: %v", err)
 	}
-	
+
 	return &LoginResponse{
 		User:         &user,
 		AccessToken:  accessToken,
