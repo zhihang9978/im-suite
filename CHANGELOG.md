@@ -4,6 +4,145 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 规范。
 
+## [1.6.0] - 2024-12-19
+
+### 🤖 智能机器人管理版发布
+
+#### 核心成就
+- **聊天式用户管理**: 授权用户可通过聊天界面与机器人交互创建/删除用户
+- **三种使用方式**: API调用 + 聊天交互 + 后台管理，满足不同场景
+- **整合管理界面**: 统一在系统管理页面，无需独立菜单
+- **18个新API端点**: 完整的机器人管理和使用API
+
+#### 新增功能
+
+**机器人系统**
+- ✅ **机器人创建**: 超级管理员可在后台创建机器人
+- ✅ **API认证**: API Key + Secret 双重认证
+- ✅ **权限配置**: 细粒度权限控制（create_user, delete_user等）
+- ✅ **速率限制**: 100次/分钟，10,000次/天
+- ✅ **操作审计**: 完整的API调用日志
+
+**聊天式交互**
+- ✅ **命令系统**: 5个命令（/help, /create, /delete, /list, /info）
+- ✅ **机器人用户**: 为机器人创建聊天账号
+- ✅ **用户授权**: 管理员授权指定用户使用机器人
+- ✅ **权限检查**: 自动验证用户使用权限
+- ✅ **格式化回复**: 清晰的命令执行结果反馈
+
+**管理后台整合**
+- ✅ **标签页组织**: 在系统管理中新增3个标签
+  - 🤖 机器人管理：创建、配置、统计
+  - 👤 机器人用户：创建聊天账号
+  - 🔑 用户授权：授权/撤销权限
+- ✅ **Element Plus界面**: 专业美观的管理界面
+- ✅ **实时统计**: 调用次数、成功率、最后使用时间
+
+**安全限制**
+- ✅ **只能创建普通用户**: 角色固定为user，防止权限提升
+- ✅ **只能删除自己创建的**: 通过CreatedByBotID字段限制
+- ✅ **用户标记系统**: BotManageable标记可管理用户
+- ✅ **移除封禁功能**: 降低权限风险
+
+#### API端点 (18个新增)
+
+**超级管理员API** (13个):
+```
+机器人管理 (9个):
+POST   /api/super-admin/bots
+GET    /api/super-admin/bots
+GET    /api/super-admin/bots/:id
+PUT    /api/super-admin/bots/:id/permissions
+PUT    /api/super-admin/bots/:id/status
+DELETE /api/super-admin/bots/:id
+GET    /api/super-admin/bots/:id/logs
+GET    /api/super-admin/bots/:id/stats
+POST   /api/super-admin/bots/:id/regenerate-secret
+
+机器人用户 (4个):
+POST   /api/super-admin/bot-users
+GET    /api/super-admin/bot-users/:bot_id
+DELETE /api/super-admin/bot-users/:bot_id
+GET    /api/super-admin/bot-users/:bot_id/permissions
+```
+
+**管理员API** (2个):
+```
+POST   /api/admin/bot-permissions
+DELETE /api/admin/bot-permissions/:user_id/:bot_id
+```
+
+**机器人API** (2个):
+```
+POST   /api/bot/users
+DELETE /api/bot/users
+```
+
+**用户API** (1个):
+```
+GET    /api/bot-permissions
+```
+
+#### 数据模型 (5个新表)
+- **Bot**: 机器人配置
+- **BotAPILog**: API调用日志
+- **BotUser**: 机器人聊天账号
+- **BotUserPermission**: 用户授权记录
+- **User**: 新增CreatedByBotID、BotManageable字段
+
+#### 技术实现
+- **后端服务**: BotService、BotChatHandler、BotUserManagementService
+- **控制器**: BotController、BotUserController
+- **中间件**: BotAuthMiddleware、BotPermissionMiddleware
+- **前端界面**: System.vue整合（4个标签页）
+- **消息集成**: 自动检测和处理机器人消息
+
+#### 文档
+- ✅ API文档：完整的API使用说明
+- ✅ 聊天指南：命令使用和示例
+- ✅ 后台指南：管理界面使用说明
+- ✅ 系统架构：技术架构和设计文档
+
+#### 代码质量
+- **代码量**: ~4,500行新代码
+- **编译状态**: ✅ 通过
+- **文档完整性**: 100%
+- **测试状态**: 待验证
+
+---
+
+## [1.5.1] - 2024-12-19
+
+### 🔒 机器人权限限制版
+
+#### 改进
+- 🔒 限制只能创建普通用户（role固定为user）
+- 🔒 限制只能删除自己创建的用户（CreatedByBotID检查）
+- ❌ 移除封禁/解封功能（提升安全性）
+- ✨ 添加用户标记系统（CreatedByBotID、BotManageable字段）
+
+#### 安全提升
+- 防止权限提升攻击
+- 防止跨机器人误删
+- 降低滥用风险
+- 可审计追踪
+
+---
+
+## [1.5.0] - 2024-12-19
+
+### 🤖 机器人系统首版
+
+#### 新增功能
+- ✨ 机器人创建和管理
+- ✨ API Key认证系统
+- ✨ 创建/封禁/删除用户功能
+- ✨ 速率限制（Redis）
+- ✨ 操作审计日志
+- ✨ 完整的管理API
+
+---
+
 ## [1.4.0] - 2024-12-19
 
 ### 🔐 企业级安全增强版发布
