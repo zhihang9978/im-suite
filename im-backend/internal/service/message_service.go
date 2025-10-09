@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -69,6 +70,14 @@ func (s *MessageService) SendMessage(senderID uint, req SendMessageRequest) (*mo
 
 	// 预加载关联数据
 	s.db.Preload("Sender").Preload("Receiver").Preload("Chat").Preload("ReplyTo").First(message, message.ID)
+
+	// 检查是否是发给机器人的消息，如果是则异步处理
+	if message.ReceiverID != nil {
+		go func() {
+			botHandler := NewBotChatHandler()
+			_ = botHandler.HandleMessage(context.Background(), message)
+		}()
+	}
 
 	return message, nil
 }

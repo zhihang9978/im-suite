@@ -169,24 +169,24 @@ func (s *BotService) BotCreateUser(ctx context.Context, bot *model.Bot, req *Bot
 	if !s.CheckBotPermission(bot, model.PermissionCreateUser) {
 		return nil, errors.New("机器人没有创建用户的权限")
 	}
-	
+
 	// 检查手机号是否已存在
 	var existingUser model.User
 	if err := s.db.WithContext(ctx).Where("phone = ?", req.Phone).First(&existingUser).Error; err == nil {
 		return nil, errors.New("手机号已存在")
 	}
-	
+
 	// 检查用户名是否已存在
 	if err := s.db.WithContext(ctx).Where("username = ?", req.Username).First(&existingUser).Error; err == nil {
 		return nil, errors.New("用户名已存在")
 	}
-	
+
 	// 加密密码
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("密码加密失败: %w", err)
 	}
-	
+
 	// 机器人只能创建普通用户，忽略请求中的role字段
 	// 创建用户
 	user := model.User{
@@ -201,17 +201,17 @@ func (s *BotService) BotCreateUser(ctx context.Context, bot *model.Bot, req *Bot
 		Online:         false,
 		Language:       "zh-CN",
 		Theme:          "auto",
-		CreatedByBotID: &bot.ID,      // 标记创建者机器人
-		BotManageable:  true,          // 允许机器人管理
+		CreatedByBotID: &bot.ID, // 标记创建者机器人
+		BotManageable:  true,    // 允许机器人管理
 	}
-	
+
 	if err := s.db.WithContext(ctx).Create(&user).Error; err != nil {
 		return nil, fmt.Errorf("创建用户失败: %w", err)
 	}
-	
+
 	// 记录机器人操作
 	s.logBotOperation(ctx, bot.ID, "create_user", fmt.Sprintf("创建用户: %s (ID:%d)", user.Username, user.ID), true, "")
-	
+
 	return &user, nil
 }
 
@@ -297,32 +297,32 @@ func (s *BotService) BotDeleteUser(ctx context.Context, bot *model.Bot, req *Bot
 	if !s.CheckBotPermission(bot, model.PermissionDeleteUser) {
 		return errors.New("机器人没有删除用户的权限")
 	}
-	
+
 	// 查找用户
 	var user model.User
 	if err := s.db.WithContext(ctx).First(&user, req.UserID).Error; err != nil {
 		return errors.New("用户不存在")
 	}
-	
+
 	// 只能删除被标记为可被机器人管理的用户
 	if !user.BotManageable {
 		return errors.New("该用户不允许被机器人管理")
 	}
-	
+
 	// 只能删除自己创建的用户
 	if user.CreatedByBotID == nil || *user.CreatedByBotID != bot.ID {
 		return errors.New("只能删除本机器人创建的用户")
 	}
-	
+
 	// 软删除用户
 	if err := s.db.WithContext(ctx).Delete(&user).Error; err != nil {
 		return fmt.Errorf("删除用户失败: %w", err)
 	}
-	
+
 	// 记录操作
 	details := fmt.Sprintf("删除用户: %s (ID:%d), 原因: %s", user.Username, user.ID, req.Reason)
 	s.logBotOperation(ctx, bot.ID, "delete_user", details, true, "")
-	
+
 	return nil
 }
 

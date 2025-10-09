@@ -106,3 +106,48 @@ func (Bot) TableName() string {
 func (BotAPILog) TableName() string {
 	return "bot_api_logs"
 }
+
+// BotUser 机器人用户关联（将系统用户关联到机器人，使机器人可以在聊天中使用）
+type BotUser struct {
+	ID        uint           `json:"id" gorm:"primaryKey"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+	
+	BotID     uint   `json:"bot_id" gorm:"not null;index"`            // 关联的机器人ID
+	UserID    uint   `json:"user_id" gorm:"uniqueIndex;not null"`     // 系统用户ID（机器人在系统中的账号）
+	IsActive  bool   `json:"is_active" gorm:"default:true"`           // 是否激活
+	
+	// 关联关系
+	Bot  Bot  `json:"bot" gorm:"foreignKey:BotID"`
+	User User `json:"user" gorm:"foreignKey:UserID"`
+}
+
+// BotUserPermission 用户使用机器人的权限
+type BotUserPermission struct {
+	ID        uint           `json:"id" gorm:"primaryKey"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+	
+	UserID       uint      `json:"user_id" gorm:"not null;index"`       // 授权的用户ID
+	BotID        uint      `json:"bot_id" gorm:"not null;index"`        // 可使用的机器人ID
+	GrantedBy    uint      `json:"granted_by"`                          // 授权者用户ID
+	IsActive     bool      `json:"is_active" gorm:"default:true"`       // 是否激活
+	ExpiresAt    *time.Time `json:"expires_at"`                         // 过期时间（null表示永不过期）
+	
+	// 关联关系
+	User      User `json:"user" gorm:"foreignKey:UserID"`
+	Bot       Bot  `json:"bot" gorm:"foreignKey:BotID"`
+	GrantedByUser User `json:"granted_by_user" gorm:"foreignKey:GrantedBy"`
+}
+
+// TableName 指定表名
+func (BotUser) TableName() string {
+	return "bot_users"
+}
+
+// TableName 指定表名
+func (BotUserPermission) TableName() string {
+	return "bot_user_permissions"
+}

@@ -138,6 +138,7 @@ func main() {
 		twoFactorController := controller.NewTwoFactorController()
 		deviceMgmtController := controller.NewDeviceManagementController()
 		botController := controller.NewBotController()
+		botUserController := controller.NewBotUserController()
 
 		// ============================================
 		// 认证路由（公开）
@@ -227,6 +228,11 @@ func main() {
 				devices.GET("/statistics", deviceMgmtController.GetDeviceStatistics)
 				devices.GET("/export", deviceMgmtController.ExportDeviceData)
 			}
+
+			// ------------------------------------
+			// 机器人权限查询
+			// ------------------------------------
+			protected.GET("/bot-permissions", botUserController.GetUserPermissions) // 查看自己的机器人使用权限
 
 			// ------------------------------------
 			// 文件管理
@@ -366,7 +372,7 @@ func main() {
 		superAdmin.Use(middleware.SuperAdmin())
 		{
 			superAdminController.SetupRoutes(superAdmin)
-
+			
 			// 机器人管理
 			superAdmin.POST("/bots", botController.CreateBot)
 			superAdmin.GET("/bots", botController.GetBotList)
@@ -377,6 +383,24 @@ func main() {
 			superAdmin.GET("/bots/:id/logs", botController.GetBotLogs)
 			superAdmin.GET("/bots/:id/stats", botController.GetBotStats)
 			superAdmin.POST("/bots/:id/regenerate-secret", botController.RegenerateAPISecret)
+			
+			// 机器人用户管理（聊天机器人）
+			superAdmin.POST("/bot-users", botUserController.CreateBotUser)                    // 创建机器人用户账号
+			superAdmin.GET("/bot-users/:bot_id", botUserController.GetBotUser)                // 获取机器人用户信息
+			superAdmin.DELETE("/bot-users/:bot_id", botUserController.DeleteBotUser)          // 删除机器人用户
+			superAdmin.GET("/bot-users/:bot_id/permissions", botUserController.GetBotPermissions) // 查看机器人的授权用户列表
+		}
+		
+		// ============================================
+		// 管理员路由（admin和super_admin）
+		// ============================================
+		adminRoutes := api.Group("/admin")
+		adminRoutes.Use(middleware.AuthMiddleware())
+		adminRoutes.Use(middleware.Admin())
+		{
+			// 机器人用户权限管理
+			adminRoutes.POST("/bot-permissions", botUserController.GrantPermission)           // 授权用户使用机器人
+			adminRoutes.DELETE("/bot-permissions/:user_id/:bot_id", botUserController.RevokePermission) // 撤销用户权限
 		}
 
 		// ============================================
@@ -386,8 +410,8 @@ func main() {
 		botAPI.Use(middleware.BotAuthMiddleware())
 		{
 			// 用户管理（仅限创建和删除普通用户）
-			botAPI.POST("/users", botController.BotCreateUser)      // 创建普通用户
-			botAPI.DELETE("/users", botController.BotDeleteUser)    // 删除自己创建的用户
+			botAPI.POST("/users", botController.BotCreateUser)   // 创建普通用户
+			botAPI.DELETE("/users", botController.BotDeleteUser) // 删除自己创建的用户
 		}
 	}
 

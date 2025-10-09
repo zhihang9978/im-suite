@@ -45,7 +45,7 @@ type User struct {
 	Theme    string `json:"theme" gorm:"default:'auto'"`     // 主题设置
 
 	// 机器人管理信息
-	CreatedByBotID *uint `json:"created_by_bot_id,omitempty"` // 创建该用户的机器人ID（null表示非机器人创建）
+	CreatedByBotID *uint `json:"created_by_bot_id,omitempty"`         // 创建该用户的机器人ID（null表示非机器人创建）
 	BotManageable  bool  `json:"bot_manageable" gorm:"default:false"` // 是否允许机器人管理
 
 	// 关联关系
