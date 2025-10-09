@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"time"
-	"zhihang-messenger/im-backend/internal/model"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -51,116 +50,14 @@ func InitDatabase() error {
 }
 
 // AutoMigrate 自动迁移数据库表
+// 使用优化的迁移逻辑，确保依赖关系正确
 func AutoMigrate() error {
 	if DB == nil {
 		return fmt.Errorf("数据库未初始化")
 	}
 
-	fmt.Println("========================================")
-	fmt.Println("开始数据库表迁移...")
-	fmt.Println("========================================")
-
-	// 定义迁移顺序（重要：被引用的表必须先创建）
-	models := []interface{}{
-		// 基础表（无外键依赖）
-		&model.User{},
-		&model.Contact{},
-		&model.Session{},
-		&model.Chat{},
-		&model.ChatMember{},
-		
-		// MessageReply 必须在 Message 之前（Message.reply_to_id 引用 MessageReply）
-		&model.MessageReply{},
-		
-		// 消息相关表
-		&model.Message{},
-		&model.MessageRead{},
-		&model.MessageEdit{},
-		&model.MessageRecall{},
-		&model.MessageForward{},
-		&model.ScheduledMessage{},
-		&model.MessageSearchIndex{},
-		&model.MessagePin{},
-		&model.MessageMark{},
-		&model.MessageStatus{},
-		&model.MessageShare{},
-		
-		// 文件相关表
-		&model.File{},
-		&model.FileChunk{},
-		&model.FilePreview{},
-		&model.FileAccess{},
-		
-		// 内容审核相关表
-		&model.ContentReport{},
-		&model.ContentFilter{},
-		&model.UserWarning{},
-		&model.ModerationLog{},
-		&model.ContentStatistics{},
-		
-		// 主题相关表
-		&model.Theme{},
-		&model.UserThemeSetting{},
-		&model.ThemeTemplate{},
-		
-		// 群组管理相关表
-		&model.GroupInvite{},
-		&model.GroupInviteUsage{},
-		&model.AdminRole{},
-		&model.ChatAdmin{},
-		&model.GroupJoinRequest{},
-		&model.GroupAuditLog{},
-		&model.GroupPermissionTemplate{},
-		
-		// 系统管理相关表
-		&model.Alert{},
-		&model.AdminOperationLog{},
-		&model.SystemConfig{},
-		
-		// 安全相关表
-		&model.IPBlacklist{},
-		&model.UserBlacklist{},
-		&model.LoginAttempt{},
-		&model.SuspiciousActivity{},
-		&model.TwoFactorAuth{},
-		&model.TrustedDevice{},
-		&model.DeviceSession{},
-		&model.DeviceActivity{},
-		
-		// 机器人相关表
-		&model.Bot{},
-		&model.BotAPILog{},
-		&model.BotUser{},
-		&model.BotUserPermission{},
-		
-		// 屏幕共享相关表
-		&model.ScreenShareSession{},
-		&model.ScreenShareQualityChange{},
-		&model.ScreenShareParticipant{},
-		&model.ScreenShareStatistics{},
-		&model.ScreenShareRecording{},
-	}
-
-	// 打印迁移顺序
-	fmt.Println("迁移顺序：")
-	for i, m := range models {
-		fmt.Printf("  %d. %T\n", i+1, m)
-	}
-	fmt.Println("----------------------------------------")
-
-	// 执行自动迁移
-	err := DB.AutoMigrate(models...)
-
-	if err != nil {
-		fmt.Printf("❌ 数据库迁移失败: %v\n", err)
-		fmt.Println("========================================")
-		return fmt.Errorf("数据库迁移失败: %v", err)
-	}
-
-	fmt.Println("✅ 数据库迁移成功！")
-	fmt.Println("========================================")
-
-	return nil
+	// 使用新的迁移模块
+	return MigrateTables(DB)
 }
 
 // getEnv 获取环境变量，如果不存在则返回默认值
