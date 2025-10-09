@@ -149,7 +149,8 @@ func main() {
 			auth.POST("/refresh", authController.RefreshToken)
 			auth.GET("/validate", authController.ValidateToken)
 
-			// 2FA验证（登录时使用）
+			// 2FA登录验证
+			auth.POST("/login/2fa", authController.LoginWith2FA)
 			auth.POST("/2fa/validate", twoFactorController.ValidateCode)
 		}
 

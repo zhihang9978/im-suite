@@ -54,6 +54,12 @@ const routes = [
         name: 'PluginManagement',
         component: () => import('@/views/PluginManagement.vue'),
         meta: { title: '插件管理' }
+      },
+      {
+        path: '/security/2fa',
+        name: 'TwoFactorSettings',
+        component: () => import('@/views/TwoFactorSettings.vue'),
+        meta: { title: '双因子认证' }
       }
     ]
   }

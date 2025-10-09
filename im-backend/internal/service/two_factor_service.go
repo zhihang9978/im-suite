@@ -30,6 +30,42 @@ func NewTwoFactorService() *TwoFactorService {
 	}
 }
 
+// check2FAFailedAttempts 检查2FA验证失败次数
+func (s *TwoFactorService) check2FAFailedAttempts(ctx context.Context, userID uint) error {
+	// 使用Redis记录失败次数（如果Redis可用）
+	redis := config.GetRedis()
+	if redis != nil {
+		key := fmt.Sprintf("2fa:failed:%d", userID)
+		count, _ := redis.Get(ctx, key).Int()
+		
+		// 超过5次失败，锁定10分钟
+		if count >= 5 {
+			ttl, _ := redis.TTL(ctx, key).Result()
+			return fmt.Errorf("验证失败次数过多，请在%d秒后重试", int(ttl.Seconds()))
+		}
+	}
+	return nil
+}
+
+// record2FAFailedAttempt 记录2FA验证失败
+func (s *TwoFactorService) record2FAFailedAttempt(ctx context.Context, userID uint) {
+	redis := config.GetRedis()
+	if redis != nil {
+		key := fmt.Sprintf("2fa:failed:%d", userID)
+		redis.Incr(ctx, key)
+		redis.Expire(ctx, key, 10*time.Minute) // 10分钟过期
+	}
+}
+
+// reset2FAFailedAttempts 重置2FA验证失败次数
+func (s *TwoFactorService) reset2FAFailedAttempts(ctx context.Context, userID uint) {
+	redis := config.GetRedis()
+	if redis != nil {
+		key := fmt.Sprintf("2fa:failed:%d", userID)
+		redis.Del(ctx, key)
+	}
+}
+
 // EnableTwoFactorRequest 启用2FA请求
 type EnableTwoFactorRequest struct {
 	Password string `json:"password" binding:"required"` // 需要密码验证
@@ -188,6 +224,11 @@ func (s *TwoFactorService) DisableTwoFactor(ctx context.Context, userID uint, re
 
 // ValidateTwoFactorCode 验证2FA码（用于登录）
 func (s *TwoFactorService) ValidateTwoFactorCode(ctx context.Context, userID uint, code string) error {
+	// 检查失败次数限制
+	if err := s.check2FAFailedAttempts(ctx, userID); err != nil {
+		return err
+	}
+	
 	// 查找用户
 	var user model.User
 	if err := s.db.WithContext(ctx).First(&user, userID).Error; err != nil {
@@ -203,6 +244,7 @@ func (s *TwoFactorService) ValidateTwoFactorCode(ctx context.Context, userID uin
 	valid := totp.Validate(code, user.TwoFactorSecret)
 	if valid {
 		s.recordTwoFactorAttempt(ctx, userID, "totp", "success", "")
+		s.reset2FAFailedAttempts(ctx, userID) // 重置失败次数
 		return nil
 	}
 
@@ -218,6 +260,7 @@ func (s *TwoFactorService) ValidateTwoFactorCode(ctx context.Context, userID uin
 				s.db.WithContext(ctx).Save(&user)
 
 				s.recordTwoFactorAttempt(ctx, userID, "backup_code", "success", "")
+				s.reset2FAFailedAttempts(ctx, userID) // 重置失败次数
 				return nil
 			}
 		}
@@ -225,6 +268,7 @@ func (s *TwoFactorService) ValidateTwoFactorCode(ctx context.Context, userID uin
 
 	// 验证失败
 	s.recordTwoFactorAttempt(ctx, userID, "totp", "failed", "")
+	s.record2FAFailedAttempt(ctx, userID) // 记录失败次数
 	return errors.New("验证码错误")
 }
 

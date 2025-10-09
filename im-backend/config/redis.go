@@ -33,6 +33,11 @@ func InitRedis() error {
 	return nil
 }
 
+// GetRedis 获取Redis客户端
+func GetRedis() *redis.Client {
+	return Redis
+}
+
 // CloseRedis 关闭Redis连接
 func CloseRedis() error {
 	if Redis != nil {

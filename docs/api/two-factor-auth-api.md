@@ -24,7 +24,7 @@ Authorization: Bearer {access_token}
 
 ### 1. 启用双因子认证
 
-**接口**: `POST /2fa/enable`
+**接口**: `POST /api/2fa/enable`
 
 **描述**: 为用户账户启用双因子认证，生成TOTP密钥和备用码
 
@@ -76,7 +76,7 @@ Content-Type: application/json
 
 ### 2. 验证并启用2FA
 
-**接口**: `POST /2fa/verify`
+**接口**: `POST /api/2fa/verify`
 
 **描述**: 验证TOTP验证码并完成2FA启用
 
@@ -112,7 +112,7 @@ Content-Type: application/json
 
 ### 3. 禁用双因子认证
 
-**接口**: `POST /2fa/disable`
+**接口**: `POST /api/2fa/disable`
 
 **描述**: 禁用用户账户的双因子认证
 
@@ -149,7 +149,7 @@ Content-Type: application/json
 
 ### 4. 获取2FA状态
 
-**接口**: `GET /2fa/status`
+**接口**: `GET /api/2fa/status`
 
 **描述**: 获取用户的双因子认证状态和统计信息
 
@@ -186,7 +186,7 @@ Authorization: Bearer {access_token}
 
 ### 5. 重新生成备用码
 
-**接口**: `POST /2fa/backup-codes/regenerate`
+**接口**: `POST /api/2fa/backup-codes/regenerate`
 
 **描述**: 重新生成2FA备用码（旧备用码将失效）
 
@@ -228,7 +228,7 @@ Content-Type: application/json
 
 ### 6. 获取受信任设备列表
 
-**接口**: `GET /2fa/trusted-devices`
+**接口**: `GET /api/2fa/trusted-devices`
 
 **描述**: 获取用户的所有受信任设备
 
@@ -262,7 +262,7 @@ Authorization: Bearer {access_token}
 
 ### 7. 移除受信任设备
 
-**接口**: `DELETE /2fa/trusted-devices/:device_id`
+**接口**: `DELETE /api/2fa/trusted-devices/:device_id`
 
 **描述**: 移除指定的受信任设备
 
