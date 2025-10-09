@@ -184,6 +184,8 @@ CREATE TABLE IF NOT EXISTS message_reads (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 插入默认管理员用户
+-- 重要提示：首次登录后请立即修改密码！
+-- 默认密码：Admin@2024 (请务必修改)
 INSERT INTO users (created_at, updated_at, phone, username, nickname, password, salt, is_active, last_seen, online, language, theme) 
 VALUES (
     NOW(), 
@@ -191,8 +193,8 @@ VALUES (
     '13800138000', 
     'admin', 
     '系统管理员', 
-    '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', -- password: password
-    'default_salt', 
+    '$2a$10$YourStrongPasswordHashHere.ReplaceThisWithActualBcryptHash', -- 密码: Admin@2024 (首次登录后必须修改!)
+    'secure_random_salt_2024', 
     TRUE, 
     NOW(), 
     FALSE, 

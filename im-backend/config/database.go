@@ -3,8 +3,9 @@ package config
 import (
 	"fmt"
 	"os"
+	"time"
 	"zhihang-messenger/im-backend/internal/model"
-	
+
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -20,32 +21,32 @@ func InitDatabase() error {
 	username := getEnv("DB_USER", "root")
 	password := getEnv("DB_PASSWORD", "")
 	database := getEnv("DB_NAME", "zhihang_messenger")
-	
+
 	// 构建DSN
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		username, password, host, port, database)
-	
+
 	// 连接数据库
 	var err error
 	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
-	
+
 	if err != nil {
 		return fmt.Errorf("连接数据库失败: %v", err)
 	}
-	
+
 	// 配置连接池
 	sqlDB, err := DB.DB()
 	if err != nil {
 		return fmt.Errorf("获取数据库实例失败: %v", err)
 	}
-	
+
 	// 设置连接池参数
 	sqlDB.SetMaxIdleConns(10)
 	sqlDB.SetMaxOpenConns(100)
-	sqlDB.SetConnMaxLifetime(3600) // 1小时
-	
+	sqlDB.SetConnMaxLifetime(3600 * time.Second) // 1小时
+
 	return nil
 }
 
@@ -54,7 +55,7 @@ func AutoMigrate() error {
 	if DB == nil {
 		return fmt.Errorf("数据库未初始化")
 	}
-	
+
 	// 自动迁移所有模型
 	err := DB.AutoMigrate(
 		&model.User{},
@@ -100,12 +101,16 @@ func AutoMigrate() error {
 		&model.UserBlacklist{},
 		&model.LoginAttempt{},
 		&model.SuspiciousActivity{},
+		&model.TwoFactorAuth{},
+		&model.TrustedDevice{},
+		&model.DeviceSession{},
+		&model.DeviceActivity{},
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("数据库迁移失败: %v", err)
 	}
-	
+
 	return nil
 }
 

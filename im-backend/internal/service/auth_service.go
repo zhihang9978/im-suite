@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"time"
-	"zhihang-messenger/im-backend/internal/model"
 	"zhihang-messenger/im-backend/config"
-	
-	"golang.org/x/crypto/bcrypt"
+	"zhihang-messenger/im-backend/internal/model"
+
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -77,7 +77,7 @@ type Claims struct {
 // Login 用户登录
 func (s *AuthService) Login(req LoginRequest) (*LoginResponse, error) {
 	var user model.User
-	
+
 	// 查找用户
 	if err := s.db.Where("username = ? OR email = ?", req.Username, req.Username).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -85,12 +85,12 @@ func (s *AuthService) Login(req LoginRequest) (*LoginResponse, error) {
 		}
 		return nil, fmt.Errorf("查询用户失败: %v", err)
 	}
-	
+
 	// 检查用户状态
 	if !user.IsActive {
 		return nil, errors.New("用户已被禁用")
 	}
-	
+
 	// 验证密码或验证码
 	if req.Password != "" {
 		// 密码登录
@@ -104,18 +104,18 @@ func (s *AuthService) Login(req LoginRequest) (*LoginResponse, error) {
 		// 	return nil, errors.New("验证码错误")
 		// }
 	}
-	
+
 	// 更新最后在线时间
 	user.LastSeen = time.Now()
 	user.Online = true
 	s.db.Save(&user)
-	
+
 	// 生成令牌
 	accessToken, refreshToken, expiresIn, err := s.generateTokens(&user)
 	if err != nil {
 		return nil, fmt.Errorf("生成令牌失败: %v", err)
 	}
-	
+
 	return &LoginResponse{
 		User:         &user,
 		AccessToken:  accessToken,
@@ -131,42 +131,42 @@ func (s *AuthService) Register(req RegisterRequest) (*RegisterResponse, error) {
 	if err := s.db.Where("phone = ?", req.Phone).First(&existingUser).Error; err == nil {
 		return nil, errors.New("手机号已存在")
 	}
-	
+
 	// 检查用户名是否已存在
 	if err := s.db.Where("username = ?", req.Username).First(&existingUser).Error; err == nil {
 		return nil, errors.New("用户名已存在")
 	}
-	
+
 	// 加密密码
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("密码加密失败: %v", err)
 	}
-	
+
 	// 创建用户
 	user := model.User{
-		Phone:     req.Phone,
-		Username:  req.Username,
-		Nickname:  req.Nickname,
-		Password:  string(hashedPassword),
-		Salt:      fmt.Sprintf("%d", time.Now().Unix()),
-		IsActive:  true,
-		LastSeen:  time.Now(),
-		Online:    false,
-		Language:  "zh-CN",
-		Theme:     "auto",
+		Phone:    req.Phone,
+		Username: req.Username,
+		Nickname: req.Nickname,
+		Password: string(hashedPassword),
+		Salt:     fmt.Sprintf("%d", time.Now().Unix()),
+		IsActive: true,
+		LastSeen: time.Now(),
+		Online:   false,
+		Language: "zh-CN",
+		Theme:    "auto",
 	}
-	
+
 	if err := s.db.Create(&user).Error; err != nil {
 		return nil, fmt.Errorf("创建用户失败: %v", err)
 	}
-	
+
 	// 生成令牌
 	accessToken, refreshToken, expiresIn, err := s.generateTokens(&user)
 	if err != nil {
 		return nil, fmt.Errorf("生成令牌失败: %v", err)
 	}
-	
+
 	return &RegisterResponse{
 		User:         &user,
 		AccessToken:  accessToken,
@@ -182,24 +182,24 @@ func (s *AuthService) RefreshToken(req RefreshRequest) (*RefreshResponse, error)
 	if err != nil {
 		return nil, errors.New("刷新令牌无效")
 	}
-	
+
 	// 查找用户
 	var user model.User
 	if err := s.db.Where("id = ?", claims.UserID).First(&user).Error; err != nil {
 		return nil, errors.New("用户不存在")
 	}
-	
+
 	// 检查用户状态
 	if !user.IsActive {
 		return nil, errors.New("用户已被禁用")
 	}
-	
+
 	// 生成新令牌
 	accessToken, refreshToken, expiresIn, err := s.generateTokens(&user)
 	if err != nil {
 		return nil, fmt.Errorf("生成令牌失败: %v", err)
 	}
-	
+
 	return &RefreshResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -214,7 +214,7 @@ func (s *AuthService) Logout(token string) error {
 	if err != nil {
 		return errors.New("令牌无效")
 	}
-	
+
 	// 更新用户在线状态
 	var user model.User
 	if err := s.db.Where("id = ?", claims.UserID).First(&user).Error; err == nil {
@@ -222,7 +222,7 @@ func (s *AuthService) Logout(token string) error {
 		user.LastSeen = time.Now()
 		s.db.Save(&user)
 	}
-	
+
 	return nil
 }
 
@@ -232,23 +232,23 @@ func (s *AuthService) ValidateToken(token string) (*model.User, error) {
 	if len(token) > 7 && token[:7] == "Bearer " {
 		token = token[7:]
 	}
-	
+
 	claims, err := s.validateToken(token)
 	if err != nil {
 		return nil, errors.New("令牌无效")
 	}
-	
+
 	// 查找用户
 	var user model.User
 	if err := s.db.Where("id = ?", claims.UserID).First(&user).Error; err != nil {
 		return nil, errors.New("用户不存在")
 	}
-	
+
 	// 检查用户状态
 	if !user.IsActive {
 		return nil, errors.New("用户已被禁用")
 	}
-	
+
 	return &user, nil
 }
 
@@ -256,13 +256,13 @@ func (s *AuthService) ValidateToken(token string) (*model.User, error) {
 func (s *AuthService) generateTokens(user *model.User) (string, string, int64, error) {
 	// JWT密钥
 	secretKey := []byte("zhihang_messenger_secret_key_2024")
-	
+
 	// 访问令牌过期时间 (24小时)
 	accessExpiresAt := time.Now().Add(24 * time.Hour)
-	
+
 	// 刷新令牌过期时间 (7天)
 	refreshExpiresAt := time.Now().Add(7 * 24 * time.Hour)
-	
+
 	// 访问令牌
 	accessClaims := &Claims{
 		UserID:   user.ID,
@@ -276,13 +276,13 @@ func (s *AuthService) generateTokens(user *model.User) (string, string, int64, e
 			Subject:   fmt.Sprintf("%d", user.ID),
 		},
 	}
-	
+
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
 	accessTokenString, err := accessToken.SignedString(secretKey)
 	if err != nil {
 		return "", "", 0, err
 	}
-	
+
 	// 刷新令牌
 	refreshClaims := &Claims{
 		UserID:   user.ID,
@@ -296,36 +296,39 @@ func (s *AuthService) generateTokens(user *model.User) (string, string, int64, e
 			Subject:   fmt.Sprintf("%d", user.ID),
 		},
 	}
-	
+
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
 	refreshTokenString, err := refreshToken.SignedString(secretKey)
 	if err != nil {
 		return "", "", 0, err
 	}
-	
+
 	return accessTokenString, refreshTokenString, int64(24 * time.Hour.Seconds()), nil
 }
 
 // validateToken 验证令牌
 func (s *AuthService) validateToken(tokenString string) (*Claims, error) {
 	secretKey := []byte("zhihang_messenger_secret_key_2024")
-	
+
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("意外的签名方法: %v", token.Header["alg"])
 		}
 		return secretKey, nil
 	})
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
 		return claims, nil
 	}
-	
+
 	return nil, errors.New("令牌无效")
 }
 
-
+// verifyPassword 验证密码
+func (s *AuthService) verifyPassword(hashedPassword, password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+}

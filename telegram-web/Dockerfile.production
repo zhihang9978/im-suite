@@ -10,8 +10,12 @@ RUN apk add --no-cache python3 make g++
 # 复制package文件
 COPY package*.json ./
 
-# 安装依赖
-RUN npm ci --silent
+# 安装依赖（智能选择 npm ci 或 npm install）
+RUN if [ -f package-lock.json ]; then \
+      npm ci --silent; \
+    else \
+      npm install --silent; \
+    fi
 
 # 复制源代码
 COPY . .

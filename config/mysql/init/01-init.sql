@@ -33,3 +33,5 @@ SELECT 'MySQL初始化完成' AS status,
        @@collation_database AS collation,
        @@version AS version;
 
+
+

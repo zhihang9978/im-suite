@@ -8,13 +8,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
-	"github.com/sirupsen/logrus"
 	"zhihang-messenger/im-backend/config"
 	"zhihang-messenger/im-backend/internal/controller"
 	"zhihang-messenger/im-backend/internal/middleware"
 	"zhihang-messenger/im-backend/internal/service"
+
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -134,6 +135,7 @@ func main() {
 		)
 		fileController := controller.NewFileController()
 		superAdminController := controller.NewSuperAdminController()
+		twoFactorController := controller.NewTwoFactorController()
 
 		// ============================================
 		// 认证路由（公开）
@@ -145,6 +147,9 @@ func main() {
 			auth.POST("/logout", authController.Logout)
 			auth.POST("/refresh", authController.RefreshToken)
 			auth.GET("/validate", authController.ValidateToken)
+
+			// 2FA验证（登录时使用）
+			auth.POST("/2fa/validate", twoFactorController.ValidateCode)
 		}
 
 		// ============================================
@@ -188,6 +193,20 @@ func main() {
 				users.POST("/cleanup-blacklist", userMgmtController.CleanupExpiredBlacklist)
 				users.GET("/:id/restrictions/check", userMgmtController.CheckUserRestriction)
 				users.POST("/:id/restrictions/increment", userMgmtController.IncrementUserRestriction)
+			}
+
+			// ------------------------------------
+			// 双因子认证管理
+			// ------------------------------------
+			twoFactor := protected.Group("/2fa")
+			{
+				twoFactor.POST("/enable", twoFactorController.Enable)
+				twoFactor.POST("/verify", twoFactorController.Verify)
+				twoFactor.POST("/disable", twoFactorController.Disable)
+				twoFactor.GET("/status", twoFactorController.GetStatus)
+				twoFactor.POST("/backup-codes/regenerate", twoFactorController.RegenerateBackupCodes)
+				twoFactor.GET("/trusted-devices", twoFactorController.GetTrustedDevices)
+				twoFactor.DELETE("/trusted-devices/:device_id", twoFactorController.RemoveTrustedDevice)
 			}
 
 			// ------------------------------------

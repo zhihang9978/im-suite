@@ -3,7 +3,6 @@ package config
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -40,12 +39,4 @@ func CloseRedis() error {
 		return Redis.Close()
 	}
 	return nil
-}
-
-// getEnv 辅助函数已在database.go中定义
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }
