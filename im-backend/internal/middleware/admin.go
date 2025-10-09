@@ -34,10 +34,10 @@ func Admin() gin.HandlerFunc {
 		// 检查是否为管理员或超级管理员
 		if user.Role != "admin" && user.Role != "super_admin" {
 			c.JSON(http.StatusForbidden, gin.H{
-				"error":   "访问被拒绝",
-				"message": "需要管理员权限才能访问此功能",
+				"error":         "访问被拒绝",
+				"message":       "需要管理员权限才能访问此功能",
 				"required_role": "admin或super_admin",
-				"your_role": user.Role,
+				"your_role":     user.Role,
 			})
 			c.Abort()
 			return
@@ -83,10 +83,10 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 
 		if !hasPermission {
 			c.JSON(http.StatusForbidden, gin.H{
-				"error":   "权限不足",
-				"message": "您的角色没有权限访问此功能",
+				"error":          "权限不足",
+				"message":        "您的角色没有权限访问此功能",
 				"required_roles": roles,
-				"your_role": user.Role,
+				"your_role":      user.Role,
 			})
 			c.Abort()
 			return
@@ -96,4 +96,3 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 		c.Next()
 	}
 }
-

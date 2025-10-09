@@ -342,7 +342,7 @@ func main() {
 				// 用户可以举报内容
 				moderation.POST("/reports", contentModerationController.ReportContent)
 			}
-			
+
 			// 内容审核管理（需要管理员权限）
 			moderationAdmin := protected.Group("/moderation")
 			moderationAdmin.Use(middleware.Admin())
