@@ -172,4 +172,3 @@ func (c *BotUserController) DeleteBotUser(ctx *gin.Context) {
 		"message": "机器人用户已删除",
 	})
 }
-

@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	"gorm.io/gorm"
 	"zhihang-messenger/im-backend/config"
 	"zhihang-messenger/im-backend/internal/model"
+
+	"gorm.io/gorm"
 )
 
 // MessageService 消息服务
@@ -25,13 +26,13 @@ func NewMessageService() *MessageService {
 
 // SendMessageRequest 发送消息请求
 type SendMessageRequest struct {
-	ChatID      uint    `json:"chat_id"`
-	ReceiverID  *uint   `json:"receiver_id,omitempty"`
-	Content     string  `json:"content" binding:"required"`
-	MessageType string  `json:"message_type"` // text, image, video, audio, file
-	ReplyToID   *uint   `json:"reply_to_id,omitempty"`
-	IsSilent    bool    `json:"is_silent"`
-	IsEncrypted bool    `json:"is_encrypted"`
+	ChatID      uint   `json:"chat_id"`
+	ReceiverID  *uint  `json:"receiver_id,omitempty"`
+	Content     string `json:"content" binding:"required"`
+	MessageType string `json:"message_type"` // text, image, video, audio, file
+	ReplyToID   *uint  `json:"reply_to_id,omitempty"`
+	IsSilent    bool   `json:"is_silent"`
+	IsEncrypted bool   `json:"is_encrypted"`
 }
 
 // SendMessage 发送消息
@@ -409,4 +410,3 @@ func (s *MessageService) GetUnreadCount(userID uint, chatID *uint) (int64, error
 
 	return count, nil
 }
-

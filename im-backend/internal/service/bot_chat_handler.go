@@ -43,7 +43,7 @@ func (h *BotChatHandler) HandleMessage(ctx context.Context, message *model.Messa
 	if message.ReceiverID == nil {
 		return nil // 群聊消息，暂不处理
 	}
-	
+
 	botUser, err := h.getBotUser(ctx, *message.ReceiverID)
 	if err != nil {
 		return nil // 不是发给机器人的消息，忽略
@@ -111,7 +111,7 @@ func (h *BotChatHandler) parseCommand(content string) (*BotCommand, error) {
 	// 解析参数（格式: key=value 或 key:value）
 	for i := 1; i < len(parts); i++ {
 		part := parts[i]
-		
+
 		// 支持 key=value 格式
 		if strings.Contains(part, "=") {
 			kv := strings.SplitN(part, "=", 2)
@@ -459,4 +459,3 @@ func (h *BotChatHandler) sendReply(ctx context.Context, originalMessage *model.M
 
 	return h.db.WithContext(ctx).Create(reply).Error
 }
-

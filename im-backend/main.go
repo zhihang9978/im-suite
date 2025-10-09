@@ -372,7 +372,7 @@ func main() {
 		superAdmin.Use(middleware.SuperAdmin())
 		{
 			superAdminController.SetupRoutes(superAdmin)
-			
+
 			// 机器人管理
 			superAdmin.POST("/bots", botController.CreateBot)
 			superAdmin.GET("/bots", botController.GetBotList)
@@ -383,14 +383,14 @@ func main() {
 			superAdmin.GET("/bots/:id/logs", botController.GetBotLogs)
 			superAdmin.GET("/bots/:id/stats", botController.GetBotStats)
 			superAdmin.POST("/bots/:id/regenerate-secret", botController.RegenerateAPISecret)
-			
+
 			// 机器人用户管理（聊天机器人）
-			superAdmin.POST("/bot-users", botUserController.CreateBotUser)                    // 创建机器人用户账号
-			superAdmin.GET("/bot-users/:bot_id", botUserController.GetBotUser)                // 获取机器人用户信息
-			superAdmin.DELETE("/bot-users/:bot_id", botUserController.DeleteBotUser)          // 删除机器人用户
+			superAdmin.POST("/bot-users", botUserController.CreateBotUser)                        // 创建机器人用户账号
+			superAdmin.GET("/bot-users/:bot_id", botUserController.GetBotUser)                    // 获取机器人用户信息
+			superAdmin.DELETE("/bot-users/:bot_id", botUserController.DeleteBotUser)              // 删除机器人用户
 			superAdmin.GET("/bot-users/:bot_id/permissions", botUserController.GetBotPermissions) // 查看机器人的授权用户列表
 		}
-		
+
 		// ============================================
 		// 管理员路由（admin和super_admin）
 		// ============================================
@@ -399,7 +399,7 @@ func main() {
 		adminRoutes.Use(middleware.Admin())
 		{
 			// 机器人用户权限管理
-			adminRoutes.POST("/bot-permissions", botUserController.GrantPermission)           // 授权用户使用机器人
+			adminRoutes.POST("/bot-permissions", botUserController.GrantPermission)                     // 授权用户使用机器人
 			adminRoutes.DELETE("/bot-permissions/:user_id/:bot_id", botUserController.RevokePermission) // 撤销用户权限
 		}
 
