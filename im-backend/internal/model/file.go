@@ -13,21 +13,21 @@ type File struct {
 	DeletedAt   gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 	
 	// 基本信息
-	FileName    string `json:"file_name" gorm:"not null"`                    // 原始文件名
-	FileSize    int64  `json:"file_size" gorm:"not null"`                    // 文件大小
-	FileType    string `json:"file_type" gorm:"not null"`                    // 文件类型
-	MimeType    string `json:"mime_type" gorm:"not null"`                    // MIME类型
-	FileHash    string `json:"file_hash" gorm:"uniqueIndex;not null"`        // 文件哈希值
+	FileName    string `json:"file_name" gorm:"type:varchar(255);not null"`              // 原始文件名
+	FileSize    int64  `json:"file_size" gorm:"not null"`                                // 文件大小
+	FileType    string `json:"file_type" gorm:"type:varchar(50);not null"`               // 文件类型
+	MimeType    string `json:"mime_type" gorm:"type:varchar(100);not null"`              // MIME类型
+	FileHash    string `json:"file_hash" gorm:"type:varchar(64);uniqueIndex;not null"`   // 文件哈希值 (SHA256)
 	
 	// 存储信息
-	StoragePath string `json:"storage_path" gorm:"not null"`                 // 存储路径
-	StorageURL  string `json:"storage_url" gorm:"not null"`                  // 访问URL
-	Thumbnail   string `json:"thumbnail"`                                    // 缩略图URL
-	Preview     string `json:"preview"`                                      // 预览URL
+	StoragePath string `json:"storage_path" gorm:"type:varchar(500);not null"` // 存储路径
+	StorageURL  string `json:"storage_url" gorm:"type:varchar(500);not null"`  // 访问URL
+	Thumbnail   string `json:"thumbnail" gorm:"type:varchar(500)"`             // 缩略图URL
+	Preview     string `json:"preview" gorm:"type:varchar(500)"`               // 预览URL
 	
 	// 加密信息
-	IsEncrypted bool   `json:"is_encrypted" gorm:"default:false"`            // 是否加密
-	EncryptionKey string `json:"encryption_key"`                             // 加密密钥(加密存储)
+	IsEncrypted   bool   `json:"is_encrypted" gorm:"default:false"`            // 是否加密
+	EncryptionKey string `json:"encryption_key" gorm:"type:varchar(255)"`      // 加密密钥(加密存储)
 	
 	// 版本控制
 	Version     int    `json:"version" gorm:"default:1"`                     // 文件版本
@@ -35,14 +35,14 @@ type File struct {
 	IsLatest    bool   `json:"is_latest" gorm:"default:true"`                // 是否最新版本
 	
 	// 分片上传信息
-	ChunkSize   int64  `json:"chunk_size" gorm:"default:0"`                  // 分片大小
-	TotalChunks int    `json:"total_chunks" gorm:"default:0"`                // 总分片数
-	UploadID    string `json:"upload_id"`                                    // 上传ID
+	ChunkSize   int64  `json:"chunk_size" gorm:"default:0"`                       // 分片大小
+	TotalChunks int    `json:"total_chunks" gorm:"default:0"`                     // 总分片数
+	UploadID    string `json:"upload_id" gorm:"type:varchar(100)"`                // 上传ID
 	
 	// 权限信息
-	OwnerID     uint   `json:"owner_id" gorm:"not null"`                     // 文件所有者
-	IsPublic    bool   `json:"is_public" gorm:"default:false"`               // 是否公开
-	AccessToken string `json:"access_token"`                                 // 访问令牌
+	OwnerID     uint   `json:"owner_id" gorm:"not null"`                      // 文件所有者
+	IsPublic    bool   `json:"is_public" gorm:"default:false"`                // 是否公开
+	AccessToken string `json:"access_token" gorm:"type:varchar(255)"`         // 访问令牌
 	
 	// 统计信息
 	DownloadCount int64 `json:"download_count" gorm:"default:0"`             // 下载次数

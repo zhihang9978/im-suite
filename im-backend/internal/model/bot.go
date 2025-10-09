@@ -14,13 +14,13 @@ type Bot struct {
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 
 	// 基本信息
-	Name        string `json:"name" gorm:"not null;uniqueIndex"` // 机器人名称
-	Description string `json:"description"`                      // 描述
-	Type        string `json:"type" gorm:"not null"`             // 类型: internal, webhook, plugin
+	Name        string `json:"name" gorm:"type:varchar(100);not null;uniqueIndex"` // 机器人名称
+	Description string `json:"description" gorm:"type:varchar(500)"`               // 描述
+	Type        string `json:"type" gorm:"type:varchar(50);not null"`              // 类型: internal, webhook, plugin
 
 	// 认证信息
-	APIKey    string `json:"api_key" gorm:"uniqueIndex;not null"` // API密钥
-	APISecret string `json:"-" gorm:"not null"`                   // API密钥（加密存储）
+	APIKey    string `json:"api_key" gorm:"type:varchar(255);uniqueIndex;not null"` // API密钥
+	APISecret string `json:"-" gorm:"type:varchar(255);not null"`                   // API密钥（加密存储）
 
 	// 权限配置
 	Permissions string `json:"permissions" gorm:"type:text"` // 权限列表（JSON数组）

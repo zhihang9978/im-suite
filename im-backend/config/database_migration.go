@@ -144,22 +144,62 @@ func MigrateTables(db *gorm.DB) error {
 	}
 	log.Println("----------------------------------------")
 
-	// 执行迁移
+	// 第一阶段：检查依赖表是否存在
+	log.Println("🔍 第一阶段：检查依赖表...")
+	for i, m := range migrations {
+		if len(m.Deps) > 0 {
+			for _, dep := range m.Deps {
+				// 检查该依赖表是否在之前的迁移列表中
+				found := false
+				for j := 0; j < i; j++ {
+					if migrations[j].Name == dep {
+						found = true
+						break
+					}
+				}
+				if !found {
+					log.Printf("❌ 错误：表 %s 依赖 %s，但 %s 不在之前的迁移列表中", m.Name, dep, dep)
+					log.Println("========================================")
+					log.Println("🚨 依赖检查失败！服务将不会启动。")
+					log.Println("========================================")
+					return fmt.Errorf("依赖检查失败：表 %s 依赖不存在或顺序错误的表 %s (Fail Fast)", m.Name, dep)
+				}
+			}
+		}
+	}
+	log.Println("✅ 依赖检查通过")
+	log.Println("----------------------------------------")
+
+	// 第二阶段：执行迁移
+	log.Println("⚙️  第二阶段：执行表迁移...")
 	successCount := 0
 	for i, m := range migrations {
 		log.Printf("⏳ [%d/%d] 迁移表: %s", i+1, len(migrations), m.Name)
 
 		// 检查表是否已存在
-		if db.Migrator().HasTable(m.Model) {
+		tableExists := db.Migrator().HasTable(m.Model)
+		if tableExists {
 			log.Printf("   ℹ️  表 %s 已存在，检查结构更新...", m.Name)
 		} else {
 			log.Printf("   ✨ 创建新表: %s", m.Name)
 		}
 
-		// 执行迁移
+		// 执行迁移 - Fail Fast
 		if err := db.AutoMigrate(m.Model); err != nil {
 			log.Printf("   ❌ 迁移失败: %v", err)
-			return fmt.Errorf("迁移表 %s 失败: %v", m.Name, err)
+			log.Println("========================================")
+			log.Println("🚨 数据库迁移失败！服务将不会启动。")
+			log.Println("========================================")
+			return fmt.Errorf("迁移表 %s 失败: %v (Fail Fast - 服务停止启动)", m.Name, err)
+		}
+
+		// 验证表确实创建成功
+		if !db.Migrator().HasTable(m.Model) {
+			log.Printf("   ❌ 验证失败：表 %s 迁移后仍不存在", m.Name)
+			log.Println("========================================")
+			log.Println("🚨 数据库迁移验证失败！服务将不会启动。")
+			log.Println("========================================")
+			return fmt.Errorf("表 %s 创建失败验证 (Fail Fast - 服务停止启动)", m.Name)
 		}
 
 		log.Printf("   ✅ 迁移成功: %s", m.Name)
@@ -169,11 +209,17 @@ func MigrateTables(db *gorm.DB) error {
 	log.Println("----------------------------------------")
 	log.Printf("✅ 数据库迁移完成！成功迁移 %d/%d 个表\n", successCount, len(migrations))
 
-	// 迁移后验证
+	// 第三阶段：迁移后完整性验证
+	log.Println("🔍 第三阶段：验证表完整性...")
 	if err := VerifyTables(db); err != nil {
-		return err
+		log.Println("========================================")
+		log.Println("🚨 数据库验证失败！服务将不会启动。")
+		log.Println("========================================")
+		return fmt.Errorf("表完整性验证失败 (Fail Fast - 服务停止启动): %v", err)
 	}
 
+	log.Println("========================================")
+	log.Println("🎉 数据库迁移和验证全部通过！服务可以安全启动。")
 	log.Println("========================================")
 	return nil
 }

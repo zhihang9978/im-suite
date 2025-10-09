@@ -438,6 +438,176 @@ sudo ./server-deploy.sh
    npm run dev
    ```
 
+## 数据库迁移
+
+### 迁移机制
+
+本项目采用**智能化数据库迁移机制**，确保表依赖顺序正确，避免外键约束错误。
+
+#### 核心特性
+- ✅ **智能依赖排序**: 56个表按6层依赖关系自动排序
+- ✅ **Fail Fast机制**: 任何步骤失败立即停止服务启动
+- ✅ **三阶段验证**: 依赖检查 → 表迁移 → 完整性验证
+- ✅ **详细日志**: 完整的迁移过程可视化
+- ✅ **字段长度规范**: 所有uniqueIndex字段明确声明varchar长度
+
+#### 表依赖关系
+
+```
+第一层（基础表）:  users, chats, themes
+第二层（依赖层1）:  sessions, contacts, chat_members
+第三层（特殊）:     message_replies（被引用表）
+第四层（引用层3）:  messages（引用message_replies）
+第五层（依赖层4）:  message_reads, message_edits, ...
+其他层:            files, bots, screen_share_sessions, ...
+```
+
+#### 字段长度规范
+
+| 字段类型 | 长度 | 示例 |
+|---------|------|------|
+| 手机号 | varchar(20) | Phone |
+| 用户名 | varchar(50) | Username |
+| 令牌/密钥 | varchar(255) | Token, APIKey |
+| 文件哈希 | varchar(64) | FileHash (SHA256) |
+| IP地址 | varchar(45) | IP (支持IPv6) |
+| URL/路径 | varchar(500) | StoragePath, URL |
+
+完整规范请参考: [`im-backend/FIELD_LENGTH_SPECIFICATION.md`](im-backend/FIELD_LENGTH_SPECIFICATION.md)
+
+### 本地测试迁移
+
+```bash
+# 运行依赖顺序测试
+cd im-backend/config
+go test -v -run TestTableDependencies
+
+# 运行所有迁移测试
+go test -v
+
+# 基准测试
+go test -bench=BenchmarkMigration -benchmem
+```
+
+**预期输出**:
+```
+✅ 依赖顺序正确: message_replies (索引:8) 在 messages (索引:9) 之前
+✅ 依赖顺序正确: users (索引:0) 在 sessions (索引:3) 之前
+✅ 迁移表数量正常: 56 个表
+✅ 无重复表名
+--- PASS: TestTableDependencies (0.00s)
+```
+
+### 生产环境迁移流程
+
+#### 1. 备份数据库
+```bash
+# 停止写入（可选）
+docker-compose -f docker-compose.production.yml stop im-backend
+
+# 备份数据库
+docker exec -i mysql mysqldump -u root -p密码 zhihang_messenger > backup_$(date +%Y%m%d_%H%M%S).sql
+```
+
+#### 2. 执行迁移
+```bash
+# 拉取最新代码
+git pull origin main
+
+# 重建后端镜像
+docker-compose -f docker-compose.production.yml build im-backend
+
+# 启动后端（自动执行迁移）
+docker-compose -f docker-compose.production.yml up -d im-backend
+```
+
+#### 3. 验证迁移
+```bash
+# 查看迁移日志
+docker-compose -f docker-compose.production.yml logs -f im-backend
+```
+
+**成功日志示例**:
+```
+========================================
+🚀 开始数据库表迁移...
+========================================
+📋 计划迁移 56 个表：
+...
+🔍 第一阶段：检查依赖表...
+✅ 依赖检查通过
+----------------------------------------
+⚙️  第二阶段：执行表迁移...
+⏳ [8/56] 迁移表: message_replies
+   ✨ 创建新表: message_replies
+   ✅ 迁移成功: message_replies
+⏳ [9/56] 迁移表: messages
+   ✨ 创建新表: messages
+   ✅ 迁移成功: messages
+...
+✅ 数据库迁移完成！成功迁移 56/56 个表
+🔍 第三阶段：验证表完整性...
+✅ 数据库验证通过！当前共有 56 个表
+========================================
+🎉 数据库迁移和验证全部通过！服务可以安全启动。
+========================================
+[GIN-debug] Listening and serving HTTP on :8080
+```
+
+#### 4. 回滚（如果需要）
+```bash
+# 停止服务
+docker-compose -f docker-compose.production.yml down
+
+# 恢复数据库
+docker exec -i mysql mysql -u root -p密码 zhihang_messenger < backup_YYYYMMDD_HHMMSS.sql
+
+# 回滚代码
+git reset --hard 上一个提交ID
+
+# 重启服务
+docker-compose -f docker-compose.production.yml up -d
+```
+
+### 添加新表时
+
+1. **创建模型文件** (`im-backend/internal/model/your_model.go`)
+   ```go
+   type YourModel struct {
+       ID        uint      `gorm:"primaryKey" json:"id"`
+       Name      string    `gorm:"type:varchar(100);not null" json:"name"`
+       UserID    uint      `gorm:"not null;index" json:"user_id"`
+       CreatedAt time.Time `json:"created_at"`
+       
+       User User `gorm:"foreignKey:UserID" json:"user,omitempty"`
+   }
+   ```
+
+2. **添加到迁移列表** (`im-backend/config/database_migration.go`)
+   ```go
+   // 根据依赖关系选择合适位置
+   {Model: &model.YourModel{}, Name: "your_models", Deps: []string{"users"}},
+   ```
+
+3. **运行测试**
+   ```bash
+   cd im-backend/config
+   go test -v
+   ```
+
+4. **本地验证**
+   ```bash
+   cd im-backend
+   go run main.go  # 查看迁移日志
+   ```
+
+### 迁移相关文档
+
+- 📖 [数据库迁移使用指南](im-backend/DATABASE_MIGRATION_GUIDE.md)
+- 📋 [字段长度规范清单](im-backend/FIELD_LENGTH_SPECIFICATION.md)
+- 🔧 [迁移优化总结](DATABASE_MIGRATION_OPTIMIZATION_SUMMARY.md)
+- 📝 [迁移修复报告](DATABASE_MIGRATION_FIX.md)
+
 ### 生产环境部署
 
 ```bash
