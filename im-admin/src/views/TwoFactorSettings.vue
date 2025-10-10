@@ -268,7 +268,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Lock, Monitor, Refresh, Close, Download } from '@element-plus/icons-vue'
-import axios from 'axios'
+import request from '@/api/request'
 
 // 状态
 const loading = ref(false)
@@ -330,7 +330,7 @@ const disableRules = {
 // 加载2FA状态
 const loadTwoFactorStatus = async () => {
   try {
-    const response = await axios.get('/api/2fa/status')
+    const response = await request.get('/2fa/status')
     Object.assign(twoFactorStatus, response.data.data)
   } catch (error) {
     ElMessage.error('加载2FA状态失败')
@@ -341,7 +341,7 @@ const loadTwoFactorStatus = async () => {
 const handleEnable = async () => {
   loading.value = true
   try {
-    const response = await axios.post('/api/2fa/enable', enableFormData)
+    const response = await request.post('/2fa/enable', enableFormData)
     qrCodeData.value = response.data.data.qr_code
     secretKey.value = response.data.data.secret
     backupCodes.value = response.data.data.backup_codes
@@ -359,7 +359,7 @@ const handleEnable = async () => {
 const handleVerify = async () => {
   loading.value = true
   try {
-    await axios.post('/api/2fa/verify', verifyFormData)
+    await request.post('/2fa/verify', verifyFormData)
     qrStep.value = 2
     ElMessage.success('验证成功！')
   } catch (error) {
@@ -387,7 +387,7 @@ const handleDisable = () => {
 const confirmDisable = async () => {
   loading.value = true
   try {
-    await axios.post('/api/2fa/disable', disableFormData)
+    await request.post('/2fa/disable', disableFormData)
     disableDialog.value = false
     disableFormData.password = ''
     disableFormData.code = ''
@@ -420,7 +420,7 @@ const handleRegenerateBackupCodes = async () => {
 // 显示受信任设备
 const showTrustedDevices = async () => {
   try {
-    const response = await axios.get('/api/2fa/trusted-devices')
+    const response = await request.get('/2fa/trusted-devices')
     trustedDevices.value = response.data.devices
     devicesDialog.value = true
   } catch (error) {
@@ -437,7 +437,7 @@ const removeDevice = async (deviceId) => {
       type: 'warning'
     })
     
-    await axios.delete(`/api/2fa/trusted-devices/${deviceId}`)
+    await request.delete(`/2fa/trusted-devices/${deviceId}`)
     ElMessage.success('设备已移除')
     showTrustedDevices()
   } catch {

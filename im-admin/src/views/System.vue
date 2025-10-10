@@ -435,7 +435,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import axios from 'axios'
+import request from '@/api/request'
 
 // 标签页
 const activeTab = ref('system')
@@ -522,7 +522,7 @@ const availableBots = computed(() => {
 const loadBots = async () => {
   botsLoading.value = true
   try {
-    const response = await axios.get('/api/super-admin/bots')
+    const response = await request.get('/super-admin/bots')
     bots.value = response.data.data || []
   } catch (error) {
     console.error('加载机器人列表失败:', error)
@@ -538,7 +538,7 @@ const loadBotUsers = async () => {
     botUsers.value = []
     for (const bot of bots.value) {
       try {
-        const response = await axios.get(`/api/super-admin/bot-users/${bot.id}`)
+        const response = await request.get(`/super-admin/bot-users/${bot.id}`)
         if (response.data.success && response.data.data) {
           botUsers.value.push(response.data.data)
         }
@@ -562,7 +562,7 @@ const loadPermissions = async () => {
     permissions.value = []
     for (const bot of bots.value) {
       try {
-        const response = await axios.get(`/api/super-admin/bot-users/${bot.id}/permissions`)
+        const response = await request.get(`/super-admin/bot-users/${bot.id}/permissions`)
         if (response.data.success && response.data.data) {
           permissions.value.push(...response.data.data)
         }
@@ -586,7 +586,7 @@ const createBot = async () => {
 
   botSubmitting.value = true
   try {
-    const response = await axios.post('/api/super-admin/bots', botForm)
+    const response = await request.post('/super-admin/bots', botForm)
     createdApiKeys.value = {
       api_key: response.data.data.api_key,
       api_secret: response.data.data.api_secret
@@ -612,7 +612,7 @@ const createBotUser = async () => {
 
   botUserSubmitting.value = true
   try {
-    await axios.post('/api/super-admin/bot-users', botUserForm)
+    await request.post('/super-admin/bot-users', botUserForm)
     showCreateBotUserDialog.value = false
     ElMessage.success('机器人用户创建成功！\n用户现在可以通过搜索"' + botUserForm.username + '"与机器人对话。')
     loadBotUsers()
@@ -641,7 +641,7 @@ const grantPermission = async () => {
       data.expires_at = new Date(permissionForm.expires_at).toISOString()
     }
     
-    await axios.post('/api/admin/bot-permissions', data)
+    await request.post('/admin/bot-permissions', data)
     showGrantPermissionDialog.value = false
     ElMessage.success('授权成功')
     loadPermissions()
@@ -662,7 +662,7 @@ const viewBotDetails = (bot) => {
 // 切换机器人状态
 const toggleBotStatus = async (bot) => {
   try {
-    await axios.put(`/api/super-admin/bots/${bot.id}/status`, {
+    await request.put(`/super-admin/bots/${bot.id}/status`, {
       is_active: !bot.is_active
     })
     bot.is_active = !bot.is_active
@@ -681,7 +681,7 @@ const deleteBot = async (bot) => {
       { type: 'error' }
     )
     
-    await axios.delete(`/api/super-admin/bots/${bot.id}`)
+    await request.delete(`/super-admin/bots/${bot.id}`)
     ElMessage.success('机器人已删除')
     loadBots()
   } catch (error) {
@@ -700,7 +700,7 @@ const deleteBotUser = async (botUser) => {
       { type: 'warning' }
     )
     
-    await axios.delete(`/api/super-admin/bot-users/${botUser.bot_id}`)
+    await request.delete(`/super-admin/bot-users/${botUser.bot_id}`)
     ElMessage.success('机器人用户已删除')
     loadBotUsers()
   } catch (error) {
@@ -719,7 +719,7 @@ const revokePermission = async (perm) => {
       { type: 'warning' }
     )
     
-    await axios.delete(`/api/admin/bot-permissions/${perm.user_id}/${perm.bot_id}`)
+    await request.delete(`/admin/bot-permissions/${perm.user_id}/${perm.bot_id}`)
     ElMessage.success('权限已撤销')
     loadPermissions()
   } catch (error) {
