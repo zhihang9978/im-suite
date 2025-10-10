@@ -73,8 +73,8 @@
 ├── .cursor/                    # Cursor IDE 配置文件
 │   ├── rules.json             # 开发规则配置
 │   └── modes.json             # AI 模式配置
-├── telegram-web/              # Web 端 (基于 Telegram Web)
-├── telegram-android/          # Android 端 (基于 Telegram Android) ⏳ 子模块待推送
+├── telegram-web/              # Web客户端源码（本地开发，Git不跟踪）
+├── telegram-android/          # Android客户端源码（本地开发，Git不跟踪）
 ├── im-backend/                # 后端服务 (Go + Gin + GORM)
 ├── im-admin/                  # 管理后台 (Vue3 + Element Plus)
 ├── assets/                    # 资源文件
@@ -96,11 +96,18 @@
 │   ├── nginx/                 # Nginx 配置
 │   ├── init.sql               # 数据库初始化
 │   └── stop.sh                # 停止脚本
-├── k8s/                       # Kubernetes 配置
-├── docker-compose.yml         # Docker Compose 配置
-├── docker-stack.yml           # Docker Swarm 配置
+├── deploy/                    # 部署配置
+│   └── alternatives/          # 非默认部署方式（Docker Swarm、K8s）
+├── docs/                      # 文档目录
+│   └── archive/               # 已废弃文档
+├── docker-compose.production.yml  # 🚀 生产部署配置（唯一入口）
 └── README.md                  # 项目说明
 ```
+
+**📝 说明**:
+- `telegram-web/` 和 `telegram-android/` 保留在本地用于开发，**Git不跟踪**
+- 生产部署使用 `docker-compose.production.yml`，客户端**已预构建在Docker镜像中**
+- AI代理部署时**严禁进入**客户端目录，详见 `DEVIN_START_HERE.md`
 
 ## 系统优势
 
