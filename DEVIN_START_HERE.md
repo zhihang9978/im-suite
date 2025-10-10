@@ -7,18 +7,28 @@
 
 ---
 
-## 📖 唯一必读文档
+## 📖 部署文档选择
 
-### 👉 [`DEVIN_DEPLOY_ONLY.md`](DEVIN_DEPLOY_ONLY.md) ⚡⚡⚡
+### 单机测试部署
+👉 [`DEVIN_DEPLOY_ONLY.md`](DEVIN_DEPLOY_ONLY.md) ⚡⚡⚡
 
-**这是你需要的唯一文档！**
+**功能测试时使用这个！**
 
 - ⏱️ 阅读时间：3分钟
 - ⏱️ 部署时间：10分钟
 - 💰 ACU 消耗：**35 ACU**
 - ✅ 成功率：100%
 
-**立即点击查看**: [`DEVIN_DEPLOY_ONLY.md`](DEVIN_DEPLOY_ONLY.md)
+### 三服务器高可用部署
+👉 [`THREE_SERVER_DEPLOYMENT_GUIDE.md`](THREE_SERVER_DEPLOYMENT_GUIDE.md) 🚀🚀🚀
+
+**测试完成后，正式上线使用这个！**
+
+- ⏱️ 阅读时间：10分钟
+- ⏱️ 部署时间：2-3小时
+- 💰 ACU 消耗：**约130 ACU**
+- 🏗️ 架构：主备高可用（99.9%可用性）
+- 📊 详细分三个服务器独立部署步骤
 
 ---
 
