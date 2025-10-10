@@ -1,5 +1,16 @@
 version: '3.8'
 
+# 严格模式: 确保所有必要环境变量都已设置
+x-environment-check: &env-check
+  - ${MYSQL_ROOT_PASSWORD:?请在.env中设置MYSQL_ROOT_PASSWORD}
+  - ${MYSQL_DATABASE:?请在.env中设置MYSQL_DATABASE}
+  - ${MYSQL_USER:?请在.env中设置MYSQL_USER}
+  - ${MYSQL_PASSWORD:?请在.env中设置MYSQL_PASSWORD}
+  - ${REDIS_PASSWORD:?请在.env中设置REDIS_PASSWORD}
+  - ${MINIO_ROOT_USER:?请在.env中设置MINIO_ROOT_USER}
+  - ${MINIO_ROOT_PASSWORD:?请在.env中设置MINIO_ROOT_PASSWORD}
+  - ${JWT_SECRET:?请在.env中设置JWT_SECRET}
+
 services:
   # MySQL 数据库
   mysql:
@@ -16,8 +27,6 @@ services:
       - ./config/mysql/init:/docker-entrypoint-initdb.d
       - ./config/mysql/conf.d:/etc/mysql/conf.d
       - ./backups/mysql:/backups
-    ports:
-      - "3306:3306"
     networks:
       - im-network
     command: --default-authentication-plugin=mysql_native_password
@@ -35,8 +44,6 @@ services:
     volumes:
       - redis_data:/data
       - ./config/redis/redis.conf:/usr/local/etc/redis/redis.conf
-    ports:
-      - "6379:6379"
     networks:
       - im-network
     healthcheck:
@@ -55,9 +62,9 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       - minio_data:/data
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+    expose:
+      - "9000"
+      - "9001"
     networks:
       - im-network
     command: server /data --console-address ":9001"
@@ -74,6 +81,12 @@ services:
       dockerfile: Dockerfile.production
     container_name: im-backend-prod
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
     environment:
       # 数据库配置
       DB_HOST: mysql
@@ -136,6 +149,12 @@ services:
       dockerfile: Dockerfile.production
     container_name: im-admin-prod
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
     environment:
       VITE_API_BASE_URL: ${ADMIN_API_BASE_URL}
       VITE_APP_TITLE: "志航密信管理后台"
