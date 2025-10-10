@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"zhihang-messenger/im-backend/config"
 	"zhihang-messenger/im-backend/internal/controller"
 	"zhihang-messenger/im-backend/internal/middleware"
 	"zhihang-messenger/im-backend/internal/service"
@@ -21,11 +20,11 @@ import (
 func setupTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	
+
 	// 初始化服务
 	authService := service.NewAuthService()
 	authController := controller.NewAuthController(authService)
-	
+
 	// 设置路由
 	api := r.Group("/api")
 	{
@@ -35,7 +34,7 @@ func setupTestRouter() *gin.Engine {
 			auth.POST("/login", authController.Login)
 		}
 	}
-	
+
 	return r
 }
 
@@ -44,18 +43,18 @@ func TestHealthCheck(t *testing.T) {
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
-	
+
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/health", nil)
 	r.ServeHTTP(w, req)
-	
+
 	assert.Equal(t, 200, w.Code)
 	assert.Contains(t, w.Body.String(), "ok")
 }
 
 func TestRegisterValidation(t *testing.T) {
 	r := setupTestRouter()
-	
+
 	tests := []struct {
 		name           string
 		payload        map[string]string
@@ -89,7 +88,7 @@ func TestRegisterValidation(t *testing.T) {
 			expectedStatus: 400,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			body, _ := json.Marshal(tt.payload)
@@ -97,7 +96,7 @@ func TestRegisterValidation(t *testing.T) {
 			req, _ := http.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
 			r.ServeHTTP(w, req)
-			
+
 			// 注：需要数据库连接，此测试可能需要mock
 			// assert.Equal(t, tt.expectedStatus, w.Code)
 		})
@@ -110,7 +109,7 @@ func TestRateLimiting(t *testing.T) {
 	r.GET("/test", func(c *gin.Context) {
 		c.JSON(200, gin.H{"ok": true})
 	})
-	
+
 	// 快速发送100个请求，应该有部分被限流
 	limitedCount := 0
 	for i := 0; i < 100; i++ {
@@ -118,12 +117,12 @@ func TestRateLimiting(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/test", nil)
 		req.RemoteAddr = "127.0.0.1:12345"
 		r.ServeHTTP(w, req)
-		
+
 		if w.Code == 429 {
 			limitedCount++
 		}
 	}
-	
+
 	// 应该有请求被限流
 	assert.Greater(t, limitedCount, 0, "速率限制应该生效")
 }
@@ -150,4 +149,3 @@ func BenchmarkMessageService(b *testing.B) {
 		// 测试消息发送性能
 	}
 }
-

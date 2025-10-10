@@ -120,4 +120,3 @@ func RecordMessageSent() {
 func UpdateOnlineUsers(count float64) {
 	onlineUsersGauge.Set(count)
 }
-

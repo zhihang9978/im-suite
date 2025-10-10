@@ -63,12 +63,12 @@ func CacheMiddleware(ttl time.Duration) gin.HandlerFunc {
 func generateCacheKey(c *gin.Context) string {
 	// URL + 查询参数 + 用户ID（如果有）
 	key := c.Request.URL.Path + "?" + c.Request.URL.RawQuery
-	
+
 	// 添加用户ID（确保不同用户的缓存隔离）
 	if userID, exists := c.Get("user_id"); exists {
 		key = fmt.Sprintf("%s:user:%v", key, userID)
 	}
-	
+
 	// MD5哈希（缩短key长度）
 	hash := md5.Sum([]byte(key))
 	return "api:cache:" + hex.EncodeToString(hash[:])
@@ -84,4 +84,3 @@ func (w *bodyLogWriter) Write(b []byte) (int, error) {
 	w.body = append(w.body, b...)
 	return w.ResponseWriter.Write(b)
 }
-

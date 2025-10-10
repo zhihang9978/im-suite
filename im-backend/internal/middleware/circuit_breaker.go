@@ -121,4 +121,3 @@ func (cb *CircuitBreaker) GetState() string {
 	defer cb.mu.RUnlock()
 	return cb.state
 }
-

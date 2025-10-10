@@ -63,4 +63,3 @@ CREATE INDEX IF NOT EXISTS idx_marked ON messages(is_marked, mark_type, mark_tim
 -- 查询未读消息数（使用idx_status_created）:
 --   SELECT COUNT(*) FROM messages WHERE receiver_id = 123 AND status = 'sent';
 `
-

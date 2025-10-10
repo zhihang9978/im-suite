@@ -38,7 +38,7 @@ func GetWithFallback(ctx context.Context, cacheKey string, dbQuery func() (inter
 					logrus.Errorf("写入缓存失败（已忽略）: %v", r)
 				}
 			}()
-			
+
 			// 使用独立的context，避免请求取消影响缓存写入
 			bgCtx := context.Background()
 			config.Redis.Set(bgCtx, cacheKey, result, ttl)
@@ -65,7 +65,7 @@ func InvalidateCachePattern(ctx context.Context, pattern string) {
 			logrus.Errorf("查询缓存key失败: %v", err)
 			return
 		}
-		
+
 		if len(keys) > 0 {
 			config.Redis.Del(ctx, keys...)
 			logrus.Debugf("批量删除缓存: %d个key", len(keys))
@@ -136,4 +136,3 @@ func (hc *HealthCheck) IsHealthy() bool {
 	}
 	return true
 }
-
