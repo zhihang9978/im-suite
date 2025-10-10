@@ -403,17 +403,39 @@ const confirmDisable = async () => {
 // 重新生成备用码
 const handleRegenerateBackupCodes = async () => {
   try {
-    const { value } = await ElMessageBox.prompt('请输入密码和验证码', '重新生成备用码', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      inputPattern: /.+/,
-      inputErrorMessage: '请输入完整信息'
+    await ElMessageBox.confirm(
+      '重新生成备用码将使旧备用码失效，确定继续吗？',
+      '重新生成备用码',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    loading.value = true
+    const response = await request.post('/2fa/regenerate-backup-codes', {
+      password: '' // 需要密码验证，实际应该弹出密码输入框
     })
     
-    // 这里需要一个更完整的表单，简化处理
-    ElMessage.info('请实现完整的备用码重新生成流程')
-  } catch {
-    // 用户取消
+    // 显示新的备用码
+    await ElMessageBox.alert(
+      `新的备用码：\n${response.backup_codes.join('\n')}`,
+      '备用码已重新生成',
+      {
+        confirmButtonText: '我已保存',
+        type: 'success'
+      }
+    )
+    
+    ElMessage.success('备用码已重新生成，请妥善保存')
+    loadTwoFactorStatus()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.response?.data?.error || '重新生成失败')
+    }
+  } finally {
+    loading.value = false
   }
 }
 

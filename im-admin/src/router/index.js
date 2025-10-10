@@ -50,12 +50,6 @@ const routes = [
         meta: { title: '日志管理' }
       },
       {
-        path: '/plugins',
-        name: 'PluginManagement',
-        component: () => import('@/views/PluginManagement.vue'),
-        meta: { title: '插件管理' }
-      },
-      {
         path: '/security/2fa',
         name: 'TwoFactorSettings',
         component: () => import('@/views/TwoFactorSettings.vue'),

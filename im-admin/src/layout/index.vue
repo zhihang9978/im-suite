@@ -118,10 +118,14 @@ const toggleCollapse = () => {
 const handleCommand = async (command) => {
   switch (command) {
     case 'profile':
-      ElMessage.info('个人资料功能开发中')
+      // 跳转到用户资料页面（使用现有的用户信息）
+      router.push('/users')
+      ElMessage.info('查看用户管理页面')
       break
     case 'settings':
-      ElMessage.info('系统设置功能开发中')
+      // 跳转到系统管理页面
+      router.push('/system')
+      ElMessage.info('查看系统设置页面')
       break
     case 'logout':
       try {
