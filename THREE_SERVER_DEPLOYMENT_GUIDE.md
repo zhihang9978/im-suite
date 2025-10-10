@@ -747,7 +747,136 @@ master_link_status:up
 
 ---
 
-### 步骤 2.8：安装 Node Exporter（监控）
+### 步骤 2.7B：配置 MinIO 实时同步（关键！）
+
+```bash
+# 1. 安装 MinIO Client
+wget https://dl.min.io/client/mc/release/linux-amd64/mc
+chmod +x mc
+mv mc /usr/local/bin/
+
+# 2. 配置主服务器和副服务器别名
+mc alias set minio-master http://154.37.214.191:9000 zhihang_admin "ZhMinIO2024SecurePass!@#"
+mc alias set minio-backup http://localhost:9000 zhihang_admin "ZhMinIO2024SecurePass!@#"
+
+# 3. 验证连接
+mc ls minio-master
+mc ls minio-backup
+
+# 4. 创建实时同步脚本
+cat > /root/minio-sync.sh << 'EOF'
+#!/bin/bash
+# MinIO 实时镜像同步脚本
+LOG_FILE="/var/log/minio-sync.log"
+
+echo "[$(date)] 启动 MinIO 实时同步..." >> $LOG_FILE
+
+# 使用 --watch 模式实时监控并同步更改
+mc mirror --watch --overwrite \
+    minio-master/zhihang-messenger \
+    minio-backup/zhihang-messenger \
+    >> $LOG_FILE 2>&1
+EOF
+
+chmod +x /root/minio-sync.sh
+
+# 5. 创建 systemd 服务
+cat > /etc/systemd/system/minio-sync.service << 'EOF'
+[Unit]
+Description=MinIO Real-time Mirror Sync
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/root/minio-sync.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# 6. 启动同步服务
+systemctl daemon-reload
+systemctl enable minio-sync
+systemctl start minio-sync
+
+# 7. 验证同步服务
+systemctl status minio-sync
+tail -f /var/log/minio-sync.log
+```
+
+**验证 MinIO 实时同步**:
+```bash
+# 在主服务器创建测试文件
+echo "MinIO sync test" > /tmp/test.txt
+mc cp /tmp/test.txt minio-master/zhihang-messenger/test/
+
+# 等待2-5秒，在副服务器检查
+mc ls minio-backup/zhihang-messenger/test/
+# 应该能看到 test.txt
+
+# 清理测试文件
+mc rm minio-master/zhihang-messenger/test/test.txt
+```
+
+---
+
+### 步骤 2.8：配置文件同步（可选但推荐）
+
+```bash
+# 1. 安装 rsync
+apt install -y rsync
+
+# 2. 配置 SSH 免密登录（如果还没配置）
+ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/id_rsa
+ssh-copy-id root@154.37.214.191
+
+# 3. 创建配置同步脚本
+cat > /root/config-sync.sh << 'EOF'
+#!/bin/bash
+MASTER_IP="154.37.214.191"
+LOG_FILE="/var/log/config-sync.log"
+
+while true; do
+    echo "[$(date)] 同步配置文件..." >> $LOG_FILE
+    
+    rsync -avz --delete root@$MASTER_IP:/root/im-suite/config/ /root/im-suite/config/ >> $LOG_FILE 2>&1
+    rsync -avz root@$MASTER_IP:/root/im-suite/.env /root/im-suite/.env >> $LOG_FILE 2>&1
+    
+    sleep 60  # 每分钟同步一次
+done
+EOF
+
+chmod +x /root/config-sync.sh
+
+# 4. 创建 systemd 服务
+cat > /etc/systemd/system/config-sync.service << 'EOF'
+[Unit]
+Description=Config Files Sync from Master
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/root/config-sync.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# 5. 启动服务
+systemctl daemon-reload
+systemctl enable config-sync
+systemctl start config-sync
+```
+
+---
+
+### 步骤 2.9：安装 Node Exporter（监控）
 
 ```bash
 # 运行 Node Exporter
@@ -766,7 +895,7 @@ curl http://localhost:9100/metrics | head -20
 
 ---
 
-### 步骤 2.9：安装 Keepalived（备份节点）
+### 步骤 2.10：安装 Keepalived（备份节点）
 
 ```bash
 # 安装 Keepalived
