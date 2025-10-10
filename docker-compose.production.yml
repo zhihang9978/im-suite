@@ -167,12 +167,6 @@ services:
       - im-network
     depends_on:
       - backend
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   # Telegram Web 客户端
   web-client:
     build:
