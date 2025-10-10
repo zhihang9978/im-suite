@@ -79,6 +79,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import request from '@/api/request'
 
 const loading = ref(false)
 const chats = ref([])
@@ -95,17 +96,19 @@ const searchForm = reactive({
 const getChats = async () => {
   loading.value = true
   try {
-    // 模拟 API 调用
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const response = await request.get('/chats', {
+      params: {
+        page: currentPage.value,
+        page_size: pageSize.value,
+        type: searchForm.type,
+        title: searchForm.title
+      }
+    })
     
-    chats.value = [
-      { id: 1, type: 'private', title: '私聊', member_count: 2, last_message: '你好', last_message_at: '2024-01-15 15:30', created_at: '2024-01-15 10:30' },
-      { id: 2, type: 'group', title: '工作群', member_count: 15, last_message: '会议通知', last_message_at: '2024-01-15 14:20', created_at: '2024-01-15 09:15' },
-      { id: 3, type: 'channel', title: '公告频道', member_count: 100, last_message: '系统维护通知', last_message_at: '2024-01-15 13:10', created_at: '2024-01-15 08:45' }
-    ]
-    total.value = 3
+    chats.value = response.data || []
+    total.value = response.total || 0
   } catch (error) {
-    ElMessage.error('获取聊天列表失败')
+    ElMessage.error('获取聊天列表失败: ' + (error.response?.data?.error || error.message))
   } finally {
     loading.value = false
   }
@@ -154,17 +157,19 @@ const handleView = (row) => {
 // 删除聊天
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要删除该聊天吗？', '提示', {
+    await ElMessageBox.confirm('确定要删除该聊天吗？此操作将删除所有相关消息！', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
     
-    // 模拟删除
+    await request.delete(`/chats/${row.id}`)
     ElMessage.success('删除成功')
     getChats()
   } catch (error) {
-    // 用户取消
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败: ' + (error.response?.data?.error || error.message))
+    }
   }
 }
 

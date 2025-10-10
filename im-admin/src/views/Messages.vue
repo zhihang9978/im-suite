@@ -90,6 +90,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import request from '@/api/request'
 
 const loading = ref(false)
 const messages = ref([])
@@ -107,18 +108,21 @@ const searchForm = reactive({
 const getMessages = async () => {
   loading.value = true
   try {
-    // 模拟 API 调用
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const response = await request.get('/messages', {
+      params: {
+        limit: pageSize.value,
+        offset: (currentPage.value - 1) * pageSize.value,
+        // 添加搜索条件（如果有）
+        type: searchForm.type,
+        sender: searchForm.sender,
+        content: searchForm.content
+      }
+    })
     
-    messages.value = [
-      { id: 1, type: 'text', sender: 'user001', content: '你好，这是一条测试消息', chat_id: 1, created_at: '2024-01-15 15:30', is_deleted: false },
-      { id: 2, type: 'image', sender: 'user002', content: '[图片]', chat_id: 1, created_at: '2024-01-15 15:25', is_deleted: false },
-      { id: 3, type: 'audio', sender: 'user003', content: '[语音]', chat_id: 2, created_at: '2024-01-15 15:20', is_deleted: false },
-      { id: 4, type: 'video', sender: 'user001', content: '[视频]', chat_id: 2, created_at: '2024-01-15 15:15', is_deleted: true }
-    ]
-    total.value = 4
+    messages.value = response.data || []
+    total.value = response.total || 0
   } catch (error) {
-    ElMessage.error('获取消息列表失败')
+    ElMessage.error('获取消息列表失败: ' + (error.response?.data?.error || error.message))
   } finally {
     loading.value = false
   }
@@ -172,17 +176,19 @@ const handleView = (row) => {
 // 删除消息
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要删除该消息吗？', '提示', {
+    await ElMessageBox.confirm('确定要删除该消息吗？此操作不可撤销！', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
     
-    // 模拟删除
+    await request.delete(`/messages/${row.id}`)
     ElMessage.success('删除成功')
     getMessages()
   } catch (error) {
-    // 用户取消
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败: ' + (error.response?.data?.error || error.message))
+    }
   }
 }
 

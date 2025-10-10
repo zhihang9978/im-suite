@@ -144,6 +144,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import request from '@/api/request'
 
 const loading = ref(false)
 const logs = ref([])
@@ -165,18 +166,22 @@ const currentLog = ref({})
 const getLogs = async () => {
   loading.value = true
   try {
-    // 模拟 API 调用
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const response = await request.get('/super-admin/logs', {
+      params: {
+        page: currentPage.value,
+        page_size: pageSize.value,
+        level: searchForm.level,
+        module: searchForm.module,
+        keyword: searchForm.keyword,
+        start_date: searchForm.dateRange[0],
+        end_date: searchForm.dateRange[1]
+      }
+    })
     
-    logs.value = [
-      { id: 1, level: 'info', module: 'auth', message: '用户登录成功', user_id: 1, ip: '192.168.1.100', created_at: '2024-01-15 15:30:25', details: '{"user_id": 1, "ip": "192.168.1.100"}' },
-      { id: 2, level: 'error', module: 'message', message: '消息发送失败', user_id: 2, ip: '192.168.1.101', created_at: '2024-01-15 15:25:10', details: '{"error": "网络超时", "message_id": 123}' },
-      { id: 3, level: 'warn', module: 'system', message: '内存使用率过高', user_id: null, ip: null, created_at: '2024-01-15 15:20:05', details: '{"memory_usage": "85%", "threshold": "80%"}' },
-      { id: 4, level: 'debug', module: 'user', message: '用户信息更新', user_id: 3, ip: '192.168.1.102', created_at: '2024-01-15 15:15:30', details: '{"user_id": 3, "fields": ["nickname", "avatar"]}' }
-    ]
-    total.value = 4
+    logs.value = response.data || []
+    total.value = response.total || 0
   } catch (error) {
-    ElMessage.error('获取日志列表失败')
+    ElMessage.error('获取日志列表失败: ' + (error.response?.data?.error || error.message))
   } finally {
     loading.value = false
   }

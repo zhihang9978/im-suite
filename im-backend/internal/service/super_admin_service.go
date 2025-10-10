@@ -115,6 +115,44 @@ func (s *SuperAdminService) GetSystemStats() (*SystemStats, error) {
 	return stats, nil
 }
 
+// GetUserList 获取用户列表（分页+搜索）
+func (s *SuperAdminService) GetUserList(page, pageSize int, username, phone, status string) ([]model.User, int64, error) {
+	var users []model.User
+	var total int64
+	
+	query := s.db.Model(&model.User{})
+	
+	// 搜索条件
+	if username != "" {
+		query = query.Where("username LIKE ?", "%"+username+"%")
+	}
+	if phone != "" {
+		query = query.Where("phone LIKE ?", "%"+phone+"%")
+	}
+	if status == "online" {
+		query = query.Where("online = ?", true)
+	} else if status == "offline" {
+		query = query.Where("online = ?", false)
+	}
+	
+	// 统计总数
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("统计用户数失败: %w", err)
+	}
+	
+	// 分页查询
+	offset := (page - 1) * pageSize
+	if err := query.
+		Order("created_at DESC").
+		Limit(pageSize).
+		Offset(offset).
+		Find(&users).Error; err != nil {
+		return nil, 0, fmt.Errorf("查询用户列表失败: %w", err)
+	}
+	
+	return users, total, nil
+}
+
 // GetOnlineUsers 获取在线用户列表
 func (s *SuperAdminService) GetOnlineUsers() ([]OnlineUser, error) {
 	var users []model.User

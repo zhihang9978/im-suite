@@ -123,6 +123,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import request from '@/api/request'
 
 const loading = ref(false)
 const users = ref([])
@@ -171,17 +172,20 @@ const userRules = {
 const getUsers = async () => {
   loading.value = true
   try {
-    // 模拟 API 调用
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const response = await request.get('/super-admin/users', {
+      params: {
+        page: currentPage.value,
+        page_size: pageSize.value,
+        username: searchForm.username,
+        phone: searchForm.phone,
+        status: searchForm.status
+      }
+    })
     
-    users.value = [
-      { id: 1, username: 'user001', phone: '13800138001', nickname: '用户001', status: 'online', created_at: '2024-01-15 10:30', last_seen: '2024-01-15 15:30' },
-      { id: 2, username: 'user002', phone: '13800138002', nickname: '用户002', status: 'offline', created_at: '2024-01-15 09:15', last_seen: '2024-01-15 14:20' },
-      { id: 3, username: 'user003', phone: '13800138003', nickname: '用户003', status: 'online', created_at: '2024-01-15 08:45', last_seen: '2024-01-15 15:25' }
-    ]
-    total.value = 3
+    users.value = response.data || []
+    total.value = response.pagination?.total || 0
   } catch (error) {
-    ElMessage.error('获取用户列表失败')
+    ElMessage.error('获取用户列表失败: ' + (error.response?.data?.error || error.message))
   } finally {
     loading.value = false
   }
@@ -227,17 +231,19 @@ const handleEdit = (row) => {
 // 删除用户
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要删除该用户吗？', '提示', {
+    await ElMessageBox.confirm('确定要删除该用户吗？此操作不可撤销！', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
     
-    // 模拟删除
+    await request.delete(`/super-admin/users/${row.id}`)
     ElMessage.success('删除成功')
     getUsers()
   } catch (error) {
-    // 用户取消
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败: ' + (error.response?.data?.error || error.message))
+    }
   }
 }
 
@@ -249,14 +255,23 @@ const handleSubmit = async () => {
     if (valid) {
       submitting.value = true
       try {
-        // 模拟 API 调用
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        ElMessage.success(userForm.id ? '更新成功' : '添加成功')
+        if (userForm.id) {
+          // 更新用户（注：需要后端API支持）
+          ElMessage.warning('用户更新功能暂未实现后端API')
+        } else {
+          // 创建用户 - 使用注册API
+          await request.post('/auth/register', {
+            phone: userForm.phone,
+            username: userForm.username,
+            password: userForm.password,
+            nickname: userForm.nickname
+          })
+          ElMessage.success('用户创建成功')
+        }
         dialogVisible.value = false
         getUsers()
       } catch (error) {
-        ElMessage.error('操作失败')
+        ElMessage.error('操作失败: ' + (error.response?.data?.error || error.message))
       } finally {
         submitting.value = false
       }

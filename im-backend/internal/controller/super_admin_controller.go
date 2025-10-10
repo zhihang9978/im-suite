@@ -30,7 +30,8 @@ func (c *SuperAdminController) SetupRoutes(router *gin.RouterGroup) {
 	router.GET("/stats", c.GetSystemStats)
 	router.GET("/stats/system", c.GetSystemMetrics)
 
-	// 在线用户管理
+	// 用户列表和管理
+	router.GET("/users", c.GetUserList)  // 获取所有用户列表
 	router.GET("/users/online", c.GetOnlineUsers)
 	router.POST("/users/:id/logout", c.ForceLogout)
 
@@ -71,6 +72,44 @@ func (c *SuperAdminController) GetSystemMetrics(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    metrics,
+	})
+}
+
+// GetUserList 获取用户列表
+func (c *SuperAdminController) GetUserList(ctx *gin.Context) {
+	pageStr := ctx.DefaultQuery("page", "1")
+	pageSizeStr := ctx.DefaultQuery("page_size", "20")
+	
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
+	}
+	
+	pageSize, err := strconv.Atoi(pageSizeStr)
+	if err != nil || pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	
+	// 搜索条件
+	username := ctx.Query("username")
+	phone := ctx.Query("phone")
+	status := ctx.Query("status")
+	
+	users, total, err := c.service.GetUserList(page, pageSize, username, phone, status)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    users,
+		"pagination": gin.H{
+			"page":      page,
+			"page_size": pageSize,
+			"total":     total,
+			"pages":     (total + int64(pageSize) - 1) / int64(pageSize),
+		},
 	})
 }
 

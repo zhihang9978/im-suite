@@ -143,22 +143,18 @@
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
+import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
+import request from '@/api/request'
 
 const stats = ref({
-  totalUsers: 1256,
-  totalChats: 3421,
-  totalMessages: 15678,
-  onlineUsers: 89
+  totalUsers: 0,
+  totalChats: 0,
+  totalMessages: 0,
+  onlineUsers: 0
 })
 
-const recentUsers = ref([
-  { username: 'user001', phone: '138****8001', created_at: '2024-01-15 10:30', status: 'online' },
-  { username: 'user002', phone: '138****8002', created_at: '2024-01-15 09:15', status: 'offline' },
-  { username: 'user003', phone: '138****8003', created_at: '2024-01-15 08:45', status: 'online' },
-  { username: 'user004', phone: '138****8004', created_at: '2024-01-15 07:20', status: 'offline' },
-  { username: 'user005', phone: '138****8005', created_at: '2024-01-15 06:10', status: 'online' }
-])
+const recentUsers = ref([])
 
 const systemStatus = ref({
   database: true,
@@ -209,7 +205,35 @@ const initCharts = () => {
   messageChart.setOption(messageOption)
 }
 
+// 加载仪表盘数据
+const loadDashboardData = async () => {
+  try {
+    // 加载系统统计
+    const statsResponse = await request.get('/super-admin/stats')
+    stats.value = {
+      totalUsers: statsResponse.data.total_users || 0,
+      totalChats: statsResponse.data.total_chats || 0,
+      totalMessages: statsResponse.data.total_messages || 0,
+      onlineUsers: statsResponse.data.online_users || 0
+    }
+    
+    // 加载最近用户（取前5个）
+    const usersResponse = await request.get('/super-admin/users', {
+      params: { page: 1, page_size: 5 }
+    })
+    recentUsers.value = (usersResponse.data || []).map(user => ({
+      username: user.username,
+      phone: user.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'), // 手机号脱敏
+      created_at: user.created_at,
+      status: user.online ? 'online' : 'offline'
+    }))
+  } catch (error) {
+    ElMessage.error('加载数据失败: ' + (error.response?.data?.error || error.message))
+  }
+}
+
 onMounted(() => {
+  loadDashboardData()
   nextTick(() => {
     initCharts()
   })
