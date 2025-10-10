@@ -81,8 +81,8 @@ type Claims struct {
 func (s *AuthService) Login(req LoginRequest) (*LoginResponse, error) {
 	var user model.User
 
-	// 查找用户
-	if err := s.db.Where("username = ? OR email = ?", req.Username, req.Username).First(&user).Error; err != nil {
+	// 查找用户（支持用户名或手机号登录）
+	if err := s.db.Where("username = ? OR phone = ?", req.Username, req.Username).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("用户不存在")
 		}
