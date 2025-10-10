@@ -8,8 +8,6 @@
 
 **不要阅读**: 本 README、docs/、deploy/alternatives/、docs/archive/
 
-**🚫 Agents MUST NOT enter `telegram-web/` or `telegram-android/`** - 客户端不属于生产部署
-
 ---
 
 ## 项目概述
