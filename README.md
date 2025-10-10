@@ -1,5 +1,15 @@
 # 志航密信 - 基于 Telegram 的私有通讯系统
 
+---
+
+## 🎯 AI代理快速入口
+
+**如果你是 Devin 或其他AI代理**: 只读 [`DEVIN_START_HERE.md`](DEVIN_START_HERE.md)
+
+**不要阅读**: 本 README、docs/、deploy/alternatives/、docs/archive/
+
+---
+
 ## 项目概述
 
 志航密信是一个基于 Telegram 前端改造的私有通讯系统，旨在构建一个完全独立可控的即时通讯解决方案。本项目采用自建后端架构，确保数据安全和系统可控性。
