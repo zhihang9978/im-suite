@@ -11,11 +11,12 @@ export const useUserStore = defineStore('user', () => {
   const initUser = async () => {
     if (token.value) {
       try {
-        const userInfo = await getCurrentUser()
-        user.value = userInfo
+        const response = await getCurrentUser()
+        // 后端返回的数据结构可能是 { user: {...} } 或直接是用户对象
+        user.value = response.user || response
       } catch (error) {
         console.error('获取用户信息失败:', error)
-        logout()
+        logoutUser()
       }
     }
   }
@@ -23,9 +24,15 @@ export const useUserStore = defineStore('user', () => {
   const loginUser = async (credentials) => {
     try {
       const response = await login(credentials)
-      token.value = response.token
+      // 后端返回的是 access_token 和 refresh_token，不是 token
+      const accessToken = response.access_token || response.token
+      token.value = accessToken
       user.value = response.user
-      localStorage.setItem('admin_token', response.token)
+      localStorage.setItem('admin_token', accessToken)
+      // 也保存 refresh_token
+      if (response.refresh_token) {
+        localStorage.setItem('refresh_token', response.refresh_token)
+      }
       return response
     } catch (error) {
       throw error
