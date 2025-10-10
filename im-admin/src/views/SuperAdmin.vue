@@ -388,6 +388,7 @@ import {
   SwitchButton,
   CircleClose,
 } from '@element-plus/icons-vue';
+import request from '@/api/request';
 
 const activeTab = ref('online');
 const loading = ref(false);
@@ -442,8 +443,7 @@ const refreshAll = async () => {
 
 const loadSystemStats = async () => {
   try {
-    const response = await fetch('/api/super-admin/stats');
-    const data = await response.json();
+    const data = await request.get('/super-admin/stats');
     stats.value = data.data;
   } catch (err) {
     console.error('加载系统统计失败:', err);
@@ -452,8 +452,7 @@ const loadSystemStats = async () => {
 
 const loadOnlineUsers = async () => {
   try {
-    const response = await fetch('/api/super-admin/online-users');
-    const data = await response.json();
+    const data = await request.get('/super-admin/online-users');
     onlineUsers.value = data.data.users;
   } catch (err) {
     console.error('加载在线用户失败:', err);
@@ -462,8 +461,7 @@ const loadOnlineUsers = async () => {
 
 const loadModerationQueue = async () => {
   try {
-    const response = await fetch('/api/super-admin/moderation/queue?status=pending');
-    const data = await response.json();
+    const data = await request.get('/super-admin/moderation/queue?status=pending');
     moderationQueue.value = data.data.records;
   } catch (err) {
     console.error('加载审核队列失败:', err);
@@ -472,8 +470,7 @@ const loadModerationQueue = async () => {
 
 const loadSystemLogs = async () => {
   try {
-    const response = await fetch('/api/super-admin/system/logs?type=all');
-    const data = await response.json();
+    const data = await request.get('/super-admin/system/logs?type=all');
     systemLogs.value = data.data.logs;
   } catch (err) {
     console.error('加载系统日志失败:', err);
@@ -482,8 +479,7 @@ const loadSystemLogs = async () => {
 
 const viewUserAnalysis = async (userId: number) => {
   try {
-    const response = await fetch(`/api/super-admin/users/${userId}/analysis`);
-    const data = await response.json();
+    const data = await request.get(`/super-admin/users/${userId}/analysis`);
     userAnalysis.value = data.data;
     activeTab.value = 'analysis';
   } catch (err) {
@@ -499,10 +495,8 @@ const forceLogout = async (user: any) => {
       type: 'warning',
     });
 
-    await fetch(`/api/super-admin/users/${user.user_id}/force-logout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reason: '管理员操作' }),
+    await request.post(`/super-admin/users/${user.user_id}/force-logout`, {
+      reason: '管理员操作'
     });
 
     ElMessage.success('用户已强制下线');
@@ -521,11 +515,7 @@ const openBanDialog = (user: any) => {
 
 const confirmBan = async () => {
   try {
-    await fetch(`/api/super-admin/users/${selectedUser.value.user_id}/ban`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(banForm.value),
-    });
+    await request.post(`/super-admin/users/${selectedUser.value.user_id}/ban`, banForm.value);
 
     ElMessage.success('用户已封禁');
     banDialogVisible.value = false;
@@ -542,14 +532,10 @@ const confirmBroadcast = async () => {
       ? broadcastForm.value.target_ids_str.split(',').map(id => parseInt(id.trim()))
       : [];
 
-    await fetch('/api/super-admin/system/broadcast', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: broadcastForm.value.message,
-        target_type: broadcastForm.value.target_type,
-        target_ids: targetIds,
-      }),
+    await request.post('/super-admin/system/broadcast', {
+      message: broadcastForm.value.message,
+      target_type: broadcastForm.value.target_type,
+      target_ids: targetIds,
     });
 
     ElMessage.success('系统消息已广播');
@@ -569,13 +555,9 @@ const moderateContent = async (contentId: number, action: string) => {
       inputErrorMessage: '原因不能为空',
     });
 
-    await fetch(`/api/super-admin/moderation/${contentId}/moderate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action,
-        reason: reason.value,
-      }),
+    await request.post(`/super-admin/moderation/${contentId}/moderate`, {
+      action,
+      reason: reason.value,
     });
 
     ElMessage.success('审核完成');
