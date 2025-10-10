@@ -17,7 +17,7 @@ type File struct {
 	FileSize    int64  `json:"file_size" gorm:"not null"`                                // 文件大小
 	FileType    string `json:"file_type" gorm:"type:varchar(50);not null"`               // 文件类型
 	MimeType    string `json:"mime_type" gorm:"type:varchar(100);not null"`              // MIME类型
-	FileHash    string `json:"file_hash" gorm:"type:varchar(64);uniqueIndex;not null"`   // 文件哈希值 (SHA256)
+	FileHash    string `json:"file_hash" gorm:"type:varchar(64);index:idx_files_hash,unique;not null"`   // 文件哈希值 (SHA256)
 	
 	// 存储信息
 	StoragePath string `json:"storage_path" gorm:"type:varchar(500);not null"` // 存储路径
