@@ -138,3 +138,8 @@ monitoring.log
 performance.log
 error.log
 access.log
+
+# AI agents must not enter these directories
+clients/**
+deploy/alternatives/**
+docs/archive/**

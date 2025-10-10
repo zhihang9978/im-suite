@@ -262,3 +262,7 @@ docs/.doctrees/
 # package-lock.json
 # yarn.lock
 # go.sum
+# Ignore heavy clients and alternatives
+clients/
+deploy/alternatives/
+docs/archive/
