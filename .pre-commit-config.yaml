@@ -1,0 +1,47 @@
+# Pre-commit hooks - S+开发体验
+
+repos:
+  # Go代码检查
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1
+    hooks:
+      - id: go-fmt
+        name: Go代码格式化
+      - id: go-vet
+        name: Go静态分析
+      - id: go-lint
+        name: Go代码规范检查
+      - id: go-unit-tests
+        name: Go单元测试
+        args: ['-short']
+  
+  # 通用检查
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        name: 删除行尾空格
+      - id: end-of-file-fixer
+        name: 文件结尾换行
+      - id: check-yaml
+        name: YAML语法检查
+      - id: check-added-large-files
+        name: 检查大文件
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+        name: 检查合并冲突
+      - id: mixed-line-ending
+        name: 统一行尾符号
+  
+  # Commit message检查
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.0.0
+    hooks:
+      - id: conventional-pre-commit
+        name: Commit message规范检查
+        stages: [commit-msg]
+
+# 配置
+default_stages: [commit]
+fail_fast: false
+

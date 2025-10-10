@@ -1,0 +1,90 @@
+# Docker Compose 开发环境配置 - S+开发体验
+
+version: '3.8'
+
+services:
+  # MySQL 开发数据库
+  mysql-dev:
+    image: mysql:8.0
+    container_name: im-mysql-dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: dev_root_pass
+      MYSQL_DATABASE: zhihang_messenger_dev
+      MYSQL_USER: dev_user
+      MYSQL_PASSWORD: dev_pass
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3307:3306"  # 使用不同端口避免与生产冲突
+    networks:
+      - dev-network
+
+  # Redis 开发缓存
+  redis-dev:
+    image: redis:7-alpine
+    container_name: im-redis-dev
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6380:6379"  # 使用不同端口
+    networks:
+      - dev-network
+
+  # MinIO 开发存储
+  minio-dev:
+    image: minio/minio:latest
+    container_name: im-minio-dev
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: dev_minio
+      MINIO_ROOT_PASSWORD: dev_minio_pass
+    command: server /data --console-address ":9001"
+    ports:
+      - "9100:9000"  # 使用不同端口
+      - "9101:9001"
+    networks:
+      - dev-network
+
+  # MailHog (邮件测试)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: im-mailhog-dev
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - dev-network
+
+  # Adminer (数据库管理)
+  adminer:
+    image: adminer:latest
+    container_name: im-adminer-dev
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    networks:
+      - dev-network
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql-dev
+
+volumes:
+  mysql_dev_data:
+    driver: local
+
+networks:
+  dev-network:
+    driver: bridge
+
+# 使用说明:
+# 1. 启动开发环境: docker-compose -f docker-compose.dev.yml up -d
+# 2. 访问服务:
+#    - MySQL: localhost:3307 (dev_user/dev_pass)
+#    - Redis: localhost:6380
+#    - MinIO: http://localhost:9101 (dev_minio/dev_minio_pass)
+#    - Adminer: http://localhost:8081
+#    - MailHog: http://localhost:8025
+# 3. 停止: docker-compose -f docker-compose.dev.yml down
+# 4. 清理数据: docker-compose -f docker-compose.dev.yml down -v
+
