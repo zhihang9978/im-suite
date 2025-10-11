@@ -27,6 +27,7 @@ func (c *MessageController) SendMessage(ctx *gin.Context) {
 	var req service.SendMessageRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
 			"error":   "请求参数错误",
 			"details": err.Error(),
 		})
@@ -36,6 +37,7 @@ func (c *MessageController) SendMessage(ctx *gin.Context) {
 	message, err := c.messageService.SendMessage(userID.(uint), req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
 			"error":   "发送消息失败",
 			"details": err.Error(),
 		})
@@ -74,6 +76,7 @@ func (c *MessageController) GetMessages(ctx *gin.Context) {
 	messages, total, err := c.messageService.GetMessages(userID.(uint), chatID, receiverID, limit, offset)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
 			"error":   "获取消息失败",
 			"details": err.Error(),
 		})
@@ -94,13 +97,17 @@ func (c *MessageController) GetMessage(ctx *gin.Context) {
 	userID, _ := ctx.Get("user_id")
 	messageID, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的消息ID"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "无效的消息ID",
+		})
 		return
 	}
 
 	message, err := c.messageService.GetMessage(uint(messageID), userID.(uint))
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{
+			"success": false,
 			"error":   "获取消息失败",
 			"details": err.Error(),
 		})
@@ -118,12 +125,16 @@ func (c *MessageController) DeleteMessage(ctx *gin.Context) {
 	userID, _ := ctx.Get("user_id")
 	messageID, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的消息ID"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "无效的消息ID",
+		})
 		return
 	}
 
 	if err := c.messageService.DeleteMessage(uint(messageID), userID.(uint)); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
 			"error":   "删除消息失败",
 			"details": err.Error(),
 		})
@@ -141,12 +152,16 @@ func (c *MessageController) MarkAsRead(ctx *gin.Context) {
 	userID, _ := ctx.Get("user_id")
 	messageID, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的消息ID"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "无效的消息ID",
+		})
 		return
 	}
 
 	if err := c.messageService.MarkAsRead(uint(messageID), userID.(uint)); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
 			"error":   "标记已读失败",
 			"details": err.Error(),
 		})
@@ -164,7 +179,10 @@ func (c *MessageController) RecallMessage(ctx *gin.Context) {
 	userID, _ := ctx.Get("user_id")
 	messageID, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的消息ID"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "无效的消息ID",
+		})
 		return
 	}
 
@@ -175,6 +193,7 @@ func (c *MessageController) RecallMessage(ctx *gin.Context) {
 
 	if err := c.messageService.RecallMessage(uint(messageID), userID.(uint), req.Reason); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
 			"error":   "撤回消息失败",
 			"details": err.Error(),
 		})
@@ -192,7 +211,10 @@ func (c *MessageController) EditMessage(ctx *gin.Context) {
 	userID, _ := ctx.Get("user_id")
 	messageID, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的消息ID"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "无效的消息ID",
+		})
 		return
 	}
 
@@ -202,6 +224,7 @@ func (c *MessageController) EditMessage(ctx *gin.Context) {
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
 			"error":   "请求参数错误",
 			"details": err.Error(),
 		})
@@ -211,6 +234,7 @@ func (c *MessageController) EditMessage(ctx *gin.Context) {
 	message, err := c.messageService.EditMessage(uint(messageID), userID.(uint), req.Content)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
 			"error":   "编辑消息失败",
 			"details": err.Error(),
 		})
@@ -229,7 +253,10 @@ func (c *MessageController) SearchMessages(ctx *gin.Context) {
 
 	keyword := ctx.Query("keyword")
 	if keyword == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "搜索关键词不能为空"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "搜索关键词不能为空",
+		})
 		return
 	}
 

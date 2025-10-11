@@ -177,6 +177,7 @@ func main() {
 			messages := protected.Group("/messages")
 			{
 				messages.POST("/", messageController.SendMessage)
+				messages.POST("/send", messageController.SendMessage) // E2E测试期望的路径
 				messages.GET("/", messageController.GetMessages)
 				messages.GET("/:id", messageController.GetMessage)
 				messages.DELETE("/:id", messageController.DeleteMessage)
