@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -51,7 +52,7 @@ func (s *TokenRefreshService) GenerateRefreshToken(userID uint, phone string) (s
 	// 将Refresh Token存储到Redis（支持撤销）
 	if config.Redis != nil {
 		key := "refresh_token:" + phone
-		err = config.Redis.Set(config.Redis.Context(), key, tokenString, 7*24*time.Hour).Err()
+		err = config.Redis.Set(context.Background(), key, tokenString, 7*24*time.Hour).Err()
 		if err != nil {
 			return "", err
 		}
@@ -79,7 +80,7 @@ func (s *TokenRefreshService) ValidateRefreshToken(tokenString string) (*Refresh
 	// 检查Redis中是否存在（未被撤销）
 	if config.Redis != nil {
 		key := "refresh_token:" + claims.Phone
-		storedToken, err := config.Redis.Get(config.Redis.Context(), key).Result()
+		storedToken, err := config.Redis.Get(context.Background(), key).Result()
 		if err != nil || storedToken != tokenString {
 			return nil, errors.New("refresh token has been revoked")
 		}
@@ -92,7 +93,7 @@ func (s *TokenRefreshService) ValidateRefreshToken(tokenString string) (*Refresh
 func (s *TokenRefreshService) RevokeRefreshToken(phone string) error {
 	if config.Redis != nil {
 		key := "refresh_token:" + phone
-		return config.Redis.Del(config.Redis.Context(), key).Err()
+		return config.Redis.Del(context.Background(), key).Err()
 	}
 	return nil
 }

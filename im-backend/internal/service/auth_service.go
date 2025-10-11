@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
+	"os"
 	"time"
+
 	"zhihang-messenger/im-backend/config"
 	"zhihang-messenger/im-backend/internal/model"
 
