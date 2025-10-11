@@ -35,15 +35,15 @@ func GetMigrationOrder() []MigrationInfo {
 		{Model: &model.UserThemeSetting{}, Name: "user_theme_settings", Deps: []string{"users", "themes"}},
 		{Model: &model.ThemeTemplate{}, Name: "theme_templates", Deps: []string{"themes"}},
 
-		// =======================================
-		// 第三层：消息回复链（被 Message 引用）
-		// =======================================
-		{Model: &model.MessageReply{}, Name: "message_replies", Deps: []string{}},
+	// =======================================
+	// 第三层：消息主表（有自引用，可以创建）
+	// =======================================
+	{Model: &model.Message{}, Name: "messages", Deps: []string{"users", "chats"}},
 
-		// =======================================
-		// 第四层：消息主表（引用 MessageReply）
-		// =======================================
-		{Model: &model.Message{}, Name: "messages", Deps: []string{"users", "chats", "message_replies"}},
+	// =======================================
+	// 第四层：消息回复链（依赖 Message）
+	// =======================================
+	{Model: &model.MessageReply{}, Name: "message_replies", Deps: []string{"messages"}},
 
 		// =======================================
 		// 第五层：消息相关表（依赖 Message）
