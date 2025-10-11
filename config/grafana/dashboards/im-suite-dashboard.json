@@ -1,0 +1,177 @@
+{
+  "dashboard": {
+    "title": "志航密信 - 系统监控面板",
+    "tags": ["im-suite", "production"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "在线用户数",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "im_active_users_total",
+            "legendFormat": "在线用户"
+          }
+        ],
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8}
+      },
+      {
+        "id": 2,
+        "title": "API请求速率 (QPS)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{method}} {{path}}"
+          }
+        ],
+        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8}
+      },
+      {
+        "id": 3,
+        "title": "API响应时间 (P95)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P99"
+          }
+        ],
+        "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8}
+      },
+      {
+        "id": 4,
+        "title": "错误率",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{status=~\"5..\"}[5m])",
+            "legendFormat": "5xx错误"
+          },
+          {
+            "expr": "rate(http_requests_total{status=~\"4..\"}[5m])",
+            "legendFormat": "4xx错误"
+          }
+        ],
+        "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8}
+      },
+      {
+        "id": 5,
+        "title": "数据库连接池",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "mysql_connections_active",
+            "legendFormat": "活跃连接"
+          },
+          {
+            "expr": "mysql_connections_idle",
+            "legendFormat": "空闲连接"
+          },
+          {
+            "expr": "mysql_connections_max",
+            "legendFormat": "最大连接"
+          }
+        ],
+        "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8}
+      },
+      {
+        "id": 6,
+        "title": "Redis内存使用",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "redis_memory_used_bytes / redis_memory_max_bytes * 100",
+            "legendFormat": "内存使用率%"
+          }
+        ],
+        "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8}
+      },
+      {
+        "id": 7,
+        "title": "消息发送速率",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(messages_sent_total[5m])",
+            "legendFormat": "消息/秒"
+          }
+        ],
+        "gridPos": {"x": 0, "y": 24, "w": 12, "h": 8}
+      },
+      {
+        "id": 8,
+        "title": "WebRTC连接数",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "webrtc_connections_active",
+            "legendFormat": "活跃连接"
+          }
+        ],
+        "gridPos": {"x": 12, "y": 24, "w": 12, "h": 8}
+      },
+      {
+        "id": 9,
+        "title": "系统资源 - CPU",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+            "legendFormat": "CPU使用率%"
+          }
+        ],
+        "gridPos": {"x": 0, "y": 32, "w": 8, "h": 8}
+      },
+      {
+        "id": 10,
+        "title": "系统资源 - 内存",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100",
+            "legendFormat": "内存使用率%"
+          }
+        ],
+        "gridPos": {"x": 8, "y": 32, "w": 8, "h": 8}
+      },
+      {
+        "id": 11,
+        "title": "系统资源 - 磁盘",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "(node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100",
+            "legendFormat": "磁盘使用率%"
+          }
+        ],
+        "gridPos": {"x": 16, "y": 32, "w": 8, "h": 8}
+      },
+      {
+        "id": 12,
+        "title": "网络流量",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(node_network_receive_bytes_total[5m])",
+            "legendFormat": "入站 (MB/s)"
+          },
+          {
+            "expr": "rate(node_network_transmit_bytes_total[5m])",
+            "legendFormat": "出站 (MB/s)"
+          }
+        ],
+        "gridPos": {"x": 0, "y": 40, "w": 24, "h": 8}
+      }
+    ],
+    "refresh": "30s",
+    "schemaVersion": 27,
+    "version": 1
+  }
+}
+

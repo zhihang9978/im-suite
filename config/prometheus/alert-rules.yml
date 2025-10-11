@@ -1,0 +1,178 @@
+groups:
+  - name: im-suite-alerts
+    interval: 30s
+    rules:
+      # ========================================
+      # 系统资源告警
+      # ========================================
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU使用率过高"
+          description: "实例 {{ $labels.instance }} CPU使用率 {{ $value }}%"
+          
+      - alert: CriticalCPUUsage
+        expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CPU使用率严重过高"
+          description: "实例 {{ $labels.instance }} CPU使用率 {{ $value }}%"
+          
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "内存使用率过高"
+          description: "实例 {{ $labels.instance }} 内存使用率 {{ $value }}%"
+          
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "磁盘使用率过高"
+          description: "实例 {{ $labels.instance }} 磁盘使用率 {{ $value }}%"
+          
+      # ========================================
+      # 网络告警
+      # ========================================
+      - alert: HighBandwidthUsage
+        expr: rate(node_network_transmit_bytes_total[5m]) > 650000000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "网络带宽使用率过高"
+          description: "实例 {{ $labels.instance }} 出站带宽 {{ $value | humanize }}Bps (>650Mbps)"
+          
+      # ========================================
+      # 应用告警
+      # ========================================
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.01
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API错误率过高"
+          description: "错误率 {{ $value | humanizePercentage }}"
+          
+      - alert: SlowAPIResponse
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API响应时间过长"
+          description: "P95响应时间 {{ $value }}s (>200ms)"
+          
+      - alert: HighAPILoad
+        expr: rate(http_requests_total[5m]) > 1000
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "API请求量过高"
+          description: "QPS {{ $value }}/s"
+          
+      # ========================================
+      # 数据库告警
+      # ========================================
+      - alert: MySQLConnectionPoolExhausted
+        expr: mysql_connections_active / mysql_connections_max > 0.9
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MySQL连接池即将耗尽"
+          description: "连接池使用率 {{ $value | humanizePercentage }}"
+          
+      - alert: MySQLSlowQueries
+        expr: rate(mysql_slow_queries_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MySQL慢查询过多"
+          description: "慢查询速率 {{ $value }}/s"
+          
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis内存使用率过高"
+          description: "内存使用率 {{ $value | humanizePercentage }}"
+          
+      # ========================================
+      # WebRTC告警
+      # ========================================
+      - alert: TURNRelayFailureRate
+        expr: rate(turn_relay_failures_total[5m]) / rate(turn_relay_attempts_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "TURN中继失败率过高"
+          description: "失败率 {{ $value | humanizePercentage }}"
+          
+      - alert: HighWebRTCLoad
+        expr: webrtc_connections_active > 20
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "WebRTC连接数较高"
+          description: "当前连接数 {{ $value }}"
+          
+      # ========================================
+      # 服务健康告警
+      # ========================================
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "服务停止运行"
+          description: "实例 {{ $labels.instance }} 无法访问"
+          
+      - alert: HealthCheckFailed
+        expr: probe_success == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "健康检查失败"
+          description: "实例 {{ $labels.instance }} 健康检查失败"
+          
+      # ========================================
+      # 业务指标告警
+      # ========================================
+      - alert: LowActiveUsers
+        expr: im_active_users_total < 10
+        for: 30m
+        labels:
+          severity: info
+        annotations:
+          summary: "活跃用户数过低"
+          description: "当前活跃用户 {{ $value }}"
+          
+      - alert: MessageDeliveryDelayed
+        expr: message_delivery_delay_seconds > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "消息投递延迟"
+          description: "平均延迟 {{ $value }}s"
+
