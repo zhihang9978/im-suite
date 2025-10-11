@@ -4,8 +4,8 @@
       <!-- 侧边栏 -->
       <el-aside :width="isCollapse ? '64px' : '200px'" class="sidebar">
         <div class="logo">
-          <img src="/logo.svg" alt="志航密信" v-if="!isCollapse" />
-          <span v-if="!isCollapse">志航密信</span>
+          <span class="logo-icon">💬</span>
+          <span v-if="!isCollapse" class="logo-text">志航密信</span>
         </div>
         
         <el-menu
