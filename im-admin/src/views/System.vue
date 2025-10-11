@@ -523,7 +523,7 @@ const loadBots = async () => {
   botsLoading.value = true
   try {
     const response = await request.get('/super-admin/bots')
-    bots.value = response.data.data || []
+    bots.value = response.data || []
   } catch (error) {
     console.error('加载机器人列表失败:', error)
   } finally {
