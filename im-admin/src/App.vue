@@ -1,12 +1,15 @@
 <template>
-  <div id="app">
-    <router-view />
-  </div>
+  <ErrorBoundary>
+    <div id="app">
+      <router-view />
+    </div>
+  </ErrorBoundary>
 </template>
 
 <script setup>
 import { onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
+import ErrorBoundary from '@/components/ErrorBoundary.vue'
 
 const userStore = useUserStore()
 
