@@ -24,6 +24,15 @@ func main() {
 		logrus.Warn("未找到.env文件，使用系统环境变量")
 	}
 
+	// 验证必需的环境变量（生产环境）
+	ginMode := os.Getenv("GIN_MODE")
+	if ginMode == "release" {
+		if err := utils.ValidateProduction(); err != nil {
+			logrus.Fatal("生产环境配置验证失败:", err)
+		}
+		logrus.Info("✅ 生产环境配置验证通过")
+	}
+
 	// 初始化日志
 	logrus.SetFormatter(&logrus.JSONFormatter{})
 	logrus.SetLevel(logrus.InfoLevel)
