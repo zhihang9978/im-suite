@@ -535,21 +535,11 @@ const loadBots = async () => {
 const loadBotUsers = async () => {
   botUsersLoading.value = true
   try {
-    botUsers.value = []
-    for (const bot of bots.value) {
-      try {
-        const response = await request.get(`/super-admin/bot-users/${bot.id}`)
-        if (response.data.success && response.data.data) {
-          botUsers.value.push(response.data.data)
-        }
-      } catch (error) {
-        if (error.response?.status !== 404) {
-          console.error(`加载机器人${bot.id}的用户失败:`, error)
-        }
-      }
-    }
+    const response = await request.get('/super-admin/bot-users')
+    botUsers.value = response.data || []
   } catch (error) {
     console.error('加载机器人用户列表失败:', error)
+    botUsers.value = []
   } finally {
     botUsersLoading.value = false
   }

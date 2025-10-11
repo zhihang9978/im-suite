@@ -234,6 +234,15 @@ func (s *BotUserManagementService) GetBotPermissions(ctx context.Context, botID 
 	return permissions, err
 }
 
+func (s *BotUserManagementService) GetAllBotUsers(ctx context.Context) ([]model.BotUser, error) {
+	var botUsers []model.BotUser
+	if err := s.db.WithContext(ctx).Find(&botUsers).Error; err != nil {
+		return nil, err
+	}
+	return botUsers, nil
+}
+
+
 // DeleteBotUser 删除机器人用户
 func (s *BotUserManagementService) DeleteBotUser(ctx context.Context, adminID uint, botID uint) error {
 	// 验证管理员权限

@@ -94,6 +94,20 @@ func (c *BotUserController) RevokePermission(ctx *gin.Context) {
 	})
 }
 
+func (c *BotUserController) GetAllBotUsers(ctx *gin.Context) {
+	botUsers, err := c.botUserService.GetAllBotUsers(ctx.Request.Context())
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    botUsers,
+		"total":   len(botUsers),
+	})
+}
+
 // GetBotUser 获取机器人用户信息
 func (c *BotUserController) GetBotUser(ctx *gin.Context) {
 	botID, err := strconv.ParseUint(ctx.Param("bot_id"), 10, 32)
