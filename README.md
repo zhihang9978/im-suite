@@ -1,4 +1,28 @@
-# 志航密信 - 基于 Telegram 的私有通讯系统
+# 志航密信 - 企业级即时通讯系统
+
+[![完整验证](https://github.com/zhihang9978/im-suite/actions/workflows/full-verification.yml/badge.svg)](https://github.com/zhihang9978/im-suite/actions/workflows/full-verification.yml)
+[![CI状态](https://github.com/zhihang9978/im-suite/actions/workflows/ci.yml/badge.svg)](https://github.com/zhihang9978/im-suite/actions/workflows/ci.yml)
+[![PR检查](https://github.com/zhihang9978/im-suite/actions/workflows/pr-check.yml/badge.svg)](https://github.com/zhihang9978/im-suite/actions/workflows/pr-check.yml)
+[![代码覆盖率](https://codecov.io/gh/zhihang9978/im-suite/branch/main/graph/badge.svg)](https://codecov.io/gh/zhihang9978/im-suite)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Go Version](https://img.shields.io/badge/go-1.21+-blue.svg)](https://golang.org)
+[![Vue Version](https://img.shields.io/badge/vue-3.3+-green.svg)](https://vuejs.org)
+
+## 🚀 一键部署
+
+```bash
+# 快速部署（推荐）
+curl -fsSL https://raw.githubusercontent.com/zhihang9978/im-suite/main/ops/deploy.sh | bash
+
+# 或手动部署
+git clone https://github.com/zhihang9978/im-suite.git
+cd im-suite
+sudo bash ops/bootstrap.sh  # 系统初始化
+cp .env.example .env && vim .env  # 配置环境变量
+bash ops/deploy.sh  # 零停机部署
+```
+
+**部署时间**: 5-15分钟 | **回滚时间**: <2分钟 | **健康检查**: 自动化
 
 ---
 
