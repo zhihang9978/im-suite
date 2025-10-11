@@ -62,7 +62,7 @@ type UserThemeSetting struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// 用户设置
-	UserID         uint   `gorm:"not null;uniqueIndex" json:"user_id"`        // 用户ID
+	UserID         uint   `gorm:"not null;index:idx_user_theme_settings_user,unique" json:"user_id"`        // 用户ID
 	ThemeID        uint   `gorm:"not null" json:"theme_id"`                   // 主题ID
 	AutoDarkMode   bool   `gorm:"default:false" json:"auto_dark_mode"`        // 自动夜间模式
 	DarkModeStart  string `gorm:"type:varchar(5);default:'22:00'" json:"dark_mode_start"` // 夜间模式开始时间

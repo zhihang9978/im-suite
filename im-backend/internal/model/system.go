@@ -48,7 +48,7 @@ type SystemConfig struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 	
-	Key         string `json:"key" gorm:"uniqueIndex;type:varchar(100);not null"` // 配置键
+	Key         string `json:"key" gorm:"index:idx_system_config_key,unique;type:varchar(100);not null"` // 配置键
 	Value       string `json:"value" gorm:"type:text"`                            // 配置值
 	Category    string `json:"category" gorm:"type:varchar(50)"`                  // 配置分类
 	Description string `json:"description" gorm:"type:text"`                      // 配置描述
@@ -63,7 +63,7 @@ type IPBlacklist struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 	
-	IPAddress   string     `json:"ip_address" gorm:"uniqueIndex;type:varchar(45);not null"` // IP地址
+	IPAddress   string     `json:"ip_address" gorm:"index:idx_ip_blacklist_ip,unique;type:varchar(45);not null"` // IP地址
 	Reason      string     `json:"reason" gorm:"type:text"`                                 // 封禁原因
 	AddedBy     uint       `json:"added_by"`                                                // 添加管理员ID
 	ExpiresAt   *time.Time `json:"expires_at,omitempty"`                                    // 过期时间

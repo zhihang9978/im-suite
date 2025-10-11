@@ -14,13 +14,13 @@ type Bot struct {
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 
 	// 基本信息
-	Name        string `json:"name" gorm:"type:varchar(100);not null;uniqueIndex"` // 机器人名称
-	Description string `json:"description" gorm:"type:varchar(500)"`               // 描述
-	Type        string `json:"type" gorm:"type:varchar(50);not null"`              // 类型: internal, webhook, plugin
+	Name        string `json:"name" gorm:"type:varchar(100);not null;index:idx_bots_name,unique"` // 机器人名称
+	Description string `json:"description" gorm:"type:varchar(500)"`                              // 描述
+	Type        string `json:"type" gorm:"type:varchar(50);not null"`                             // 类型: internal, webhook, plugin
 
 	// 认证信息
-	APIKey    string `json:"api_key" gorm:"type:varchar(255);uniqueIndex;not null"` // API密钥
-	APISecret string `json:"-" gorm:"type:varchar(255);not null"`                   // API密钥（加密存储）
+	APIKey    string `json:"api_key" gorm:"type:varchar(255);index:idx_bots_apikey,unique;not null"` // API密钥
+	APISecret string `json:"-" gorm:"type:varchar(255);not null"`                                    // API密钥（加密存储）
 
 	// 权限配置
 	Permissions string `json:"permissions" gorm:"type:text"` // 权限列表（JSON数组）
@@ -114,9 +114,9 @@ type BotUser struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 
-	BotID    uint `json:"bot_id" gorm:"not null;index"`        // 关联的机器人ID
-	UserID   uint `json:"user_id" gorm:"uniqueIndex;not null"` // 系统用户ID（机器人在系统中的账号）
-	IsActive bool `json:"is_active" gorm:"default:true"`       // 是否激活
+	BotID    uint `json:"bot_id" gorm:"not null;index"`                            // 关联的机器人ID
+	UserID   uint `json:"user_id" gorm:"index:idx_bot_users_user,unique;not null"` // 系统用户ID（机器人在系统中的账号）
+	IsActive bool `json:"is_active" gorm:"default:true"`                           // 是否激活
 
 	// 关联关系
 	Bot  Bot  `json:"bot" gorm:"foreignKey:BotID"`

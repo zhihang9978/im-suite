@@ -15,7 +15,7 @@ type GroupInvite struct {
 
 	// 邀请信息
 	ChatID      uint   `gorm:"not null;index" json:"chat_id"`            // 群组ID
-	InviteCode  string `gorm:"type:varchar(50);uniqueIndex" json:"invite_code"` // 邀请码
+	InviteCode  string `gorm:"type:varchar(50);index:idx_group_invite_code,unique" json:"invite_code"` // 邀请码
 	InviteLink  string `gorm:"type:varchar(500)" json:"invite_link"`     // 邀请链接
 	CreatorID   uint   `gorm:"not null;index" json:"creator_id"`         // 创建者ID
 	

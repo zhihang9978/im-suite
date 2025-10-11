@@ -75,7 +75,7 @@ type ScreenShareStatistics struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
-	UserID             uint       `json:"user_id" gorm:"uniqueIndex;not null"` // 用户ID
+	UserID             uint       `json:"user_id" gorm:"index:idx_screen_share_stats_user,unique;not null"` // 用户ID
 	TotalSessions      int64      `json:"total_sessions"`                      // 总共享次数
 	TotalDuration      int64      `json:"total_duration"`                      // 总共享时长（秒）
 	AverageDuration    float64    `json:"average_duration"`                    // 平均时长（秒）

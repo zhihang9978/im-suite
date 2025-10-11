@@ -35,15 +35,15 @@ func GetMigrationOrder() []MigrationInfo {
 		{Model: &model.UserThemeSetting{}, Name: "user_theme_settings", Deps: []string{"users", "themes"}},
 		{Model: &model.ThemeTemplate{}, Name: "theme_templates", Deps: []string{"themes"}},
 
-		// =======================================
-		// 第三层：消息回复链（被 Message 引用）
-		// =======================================
-		{Model: &model.MessageReply{}, Name: "message_replies", Deps: []string{}},
+	// =======================================
+	// 第三层：消息主表（有自引用，可以创建）
+	// =======================================
+	{Model: &model.Message{}, Name: "messages", Deps: []string{"users", "chats"}},
 
-		// =======================================
-		// 第四层：消息主表（引用 MessageReply）
-		// =======================================
-		{Model: &model.Message{}, Name: "messages", Deps: []string{"users", "chats", "message_replies"}},
+	// =======================================
+	// 第四层：消息回复链（依赖 Message）
+	// =======================================
+	{Model: &model.MessageReply{}, Name: "message_replies", Deps: []string{"messages"}},
 
 		// =======================================
 		// 第五层：消息相关表（依赖 Message）
@@ -176,22 +176,26 @@ func MigrateTables(db *gorm.DB) error {
 	for i, m := range migrations {
 		log.Printf("⏳ [%d/%d] 迁移表: %s", i+1, len(migrations), m.Name)
 
-		// 检查表是否已存在
-		tableExists := db.Migrator().HasTable(m.Model)
-		if tableExists {
-			log.Printf("   ℹ️  表 %s 已存在，检查结构更新...", m.Name)
-		} else {
-			log.Printf("   ✨ 创建新表: %s", m.Name)
-		}
+	// 检查表是否已存在
+	tableExists := db.Migrator().HasTable(m.Model)
+	if tableExists {
+		log.Printf("   ℹ️  表 %s 已存在，跳过创建（避免AutoMigrate bug）", m.Name)
+		log.Printf("   ✅ 迁移成功: %s（表已存在）", m.Name)
+		successCount++
+		continue
+	}
 
-		// 执行迁移 - Fail Fast
-		if err := db.AutoMigrate(m.Model); err != nil {
-			log.Printf("   ❌ 迁移失败: %v", err)
-			log.Println("========================================")
-			log.Println("🚨 数据库迁移失败！服务将不会启动。")
-			log.Println("========================================")
-			return fmt.Errorf("迁移表 %s 失败: %v (Fail Fast - 服务停止启动)", m.Name, err)
-		}
+	log.Printf("   ✨ 创建新表: %s", m.Name)
+
+	// 使用CreateTable而不是AutoMigrate - 避免GORM的AutoMigrate bug
+	// AutoMigrate会错误识别UNIQUE INDEX为FOREIGN KEY
+	if err := db.Migrator().CreateTable(m.Model); err != nil {
+		log.Printf("   ❌ 迁移失败: %v", err)
+		log.Println("========================================")
+		log.Println("🚨 数据库迁移失败！服务将不会启动。")
+		log.Println("========================================")
+		return fmt.Errorf("迁移表 %s 失败: %v (Fail Fast - 服务停止启动)", m.Name, err)
+	}
 
 		// 验证表确实创建成功
 		if !db.Migrator().HasTable(m.Model) {

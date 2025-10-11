@@ -3,134 +3,134 @@
     <el-tabs v-model="activeTab" type="card">
       <!-- 系统信息标签 -->
       <el-tab-pane label="系统信息" name="system">
-        <el-row :gutter="20">
-          <!-- 系统信息 -->
-          <el-col :span="12">
-            <el-card>
-              <template #header>
-                <span>系统信息</span>
-              </template>
-              <div class="system-info">
-                <div class="info-item">
-                  <span class="label">系统版本:</span>
+    <el-row :gutter="20">
+      <!-- 系统信息 -->
+      <el-col :span="12">
+        <el-card>
+          <template #header>
+            <span>系统信息</span>
+          </template>
+          <div class="system-info">
+            <div class="info-item">
+              <span class="label">系统版本:</span>
                   <span class="value">志航密信 v1.6.0</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">运行时间:</span>
-                  <span class="value">{{ systemInfo.uptime }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">CPU 使用率:</span>
-                  <span class="value">{{ systemInfo.cpu }}%</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">内存使用率:</span>
-                  <span class="value">{{ systemInfo.memory }}%</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">磁盘使用率:</span>
-                  <span class="value">{{ systemInfo.disk }}%</span>
-                </div>
-              </div>
-            </el-card>
-          </el-col>
-          
-          <!-- 服务状态 -->
-          <el-col :span="12">
-            <el-card>
-              <template #header>
-                <span>服务状态</span>
-              </template>
-              <div class="service-status">
-                <div class="status-item">
-                  <span class="label">数据库:</span>
-                  <el-tag :type="serviceStatus.database ? 'success' : 'danger'">
-                    {{ serviceStatus.database ? '正常' : '异常' }}
-                  </el-tag>
-                </div>
-                <div class="status-item">
-                  <span class="label">Redis:</span>
-                  <el-tag :type="serviceStatus.redis ? 'success' : 'danger'">
-                    {{ serviceStatus.redis ? '正常' : '异常' }}
-                  </el-tag>
-                </div>
-                <div class="status-item">
-                  <span class="label">MinIO:</span>
-                  <el-tag :type="serviceStatus.minio ? 'success' : 'danger'">
-                    {{ serviceStatus.minio ? '正常' : '异常' }}
-                  </el-tag>
-                </div>
-                <div class="status-item">
-                  <span class="label">后端服务:</span>
-                  <el-tag :type="serviceStatus.backend ? 'success' : 'danger'">
-                    {{ serviceStatus.backend ? '正常' : '异常' }}
-                  </el-tag>
-                </div>
-                <div class="status-item">
-                  <span class="label">Web 服务:</span>
-                  <el-tag :type="serviceStatus.web ? 'success' : 'danger'">
-                    {{ serviceStatus.web ? '正常' : '异常' }}
-                  </el-tag>
-                </div>
-              </div>
-            </el-card>
-          </el-col>
-        </el-row>
-        
-        <el-row :gutter="20" style="margin-top: 20px;">
-          <!-- 系统配置 -->
-          <el-col :span="12">
-            <el-card>
-              <template #header>
-                <span>系统配置</span>
-              </template>
-              <el-form :model="configForm" label-width="120px">
-                <el-form-item label="系统名称">
-                  <el-input v-model="configForm.systemName" />
-                </el-form-item>
-                <el-form-item label="系统描述">
-                  <el-input v-model="configForm.systemDesc" type="textarea" />
-                </el-form-item>
-                <el-form-item label="最大用户数">
-                  <el-input-number v-model="configForm.maxUsers" :min="1" :max="100000" />
-                </el-form-item>
-                <el-form-item label="消息保留天数">
-                  <el-input-number v-model="configForm.messageRetentionDays" :min="1" :max="365" />
-                </el-form-item>
-                <el-form-item label="文件大小限制(MB)">
-                  <el-input-number v-model="configForm.maxFileSize" :min="1" :max="1000" />
-                </el-form-item>
-                <el-form-item>
-                  <el-button type="primary" @click="handleSaveConfig">保存配置</el-button>
-                  <el-button @click="handleResetConfig">重置</el-button>
-                </el-form-item>
-              </el-form>
-            </el-card>
-          </el-col>
-          
-          <!-- 系统操作 -->
-          <el-col :span="12">
-            <el-card>
-              <template #header>
-                <span>系统操作</span>
-              </template>
-              <div class="system-actions">
-                <el-button type="primary" @click="handleRestartServices">
-                  重启服务
-                </el-button>
-                <el-button type="warning" @click="handleClearCache">
-                  清理缓存
-                </el-button>
-                <el-button type="info" @click="handleBackupData">
-                  备份数据
-                </el-button>
-                <el-button type="danger" @click="handleShutdown">
-                  关闭系统
-                </el-button>
-              </div>
-            </el-card>
-          </el-col>
-        </el-row>
+            </div>
+            <div class="info-item">
+              <span class="label">运行时间:</span>
+              <span class="value">{{ systemInfo.uptime }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">CPU 使用率:</span>
+              <span class="value">{{ systemInfo.cpu }}%</span>
+            </div>
+            <div class="info-item">
+              <span class="label">内存使用率:</span>
+              <span class="value">{{ systemInfo.memory }}%</span>
+            </div>
+            <div class="info-item">
+              <span class="label">磁盘使用率:</span>
+              <span class="value">{{ systemInfo.disk }}%</span>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      
+      <!-- 服务状态 -->
+      <el-col :span="12">
+        <el-card>
+          <template #header>
+            <span>服务状态</span>
+          </template>
+          <div class="service-status">
+            <div class="status-item">
+              <span class="label">数据库:</span>
+              <el-tag :type="serviceStatus.database ? 'success' : 'danger'">
+                {{ serviceStatus.database ? '正常' : '异常' }}
+              </el-tag>
+            </div>
+            <div class="status-item">
+              <span class="label">Redis:</span>
+              <el-tag :type="serviceStatus.redis ? 'success' : 'danger'">
+                {{ serviceStatus.redis ? '正常' : '异常' }}
+              </el-tag>
+            </div>
+            <div class="status-item">
+              <span class="label">MinIO:</span>
+              <el-tag :type="serviceStatus.minio ? 'success' : 'danger'">
+                {{ serviceStatus.minio ? '正常' : '异常' }}
+              </el-tag>
+            </div>
+            <div class="status-item">
+              <span class="label">后端服务:</span>
+              <el-tag :type="serviceStatus.backend ? 'success' : 'danger'">
+                {{ serviceStatus.backend ? '正常' : '异常' }}
+              </el-tag>
+            </div>
+            <div class="status-item">
+              <span class="label">Web 服务:</span>
+              <el-tag :type="serviceStatus.web ? 'success' : 'danger'">
+                {{ serviceStatus.web ? '正常' : '异常' }}
+              </el-tag>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+    
+    <el-row :gutter="20" style="margin-top: 20px;">
+      <!-- 系统配置 -->
+      <el-col :span="12">
+        <el-card>
+          <template #header>
+            <span>系统配置</span>
+          </template>
+          <el-form :model="configForm" label-width="120px">
+            <el-form-item label="系统名称">
+              <el-input v-model="configForm.systemName" />
+            </el-form-item>
+            <el-form-item label="系统描述">
+              <el-input v-model="configForm.systemDesc" type="textarea" />
+            </el-form-item>
+            <el-form-item label="最大用户数">
+              <el-input-number v-model="configForm.maxUsers" :min="1" :max="100000" />
+            </el-form-item>
+            <el-form-item label="消息保留天数">
+              <el-input-number v-model="configForm.messageRetentionDays" :min="1" :max="365" />
+            </el-form-item>
+            <el-form-item label="文件大小限制(MB)">
+              <el-input-number v-model="configForm.maxFileSize" :min="1" :max="1000" />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handleSaveConfig">保存配置</el-button>
+              <el-button @click="handleResetConfig">重置</el-button>
+            </el-form-item>
+          </el-form>
+        </el-card>
+      </el-col>
+      
+      <!-- 系统操作 -->
+      <el-col :span="12">
+        <el-card>
+          <template #header>
+            <span>系统操作</span>
+          </template>
+          <div class="system-actions">
+            <el-button type="primary" @click="handleRestartServices">
+              重启服务
+            </el-button>
+            <el-button type="warning" @click="handleClearCache">
+              清理缓存
+            </el-button>
+            <el-button type="info" @click="handleBackupData">
+              备份数据
+            </el-button>
+            <el-button type="danger" @click="handleShutdown">
+              关闭系统
+            </el-button>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
       </el-tab-pane>
 
       <!-- 机器人管理标签 -->
