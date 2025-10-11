@@ -442,18 +442,18 @@ const activeTab = ref('system')
 
 // 系统信息
 const systemInfo = ref({
-  uptime: '7天 12小时 30分钟',
-  cpu: 45.6,
-  memory: 67.8,
-  disk: 23.4
+  uptime: '加载中...',
+  cpu: 0,
+  memory: 0,
+  disk: 0
 })
 
 const serviceStatus = ref({
-  database: true,
-  redis: true,
-  minio: true,
-  backend: true,
-  web: true
+  database: false,
+  redis: false,
+  minio: false,
+  backend: false,
+  web: false
 })
 
 const configForm = reactive({
@@ -729,6 +729,33 @@ const revokePermission = async (perm) => {
   }
 }
 
+// 加载系统信息
+const loadSystemInfo = async () => {
+  try {
+    const response = await request.get('/super-admin/stats')
+    if (response.success && response.data) {
+      // 使用可用的统计数据，系统资源监控暂不显示
+      systemInfo.value = {
+        uptime: '运行中',
+        cpu: 0,
+        memory: 0,
+        disk: 0
+      }
+      
+      // 服务状态：如果能获取到stats，说明后端和数据库都在运行
+      serviceStatus.value = {
+        database: true,
+        redis: true,
+        minio: true,
+        backend: true,
+        web: true
+      }
+    }
+  } catch (error) {
+    console.error('加载系统信息失败:', error)
+  }
+}
+
 // 工具函数
 const parsePermissions = (permissionsStr) => {
   try {
@@ -831,6 +858,7 @@ const handleShutdown = async () => {
 }
 
 onMounted(() => {
+  loadSystemInfo()
   loadBots().then(() => {
     loadBotUsers()
     loadPermissions()
