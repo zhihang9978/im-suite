@@ -79,9 +79,11 @@
         
         <!-- 输入区域 -->
         <div class="input-area">
-          <el-button circle @click="handleFile">
-            <el-icon><Paperclip /></el-icon>
-          </el-button>
+          <FileUpload
+            v-if="currentChat"
+            :receiver-id="currentChat.id"
+            @uploaded="handleFileUploaded"
+          />
           
           <el-input
             v-model="messageInput"
@@ -109,11 +111,16 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useChatStore } from '@/stores/chat'
+import { useMessageStore } from '@/stores/message'
+import { ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
+import MessageBubble from '@/components/MessageBubble.vue'
+import FileUpload from '@/components/FileUpload.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 const chatStore = useChatStore()
+const messageStore = useMessageStore()
 
 const searchKeyword = ref('')
 const currentChat = ref(null)
@@ -157,10 +164,10 @@ const sendMessage = async () => {
   }
 }
 
-// 处理文件上传
-const handleFile = () => {
-  // TODO: 实现文件上传
-  console.log('文件上传')
+// 处理文件上传完成
+const handleFileUploaded = (message) => {
+  messages.value.push(message)
+  nextTick(() => scrollToBottom())
 }
 
 // 登出

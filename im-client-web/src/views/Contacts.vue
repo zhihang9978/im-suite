@@ -60,6 +60,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useChatStore } from '@/stores/chat'
 import { ElMessage } from 'element-plus'
+import { searchUserByPhone } from '@/api/search'
 
 const router = useRouter()
 const chatStore = useChatStore()
@@ -84,10 +85,33 @@ const startChat = (contact) => {
   router.push('/')
 }
 
-const handleAddContact = () => {
-  // TODO: 实现添加好友逻辑
-  ElMessage.info('添加好友功能开发中')
-  addContactDialogVisible.value = false
+const handleAddContact = async () => {
+  if (!addContactForm.value.phone) {
+    ElMessage.warning('请输入手机号')
+    return
+  }
+
+  try {
+    // 搜索用户
+    const result = await searchUserByPhone(addContactForm.value.phone)
+    
+    if (result.success && result.data) {
+      // 添加到联系人（暂时添加到本地，实际应该调用后端API）
+      const newContact = result.data
+      if (!contacts.value.find(c => c.id === newContact.id)) {
+        contacts.value.push(newContact)
+        ElMessage.success('添加好友成功')
+      } else {
+        ElMessage.info('该用户已在联系人列表中')
+      }
+      addContactDialogVisible.value = false
+      addContactForm.value.phone = ''
+    } else {
+      ElMessage.warning(result.message || '未找到该用户')
+    }
+  } catch (error) {
+    ElMessage.error('添加好友失败: ' + error.message)
+  }
 }
 </script>
 
