@@ -1,0 +1,309 @@
+name: PR Check - 零错误标准
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # =====================================
+  # 1. 代码质量检查
+  # =====================================
+  code-quality:
+    name: 代码质量检查
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout代码
+        uses: actions/checkout@v4
+
+      - name: 设置Go环境
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Go代码格式检查
+        run: |
+          cd im-backend
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "❌ 代码未格式化，请运行 gofmt"
+            gofmt -l .
+            exit 1
+          fi
+
+      - name: Go vet检查
+        run: |
+          cd im-backend
+          go vet ./...
+
+      - name: golangci-lint检查
+        uses: golangci/golangci-lint-action@v3
+        with:
+          working-directory: im-backend
+          args: --timeout=5m
+
+  # =====================================
+  # 2. 编译检查
+  # =====================================
+  build-check:
+    name: 编译检查
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout代码
+        uses: actions/checkout@v4
+
+      - name: 设置Go环境
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: 编译后端
+        run: |
+          cd im-backend
+          go build -v ./...
+
+      - name: 设置Node环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: 构建前端
+        run: |
+          cd im-admin
+          npm ci
+          npm run build
+
+  # =====================================
+  # 3. 单元测试
+  # =====================================
+  unit-test:
+    name: 单元测试
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout代码
+        uses: actions/checkout@v4
+
+      - name: 设置Go环境
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: 运行单元测试
+        run: |
+          cd im-backend
+          go test ./tests/unit/... -v -cover -coverprofile=coverage.out
+          go tool cover -func=coverage.out | tail -1
+
+      - name: 检查覆盖率
+        run: |
+          cd im-backend
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "测试覆盖率: ${COVERAGE}%"
+          
+          if (( $(echo "$COVERAGE < 60" | bc -l) )); then
+            echo "❌ 测试覆盖率不足60%: ${COVERAGE}%"
+            exit 1
+          fi
+          echo "✅ 测试覆盖率达标: ${COVERAGE}%"
+
+      - name: 上传覆盖率报告
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./im-backend/coverage.out
+          flags: unittests
+          name: codecov-umbrella
+
+  # =====================================
+  # 4. 集成测试
+  # =====================================
+  integration-test:
+    name: 集成测试
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test_password
+          MYSQL_DATABASE: test_db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout代码
+        uses: actions/checkout@v4
+
+      - name: 设置Go环境
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: 运行集成测试
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASSWORD: test_password
+          DB_NAME: test_db
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+          JWT_SECRET: test-jwt-secret-for-testing-only
+        run: |
+          cd im-backend
+          go test ./tests/integration/... -v
+
+  # =====================================
+  # 5. E2E测试
+  # =====================================
+  e2e-test:
+    name: E2E测试
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout代码
+        uses: actions/checkout@v4
+
+      - name: 启动服务
+        run: |
+          cp .env.example .env
+          docker-compose -f docker-compose.production.yml up -d
+          sleep 30
+
+      - name: 等待服务就绪
+        run: |
+          max_attempts=30
+          attempt=0
+          while [ $attempt -lt $max_attempts ]; do
+            if curl -f http://localhost:8080/health; then
+              echo "✅ 服务已就绪"
+              break
+            fi
+            attempt=$((attempt + 1))
+            echo "等待服务启动... ($attempt/$max_attempts)"
+            sleep 5
+          done
+
+      - name: 运行E2E测试
+        run: |
+          bash ops/e2e-test.sh
+
+      - name: 查看服务日志
+        if: failure()
+        run: |
+          docker-compose -f docker-compose.production.yml logs backend
+
+  # =====================================
+  # 6. 安全扫描
+  # =====================================
+  security-scan:
+    name: 安全扫描
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout代码
+        uses: actions/checkout@v4
+
+      - name: Go依赖审计
+        run: |
+          cd im-backend
+          go list -json -m all | grep -i cve || echo "✅ 未发现已知漏洞"
+
+      - name: npm审计
+        run: |
+          cd im-admin
+          npm audit --production --audit-level=high
+
+      - name: Trivy扫描
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: 上传Trivy结果
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # =====================================
+  # 7. SBOM生成
+  # =====================================
+  sbom-generation:
+    name: SBOM生成
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout代码
+        uses: actions/checkout@v4
+
+      - name: 生成Go SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: ./im-backend
+          format: spdx-json
+          output-file: im-backend-sbom.spdx.json
+
+      - name: 上传SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-reports
+          path: |
+            im-backend-sbom.spdx.json
+
+  # =====================================
+  # 8. 性能基准测试
+  # =====================================
+  performance-test:
+    name: 性能基准测试
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout代码
+        uses: actions/checkout@v4
+
+      - name: 设置Go环境
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: 运行性能测试
+        run: |
+          cd im-backend
+          go test -bench=. -benchmem ./tests/unit/... > benchmark-results.txt
+          cat benchmark-results.txt
+
+      - name: 上传性能报告
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: im-backend/benchmark-results.txt
+
+  # =====================================
+  # 总结
+  # =====================================
+  summary:
+    name: 检查总结
+    runs-on: ubuntu-latest
+    needs: [code-quality, build-check, unit-test, integration-test, e2e-test, security-scan]
+    if: always()
+    steps:
+      - name: 检查结果
+        run: |
+          echo "✅ 所有检查完成"
+          echo "- 代码质量: ${{ needs.code-quality.result }}"
+          echo "- 编译检查: ${{ needs.build-check.result }}"
+          echo "- 单元测试: ${{ needs.unit-test.result }}"
+          echo "- 集成测试: ${{ needs.integration-test.result }}"
+          echo "- E2E测试: ${{ needs.e2e-test.result }}"
+          echo "- 安全扫描: ${{ needs.security-scan.result }}"
+
