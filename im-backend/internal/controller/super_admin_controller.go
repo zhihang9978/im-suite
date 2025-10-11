@@ -41,6 +41,9 @@ func (c *SuperAdminController) SetupRoutes(router *gin.RouterGroup) {
 	router.DELETE("/users/:id", c.DeleteUser)
 	router.GET("/users/:id/analysis", c.GetUserAnalysis)
 
+	router.GET("/chats", c.GetChatList)
+	router.GET("/messages", c.GetMessageList)
+
 	// 系统管理
 	router.GET("/alerts", c.GetAlerts)
 	router.GET("/logs", c.GetAdminLogs)
@@ -297,5 +300,74 @@ func (c *SuperAdminController) BroadcastMessage(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "广播消息已发送",
+	})
+}
+
+func (c *SuperAdminController) GetChatList(ctx *gin.Context) {
+	pageStr := ctx.DefaultQuery("page", "1")
+	pageSizeStr := ctx.DefaultQuery("page_size", "20")
+	chatType := ctx.Query("type")
+	
+	page, _ := strconv.Atoi(pageStr)
+	if page < 1 {
+		page = 1
+	}
+	
+	pageSize, _ := strconv.Atoi(pageSizeStr)
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	
+	chats, total, err := c.service.GetChatList(page, pageSize, chatType)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    chats,
+		"total":   total,
+		"pagination": gin.H{
+			"page":      page,
+			"page_size": pageSize,
+			"total":     total,
+			"pages":     (total + int64(pageSize) - 1) / int64(pageSize),
+		},
+	})
+}
+
+func (c *SuperAdminController) GetMessageList(ctx *gin.Context) {
+	pageStr := ctx.DefaultQuery("page", "1")
+	pageSizeStr := ctx.DefaultQuery("page_size", "20")
+	msgType := ctx.Query("type")
+	sender := ctx.Query("sender")
+	
+	page, _ := strconv.Atoi(pageStr)
+	if page < 1 {
+		page = 1
+	}
+	
+	pageSize, _ := strconv.Atoi(pageSizeStr)
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	
+	messages, total, err := c.service.GetMessageList(page, pageSize, msgType, sender)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    messages,
+		"total":   total,
+		"pagination": gin.H{
+			"page":      page,
+			"page_size": pageSize,
+			"total":     total,
+			"pages":     (total + int64(pageSize) - 1) / int64(pageSize),
+		},
 	})
 }

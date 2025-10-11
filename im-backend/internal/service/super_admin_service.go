@@ -153,6 +153,68 @@ func (s *SuperAdminService) GetUserList(page, pageSize int, username, phone, sta
 	return users, total, nil
 }
 
+func (s *SuperAdminService) GetChatList(page, pageSize int, chatType string) ([]model.Chat, int64, error) {
+	var chats []model.Chat
+	var total int64
+	
+	query := s.db.Model(&model.Chat{})
+	
+	if chatType != "" {
+		query = query.Where("type = ?", chatType)
+	}
+	
+	// 统计总数
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("统计聊天数失败: %w", err)
+	}
+	
+	// 分页查询
+	offset := (page - 1) * pageSize
+	if err := query.
+		Order("created_at DESC").
+		Limit(pageSize).
+		Offset(offset).
+		Find(&chats).Error; err != nil {
+		return nil, 0, fmt.Errorf("查询聊天列表失败: %w", err)
+	}
+	
+	return chats, total, nil
+}
+
+func (s *SuperAdminService) GetMessageList(page, pageSize int, msgType, sender string) ([]model.Message, int64, error) {
+	var messages []model.Message
+	var total int64
+	
+	query := s.db.Model(&model.Message{})
+	
+	// 搜索条件
+	if msgType != "" {
+		query = query.Where("type = ?", msgType)
+	}
+	if sender != "" {
+		query = query.Joins("JOIN users ON users.id = messages.sender_id").
+			Where("users.username LIKE ?", "%"+sender+"%")
+	}
+	
+	// 统计总数
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("统计消息数失败: %w", err)
+	}
+	
+	// 分页查询
+	offset := (page - 1) * pageSize
+	if err := query.
+		Preload("Sender").
+		Order("created_at DESC").
+		Limit(pageSize).
+		Offset(offset).
+		Find(&messages).Error; err != nil {
+		return nil, 0, fmt.Errorf("查询消息列表失败: %w", err)
+	}
+	
+	return messages, total, nil
+}
+
 // GetOnlineUsers 获取在线用户列表
 func (s *SuperAdminService) GetOnlineUsers() ([]OnlineUser, error) {
 	var users []model.User
