@@ -346,3 +346,60 @@ func (c *MessageController) GetUnreadCount(ctx *gin.Context) {
 		"count":   count,
 	})
 }
+
+// SetTyping 设置正在输入状态（Telegram核心功能）
+// 对应 Telegram MTProto: messages.setTyping
+func (c *MessageController) SetTyping(ctx *gin.Context) {
+	userID, exists := ctx.Get("user_id")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "未授权",
+		})
+		return
+	}
+
+	var req struct {
+		ChatID     *uint  `json:"chat_id"`     // 群聊ID（可选）
+		ReceiverID *uint  `json:"receiver_id"` // 私聊对方ID（可选）
+		Action     string `json:"action"`      // typing/uploading_photo/recording_voice等
+	}
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "请求参数错误",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// 默认action
+	if req.Action == "" {
+		req.Action = "typing"
+	}
+
+	// 必须指定chat_id或receiver_id之一
+	if req.ChatID == nil && req.ReceiverID == nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "必须指定chat_id或receiver_id",
+		})
+		return
+	}
+
+	// 通过WebSocket广播typing事件
+	err := c.messageService.BroadcastTypingStatus(userID.(uint), req.ChatID, req.ReceiverID, req.Action)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "广播失败",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+	})
+}

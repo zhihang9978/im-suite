@@ -237,3 +237,4 @@ int32_t ApiAdapter::sendRestRequest(TLObject *object, ...) {
 
 **状态**: 🟢 **正在快速推进中**！
 
+

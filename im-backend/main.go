@@ -117,11 +117,13 @@ func main() {
 	chatStatisticsService := service.NewChatStatisticsService(config.DB)
 	chatBackupService := service.NewChatBackupService(config.DB)
 	_ = service.NewFileEncryptionService()
+	dialogService := service.NewDialogService()
 
 	// ============================================
 	// 初始化所有控制器
 	// ============================================
 	authController := controller.NewAuthController(authService)
+	dialogController := controller.NewDialogController(dialogService)
 	messageController := controller.NewMessageController(messageService)
 	userController := controller.NewUserController()
 	userSearchController := controller.NewUserSearchController()
@@ -165,6 +167,10 @@ func main() {
 			auth.POST("/refresh", authController.RefreshToken)
 			auth.GET("/validate", authController.ValidateToken)
 
+			// Telegram验证码登录（P0核心功能）
+			auth.POST("/send-code", authController.SendCode)           // 发送验证码
+			auth.POST("/verify-code", authController.VerifyCode)       // 验证码登录
+
 			// 2FA登录验证
 			auth.POST("/login/2fa", authController.LoginWith2FA)
 			auth.POST("/2fa/validate", twoFactorController.ValidateCode)
@@ -198,6 +204,15 @@ func main() {
 				messages.POST("/search", messageController.SearchMessages)
 				messages.POST("/forward", messageController.ForwardMessage)
 				messages.GET("/unread/count", messageController.GetUnreadCount)
+				
+				// Typing状态API（Telegram用户体验核心）
+				messages.POST("/typing", messageController.SetTyping)
+				
+				// 会话列表API（Telegram首屏核心）
+				messages.GET("/dialogs", dialogController.GetDialogs)
+				messages.GET("/dialogs/:peer_id", dialogController.GetDialogByPeer)
+				messages.POST("/dialogs/:peer_id/pin", dialogController.PinDialog)
+				messages.POST("/dialogs/:peer_id/mute", dialogController.MuteDialog)
 			}
 
 			// ------------------------------------

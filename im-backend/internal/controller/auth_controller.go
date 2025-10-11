@@ -269,3 +269,78 @@ func (c *AuthController) LoginWith2FA(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, response)
 }
+
+// SendCode 发送验证码（Telegram登录第一步）
+// 对应 Telegram MTProto: auth.sendCode
+func (c *AuthController) SendCode(ctx *gin.Context) {
+	var req struct {
+		Phone string `json:"phone" binding:"required"`
+	}
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "请求参数错误",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// 调用服务层发送验证码
+	response, err := c.authService.SendVerificationCode(req.Phone)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "发送验证码失败",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    response,
+	})
+}
+
+// VerifyCode 验证码登录（Telegram登录第二步）
+// 对应 Telegram MTProto: auth.signIn
+func (c *AuthController) VerifyCode(ctx *gin.Context) {
+	var req struct {
+		Phone         string `json:"phone" binding:"required"`
+		PhoneCodeHash string `json:"phone_code_hash" binding:"required"`
+		Code          string `json:"code" binding:"required"`
+	}
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "请求参数错误",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// 调用服务层验证登录
+	response, err := c.authService.VerifyCodeAndLogin(req.Phone, req.PhoneCodeHash, req.Code)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "验证码错误或已过期",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// 统一响应格式（与Register/Login一致）
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"token":         response.AccessToken,
+			"access_token":  response.AccessToken,
+			"refresh_token": response.RefreshToken,
+			"expires_in":    response.ExpiresIn,
+			"user":          response.User,
+		},
+	})
+}

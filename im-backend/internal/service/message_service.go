@@ -410,3 +410,35 @@ func (s *MessageService) GetUnreadCount(userID uint, chatID *uint) (int64, error
 
 	return count, nil
 }
+
+// BroadcastTypingStatus 广播正在输入状态（通过WebSocket）
+func (s *MessageService) BroadcastTypingStatus(userID uint, chatID *uint, receiverID *uint, action string) error {
+	// 构造typing事件消息
+	typingEvent := map[string]interface{}{
+		"type": "user_typing",
+		"data": map[string]interface{}{
+			"user_id": userID,
+			"action":  action, // typing/uploading_photo/recording_voice/record_audio等
+		},
+	}
+
+	// 添加聊天信息
+	if chatID != nil {
+		typingEvent["data"].(map[string]interface{})["chat_id"] = *chatID
+	}
+	if receiverID != nil {
+		typingEvent["data"].(map[string]interface{})["receiver_id"] = *receiverID
+	}
+
+	// TODO: 通过WebSocket广播给相关用户
+	// 这里需要与WebSocket服务集成，暂时打印日志
+	fmt.Printf("⌨️  Typing事件: user_id=%d, chat_id=%v, receiver_id=%v, action=%s\n", 
+		userID, chatID, receiverID, action)
+
+	// 实际生产环境需要调用WebSocket管理器的广播方法
+	// websocketManager.BroadcastToChat(chatID, typingEvent)
+	// 或
+	// websocketManager.SendToUser(receiverID, typingEvent)
+
+	return nil
+}
