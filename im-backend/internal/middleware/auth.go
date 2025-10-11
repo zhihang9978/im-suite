@@ -2,21 +2,23 @@ package middleware
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"zhihang-messenger/im-backend/internal/service"
 )
 
-// 全局AuthService实例（避免每次请求都创建新实例）
+// 全局AuthService实例（懒加载，避免DB未初始化）
 var authService *service.AuthService
-
-func init() {
-	authService = service.NewAuthService()
-}
+var authServiceOnce sync.Once
 
 // AuthMiddleware JWT认证中间件
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// 懒加载：首次使用时创建（此时DB已初始化）
+		authServiceOnce.Do(func() {
+			authService = service.NewAuthService()
+		})
 		// 获取Authorization头
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
