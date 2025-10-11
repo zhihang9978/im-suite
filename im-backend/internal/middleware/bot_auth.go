@@ -82,13 +82,20 @@ func BotAuthMiddleware() gin.HandlerFunc {
 		duration := time.Since(startTime).Milliseconds()
 		statusCode := c.Writer.Status()
 
-		// 异步记录日志
+		// 异步记录日志（带超时控制）
+		botID := bot.ID
+		apiPath := c.Request.URL.Path
+		method := c.Request.Method
+		
 		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
+			
 			botService.RecordBotAPICall(
-				c.Request.Context(),
-				bot.ID,
-				c.Request.URL.Path,
-				c.Request.Method,
+				ctx,
+				botID,
+				apiPath,
+				method,
 				statusCode,
 				duration,
 				"", // 请求体（可选）

@@ -6,7 +6,10 @@
 .env
 .env.*
 !.env.example
+!ENV_EXAMPLE.md
 config.env
+secrets.yaml
+secrets.yml
 
 # ====================
 # 依赖目录

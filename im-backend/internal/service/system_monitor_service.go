@@ -19,15 +19,18 @@ import (
 
 // SystemMonitorService 系统监控服务
 type SystemMonitorService struct {
-	db  *gorm.DB
-	ctx context.Context
+	db     *gorm.DB
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // NewSystemMonitorService 创建系统监控服务
 func NewSystemMonitorService() *SystemMonitorService {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &SystemMonitorService{
-		db:  config.DB,
-		ctx: context.Background(),
+		db:     config.DB,
+		ctx:    ctx,
+		cancel: cancel,
 	}
 }
 
@@ -46,6 +49,14 @@ func (s *SystemMonitorService) StartMonitoring() {
 			logrus.Info("系统监控服务已停止")
 			return
 		}
+	}
+}
+
+// Stop 停止监控服务
+func (s *SystemMonitorService) Stop() {
+	logrus.Info("正在停止系统监控服务...")
+	if s.cancel != nil {
+		s.cancel()
 	}
 }
 

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -52,8 +53,18 @@ func CacheMiddleware(ttl time.Duration) gin.HandlerFunc {
 		// 只缓存成功的响应
 		if c.Writer.Status() == 200 {
 			// 异步写入缓存（不阻塞响应）
+			cacheCtx := c.Request.Context()
+			cacheData := make([]byte, len(blw.body))
+			copy(cacheData, blw.body)
+			
 			go func() {
-				config.Redis.Set(c.Request.Context(), cacheKey, blw.body, ttl)
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				
+				if err := config.Redis.Set(ctx, cacheKey, cacheData, ttl).Err(); err != nil {
+					// 缓存写入失败不影响主流程，只记录日志
+					// logrus.Debugf("缓存写入失败: %v", err)
+				}
 			}()
 		}
 	}
