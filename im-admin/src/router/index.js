@@ -72,16 +72,7 @@ router.beforeEach((to, from, next) => {
     // 未登录，跳转到登录页
     next('/login')
   } else if (to.path === '/login' && userStore.isLoggedIn) {
-    // 已登录，检查权限
-    const user = userStore.user
-    if (user && user.role === 'user') {
-      // 普通用户不允许访问管理后台
-      alert('管理后台需要管理员权限才能访问')
-      // 登出并返回登录页
-      userStore.logout()
-      next('/login')
-      return
-    }
+    // 已登录用户访问登录页，跳转到首页
     next('/')
   } else if (to.meta.requiresAuth) {
     // 检查管理员权限

@@ -40,7 +40,7 @@ func main() {
 
 	// 初始化Redis
 	if err := config.InitRedis(); err != nil {
-		logrus.Warn("Redis初始化失败（非致命错误）:", err)
+		logrus.Fatal("Redis初始化失败:", err)
 	}
 
 	// 启动系统监控服务
@@ -74,7 +74,7 @@ func main() {
 
 	// 中间件
 	r.Use(gin.Logger())
-	r.Use(gin.Recovery())
+	r.Use(middleware.Recovery()) // 使用自定义的Recovery中间件
 	r.Use(middleware.RateLimit())
 	r.Use(middleware.Security())
 

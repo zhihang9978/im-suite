@@ -32,7 +32,7 @@ func InitDatabase() error {
 	})
 
 	if err != nil {
-		return fmt.Errorf("连接数据库失败: %v", err)
+		return fmt.Errorf("连接数据库失败 (host=%s, port=%s, database=%s): %v", host, port, database, err)
 	}
 
 	// 配置连接池
