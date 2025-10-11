@@ -329,7 +329,11 @@ func (s *AuthService) generateTokens(user *model.User) (string, string, int64, e
 
 // validateToken 验证令牌
 func (s *AuthService) validateToken(tokenString string) (*Claims, error) {
-	secretKey := []byte("zhihang_messenger_secret_key_2024")
+	// 从环境变量获取JWT密钥
+	secretKey := []byte(os.Getenv("JWT_SECRET"))
+	if len(secretKey) == 0 {
+		return nil, fmt.Errorf("JWT_SECRET环境变量未设置")
+	}
 
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
