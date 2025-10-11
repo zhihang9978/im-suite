@@ -36,10 +36,10 @@ type LoginRequest struct {
 
 // RegisterRequest 注册请求
 type RegisterRequest struct {
-	Phone    string `json:"phone" binding:"required"`
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required,min=6"`
-	Nickname string `json:"nickname"`
+	Phone    string `json:"phone" binding:"required"`    // 手机号（必需）
+	Username string `json:"username"`                    // 用户名（可选，为空时自动生成）
+	Password string `json:"password" binding:"required,min=6"` // 密码（必需）
+	Nickname string `json:"nickname"`                    // 昵称（可选）
 }
 
 // RefreshRequest 刷新令牌请求
@@ -169,9 +169,21 @@ func (s *AuthService) Register(req RegisterRequest) (*RegisterResponse, error) {
 		return nil, errors.New("手机号已存在")
 	}
 
+	// 如果未提供username，自动生成（使用phone）
+	username := req.Username
+	if username == "" {
+		username = "user_" + req.Phone
+	}
+
 	// 检查用户名是否已存在
-	if err := s.db.Where("username = ?", req.Username).First(&existingUser).Error; err == nil {
+	if err := s.db.Where("username = ?", username).First(&existingUser).Error; err == nil {
 		return nil, errors.New("用户名已存在")
+	}
+
+	// 如果未提供nickname，使用username
+	nickname := req.Nickname
+	if nickname == "" {
+		nickname = username
 	}
 
 	// 加密密码
@@ -183,8 +195,8 @@ func (s *AuthService) Register(req RegisterRequest) (*RegisterResponse, error) {
 	// 创建用户
 	user := model.User{
 		Phone:    req.Phone,
-		Username: req.Username,
-		Nickname: req.Nickname,
+		Username: username,
+		Nickname: nickname,
 		Password: string(hashedPassword),
 		Salt:     fmt.Sprintf("%d", time.Now().Unix()),
 		IsActive: true,

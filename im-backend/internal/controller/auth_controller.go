@@ -31,10 +31,10 @@ type LoginRequest struct {
 
 // RegisterRequest 注册请求
 type RegisterRequest struct {
-	Phone    string `json:"phone" binding:"required"`
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
-	Nickname string `json:"nickname"`
+	Phone    string `json:"phone" binding:"required"`    // 手机号（必需）
+	Username string `json:"username"`                    // 用户名（可选，为空时自动生成）
+	Password string `json:"password" binding:"required"` // 密码（必需）
+	Nickname string `json:"nickname"`                    // 昵称（可选）
 }
 
 // Login 用户登录
