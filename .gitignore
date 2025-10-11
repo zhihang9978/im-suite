@@ -269,9 +269,3 @@ docs/.doctrees/
 clients/
 deploy/alternatives/
 docs/archive/
-
-# ⚠️ 警告：这两个目录会导致网络错误，绝对不要处理！
-# Client source code (kept locally, not tracked)
-# DO NOT READ, MODIFY, OR BUILD THESE DIRECTORIES - WILL CAUSE NETWORK ERRORS
-telegram-web/
-telegram-android/
