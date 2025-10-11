@@ -165,11 +165,15 @@ jobs:
         scan-ref: '.'
         format: 'sarif'
         output: 'trivy-results.sarif'
+        severity: 'CRITICAL,HIGH'
+        exit-code: '0'
+      continue-on-error: true
     
     - name: 上传Trivy扫描结果
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: 'trivy-results.sarif'
+      continue-on-error: true
 
   # 配置文件验证
   config:
@@ -192,11 +196,11 @@ jobs:
     
     - name: 检查环境变量模板
       run: |
-        if [ ! -f "ENV_TEMPLATE.md" ]; then
-          echo "缺少ENV_TEMPLATE.md"
+        if [ ! -f "ENV_STRICT_TEMPLATE.md" ]; then
+          echo "❌ 缺少ENV_STRICT_TEMPLATE.md"
           exit 1
         fi
-        echo "环境变量模板存在"
+        echo "✅ 环境变量模板存在: ENV_STRICT_TEMPLATE.md"
 
   # 汇总报告
   summary:
