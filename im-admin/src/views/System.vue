@@ -523,7 +523,7 @@ const loadBots = async () => {
   botsLoading.value = true
   try {
     const response = await request.get('/super-admin/bots')
-    bots.value = response.data.data || []
+    bots.value = response.data || []  // 修复：request拦截器已返回response.data
   } catch (error) {
     console.error('加载机器人列表失败:', error)
   } finally {
@@ -539,8 +539,8 @@ const loadBotUsers = async () => {
     for (const bot of bots.value) {
       try {
         const response = await request.get(`/super-admin/bot-users/${bot.id}`)
-        if (response.data.success && response.data.data) {
-          botUsers.value.push(response.data.data)
+        if (response.success && response.data) {  // 修复：正确访问数据
+          botUsers.value.push(response.data)
         }
       } catch (error) {
         if (error.response?.status !== 404) {
@@ -563,8 +563,8 @@ const loadPermissions = async () => {
     for (const bot of bots.value) {
       try {
         const response = await request.get(`/super-admin/bot-users/${bot.id}/permissions`)
-        if (response.data.success && response.data.data) {
-          permissions.value.push(...response.data.data)
+        if (response.success && response.data) {  // 修复：正确访问数据
+          permissions.value.push(...response.data)
         }
       } catch (error) {
         console.error(`加载机器人${bot.id}的权限失败:`, error)
