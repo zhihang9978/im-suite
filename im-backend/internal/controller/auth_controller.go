@@ -67,13 +67,24 @@ func (c *AuthController) Login(ctx *gin.Context) {
 	response, err := c.authService.Login(loginReq)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
 			"error":   "登录失败",
 			"details": err.Error(),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response)
+	// 统一响应格式（兼容E2E测试）
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"token":         response.AccessToken, // E2E测试期望的token字段
+			"access_token":  response.AccessToken,
+			"refresh_token": response.RefreshToken,
+			"expires_in":    response.ExpiresIn,
+			"user":          response.User,
+		},
+	})
 }
 
 // Register 用户注册
@@ -98,13 +109,24 @@ func (c *AuthController) Register(ctx *gin.Context) {
 	response, err := c.authService.Register(registerReq)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
 			"error":   "注册失败",
 			"details": err.Error(),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, response)
+	// 统一响应格式
+	ctx.JSON(http.StatusCreated, gin.H{
+		"success": true,
+		"data": gin.H{
+			"token":         response.AccessToken,
+			"access_token":  response.AccessToken,
+			"refresh_token": response.RefreshToken,
+			"expires_in":    response.ExpiresIn,
+			"user":          response.User,
+		},
+	})
 }
 
 // Logout 用户登出
@@ -125,6 +147,7 @@ func (c *AuthController) Logout(ctx *gin.Context) {
 	err := c.authService.Logout(token)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
 			"error":   "登出失败",
 			"details": err.Error(),
 		})
@@ -132,6 +155,7 @@ func (c *AuthController) Logout(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
 		"message": "登出成功",
 	})
 }

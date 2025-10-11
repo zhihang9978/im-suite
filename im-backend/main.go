@@ -126,6 +126,7 @@ func main() {
 		// ============================================
 		authController := controller.NewAuthController(authService)
 		messageController := controller.NewMessageController(messageService) // 消息控制器
+		userController := controller.NewUserController()                      // 用户基础控制器
 		userMgmtController := controller.NewUserManagementController(userManagementService)
 		messageEncryptionController := controller.NewMessageEncryptionController(messageEncryptionService)
 		messageEnhancementController := controller.NewMessageEnhancementController(messageEnhancementService)
@@ -188,10 +189,15 @@ func main() {
 			}
 
 			// ------------------------------------
-			// 用户管理
+			// 用户基础API
 			// ------------------------------------
 			users := protected.Group("/users")
 			{
+				// 基础用户API
+				users.GET("/me", userController.GetCurrentUser)       // 获取当前用户信息
+				users.GET("/friends", userController.GetFriends)      // 获取好友列表
+				
+				// 用户管理API
 				users.POST("/:id/blacklist", userMgmtController.AddToBlacklist)
 				users.DELETE("/:id/blacklist/:blacklist_id", userMgmtController.RemoveFromBlacklist)
 				users.GET("/:id/blacklist", userMgmtController.GetBlacklist)
