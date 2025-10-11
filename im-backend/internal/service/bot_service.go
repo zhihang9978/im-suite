@@ -141,7 +141,8 @@ func (s *BotService) ValidateBotAPIKey(ctx context.Context, apiKey, apiSecret st
 	}
 
 	// 更新最后使用时间
-	bot.LastUsedAt = time.Now()
+	now := time.Now()
+	bot.LastUsedAt = &now
 	s.db.WithContext(ctx).Save(&bot)
 
 	return &bot, nil
