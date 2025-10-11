@@ -84,6 +84,7 @@ func main() {
 	// 中间件
 	r.Use(gin.Logger())
 	r.Use(middleware.Recovery()) // 使用自定义的Recovery中间件
+	r.Use(middleware.MetricsMiddleware()) // Prometheus指标中间件
 	r.Use(middleware.RateLimit())
 	r.Use(middleware.Security())
 
@@ -97,12 +98,8 @@ func main() {
 		})
 	})
 
-	// 指标端点
-	r.GET("/metrics", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status": "ok",
-		})
-	})
+	// Prometheus指标端点
+	r.GET("/metrics", controller.MetricsHandler())
 
 	// API路由组
 	api := r.Group("/api")
