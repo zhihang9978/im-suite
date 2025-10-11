@@ -12,11 +12,16 @@ export const useUserStore = defineStore('user', () => {
     if (token.value) {
       try {
         const response = await getCurrentUser()
-        // 后端返回的数据结构可能是 { user: {...} } 或直接是用户对象
+        // 后端返回的数据结构可能是 { user: {...} } 或直接是用户对象 (important-comment)
         user.value = response.user || response
       } catch (error) {
-        console.error('获取用户信息失败:', error)
-        logoutUser()
+        // 静默处理过期token，不打印错误日志
+        // Silently handle expired tokens without console errors
+        // 只清除token，不需要调用logout API
+        token.value = ''
+        user.value = null
+        localStorage.removeItem('admin_token')
+        localStorage.removeItem('refresh_token')
       }
     }
   }
@@ -40,14 +45,18 @@ export const useUserStore = defineStore('user', () => {
   }
   
   const logoutUser = async () => {
+    // 先清除本地状态
+    token.value = ''
+    user.value = null
+    localStorage.removeItem('admin_token')
+    localStorage.removeItem('refresh_token')
+    
+    // 尝试调用后端logout API，但不在意成功与否
     try {
       await logout()
     } catch (error) {
-      console.error('登出失败:', error)
-    } finally {
-      token.value = ''
-      user.value = null
-      localStorage.removeItem('admin_token')
+      // 静默处理logout错误，因为本地状态已经清除
+      // Silently handle logout errors since local state is already cleared
     }
   }
   
