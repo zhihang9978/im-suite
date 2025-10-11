@@ -418,11 +418,12 @@ func main() {
 			superAdmin.GET("/bots/:id/stats", botController.GetBotStats)
 			superAdmin.POST("/bots/:id/regenerate-secret", botController.RegenerateAPISecret)
 
-			// 机器人用户管理（聊天机器人）
-			superAdmin.POST("/bot-users", botUserController.CreateBotUser)                        // 创建机器人用户账号
-			superAdmin.GET("/bot-users/:bot_id", botUserController.GetBotUser)                    // 获取机器人用户信息
-			superAdmin.DELETE("/bot-users/:bot_id", botUserController.DeleteBotUser)              // 删除机器人用户
-			superAdmin.GET("/bot-users/:bot_id/permissions", botUserController.GetBotPermissions) // 查看机器人的授权用户列表
+		// 机器人用户管理（聊天机器人）
+		superAdmin.GET("/bot-users", botUserController.GetAllBotUsers)                        // 获取所有机器人用户列表
+		superAdmin.POST("/bot-users", botUserController.CreateBotUser)                        // 创建机器人用户账号
+		superAdmin.GET("/bot-users/:bot_id", botUserController.GetBotUser)                    // 获取机器人用户信息
+		superAdmin.DELETE("/bot-users/:bot_id", botUserController.DeleteBotUser)              // 删除机器人用户
+		superAdmin.GET("/bot-users/:bot_id/permissions", botUserController.GetBotPermissions) // 查看机器人的授权用户列表
 		}
 
 		// ============================================

@@ -26,8 +26,8 @@ type Bot struct {
 	Permissions string `json:"permissions" gorm:"type:text"` // 权限列表（JSON数组）
 
 	// 状态信息
-	IsActive   bool      `json:"is_active" gorm:"default:true"` // 是否激活
-	LastUsedAt time.Time `json:"last_used_at"`                  // 最后使用时间
+	IsActive   bool       `json:"is_active" gorm:"default:true"` // 是否激活
+	LastUsedAt *time.Time `json:"last_used_at"`                  // 最后使用时间（允许NULL）
 
 	// 限制配置
 	RateLimit  int `json:"rate_limit" gorm:"default:100"`    // 速率限制（请求/分钟）

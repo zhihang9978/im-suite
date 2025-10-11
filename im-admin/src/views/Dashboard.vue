@@ -167,39 +167,50 @@ const userChartRef = ref()
 const messageChartRef = ref()
 
 const initCharts = () => {
-  // 用户增长趋势图
+  // 用户统计图 - 使用实际数据
   const userChart = echarts.init(userChartRef.value)
   const userOption = {
+    title: { text: '用户统计' },
     tooltip: { trigger: 'axis' },
     xAxis: {
       type: 'category',
-      data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月']
+      data: ['总用户数', '在线用户']
     },
     yAxis: { type: 'value' },
     series: [{
-      name: '新增用户',
-      type: 'line',
-      data: [120, 200, 150, 300, 250, 400, 350],
-      smooth: true
+      name: '用户数',
+      type: 'bar',
+      data: [stats.value.totalUsers, stats.value.onlineUsers],
+      itemStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: '#409eff' },
+          { offset: 1, color: '#66b1ff' }
+        ])
+      }
     }]
   }
   userChart.setOption(userOption)
   
-  // 消息统计图
+  // 消息和聊天统计图 - 使用实际数据
   const messageChart = echarts.init(messageChartRef.value)
   const messageOption = {
+    title: { text: '消息和聊天统计' },
     tooltip: { trigger: 'item' },
     series: [{
-      name: '消息类型',
+      name: '统计',
       type: 'pie',
       radius: '50%',
       data: [
-        { value: 1048, name: '文本消息' },
-        { value: 735, name: '图片消息' },
-        { value: 580, name: '语音消息' },
-        { value: 484, name: '视频消息' },
-        { value: 300, name: '文件消息' }
-      ]
+        { value: stats.value.totalMessages, name: '总消息数' },
+        { value: stats.value.totalChats, name: '总聊天数' }
+      ],
+      emphasis: {
+        itemStyle: {
+          shadowBlur: 10,
+          shadowOffsetX: 0,
+          shadowColor: 'rgba(0, 0, 0, 0.5)'
+        }
+      }
     }]
   }
   messageChart.setOption(messageOption)
@@ -233,9 +244,10 @@ const loadDashboardData = async () => {
 }
 
 onMounted(() => {
-  loadDashboardData()
-  nextTick(() => {
-    initCharts()
+  loadDashboardData().then(() => {
+    nextTick(() => {
+      initCharts()
+    })
   })
 })
 </script>

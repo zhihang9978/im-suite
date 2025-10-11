@@ -108,11 +108,10 @@ const searchForm = reactive({
 const getMessages = async () => {
   loading.value = true
   try {
-    const response = await request.get('/messages', {
+    const response = await request.get('/super-admin/messages', {
       params: {
-        limit: pageSize.value,
-        offset: (currentPage.value - 1) * pageSize.value,
-        // 添加搜索条件（如果有）
+        page: currentPage.value,
+        page_size: pageSize.value,
         type: searchForm.type,
         sender: searchForm.sender,
         content: searchForm.content
@@ -120,7 +119,7 @@ const getMessages = async () => {
     })
     
     messages.value = response.data || []
-    total.value = response.total || 0
+    total.value = response.pagination?.total || 0
   } catch (error) {
     ElMessage.error('获取消息列表失败: ' + (error.response?.data?.error || error.message))
   } finally {

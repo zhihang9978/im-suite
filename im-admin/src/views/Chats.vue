@@ -96,7 +96,7 @@ const searchForm = reactive({
 const getChats = async () => {
   loading.value = true
   try {
-    const response = await request.get('/chats', {
+    const response = await request.get('/super-admin/chats', {
       params: {
         page: currentPage.value,
         page_size: pageSize.value,
@@ -106,7 +106,7 @@ const getChats = async () => {
     })
     
     chats.value = response.data || []
-    total.value = response.total || 0
+    total.value = response.pagination?.total || 0
   } catch (error) {
     ElMessage.error('获取聊天列表失败: ' + (error.response?.data?.error || error.message))
   } finally {
