@@ -275,8 +275,11 @@ func (s *AuthService) ValidateToken(token string) (*model.User, error) {
 
 // generateTokens 生成访问令牌和刷新令牌
 func (s *AuthService) generateTokens(user *model.User) (string, string, int64, error) {
-	// JWT密钥
-	secretKey := []byte("zhihang_messenger_secret_key_2024")
+	// 从环境变量获取JWT密钥
+	secretKey := []byte(os.Getenv("JWT_SECRET"))
+	if len(secretKey) == 0 {
+		return "", "", 0, fmt.Errorf("JWT_SECRET环境变量未设置")
+	}
 
 	// 访问令牌过期时间 (24小时)
 	accessExpiresAt := time.Now().Add(24 * time.Hour)
