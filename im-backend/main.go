@@ -124,6 +124,7 @@ func main() {
 	authController := controller.NewAuthController(authService)
 	messageController := controller.NewMessageController(messageService)
 	userController := controller.NewUserController()
+	userSearchController := controller.NewUserSearchController()
 	websocketController := controller.NewWebSocketController(authService)
 	userMgmtController := controller.NewUserManagementController(userManagementService)
 	messageEncryptionController := controller.NewMessageEncryptionController(messageEncryptionService)
@@ -168,6 +169,12 @@ func main() {
 			auth.POST("/login/2fa", authController.LoginWith2FA)
 			auth.POST("/2fa/validate", twoFactorController.ValidateCode)
 		}
+
+		// ============================================
+		// 用户搜索（公开，用于添加好友）
+		// ============================================
+		api.GET("/users/search", userSearchController.SearchUsers)
+		api.GET("/users/by-phone/:phone", userSearchController.GetUserByPhone)
 
 		// ============================================
 		// 受保护的路由（需要登录）
