@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"time"
@@ -86,11 +87,11 @@ func BotAuthMiddleware() gin.HandlerFunc {
 		botID := bot.ID
 		apiPath := c.Request.URL.Path
 		method := c.Request.Method
-		
+
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancel()
-			
+
 			botService.RecordBotAPICall(
 				ctx,
 				botID,

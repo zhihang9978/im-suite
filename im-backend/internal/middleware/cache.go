@@ -53,7 +53,7 @@ func CacheMiddleware(ttl time.Duration) gin.HandlerFunc {
 		// 只缓存成功的响应
 		if c.Writer.Status() == 200 {
 			// 异步写入缓存（不阻塞响应）
-			cacheCtx := c.Request.Context()
+			// 复制数据避免竞态条件
 			cacheData := make([]byte, len(blw.body))
 			copy(cacheData, blw.body)
 			
