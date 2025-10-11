@@ -419,8 +419,8 @@ func (s *BotService) generateAPIKeys() (string, string, error) {
 	}
 	apiKey := "bot_" + hex.EncodeToString(keyBytes)
 
-	// 生成API Secret (64字节)
-	secretBytes := make([]byte, 64)
+	// 生成API Secret (32字节，避免bcrypt 72字节限制)
+	secretBytes := make([]byte, 32)
 	if _, err := rand.Read(secretBytes); err != nil {
 		return "", "", err
 	}
@@ -511,8 +511,7 @@ func (s *BotService) CheckRateLimit(ctx context.Context, bot *model.Bot) error {
 
 // RegenerateAPISecret 重新生成API密钥
 func (s *BotService) RegenerateAPISecret(ctx context.Context, botID uint) (string, error) {
-	// 生成新密钥
-	secretBytes := make([]byte, 64)
+	secretBytes := make([]byte, 32)
 	if _, err := rand.Read(secretBytes); err != nil {
 		return "", err
 	}
