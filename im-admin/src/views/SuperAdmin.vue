@@ -452,8 +452,8 @@ const loadSystemStats = async () => {
 
 const loadOnlineUsers = async () => {
   try {
-    const data = await request.get('/super-admin/online-users');
-    onlineUsers.value = data.data.users;
+    const data = await request.get('/super-admin/users/online');
+    onlineUsers.value = data.data || [];
   } catch (err) {
     console.error('加载在线用户失败:', err);
   }
@@ -461,8 +461,10 @@ const loadOnlineUsers = async () => {
 
 const loadModerationQueue = async () => {
   try {
-    const data = await request.get('/super-admin/moderation/queue?status=pending');
-    moderationQueue.value = data.data.records;
+    // 内容审核队列（如果后端未实现，跳过）
+    // const data = await request.get('/moderation/reports/pending');
+    // moderationQueue.value = data.data || [];
+    moderationQueue.value = []; // 临时：等待后端实现
   } catch (err) {
     console.error('加载审核队列失败:', err);
   }
@@ -470,8 +472,8 @@ const loadModerationQueue = async () => {
 
 const loadSystemLogs = async () => {
   try {
-    const data = await request.get('/super-admin/system/logs?type=all');
-    systemLogs.value = data.data.logs;
+    const data = await request.get('/super-admin/logs');
+    systemLogs.value = data.data || [];
   } catch (err) {
     console.error('加载系统日志失败:', err);
   }
@@ -495,9 +497,7 @@ const forceLogout = async (user: any) => {
       type: 'warning',
     });
 
-    await request.post(`/super-admin/users/${user.user_id}/force-logout`, {
-      reason: '管理员操作'
-    });
+    await request.post(`/super-admin/users/${user.user_id}/logout`);
 
     ElMessage.success('用户已强制下线');
     loadOnlineUsers();
@@ -532,10 +532,8 @@ const confirmBroadcast = async () => {
       ? broadcastForm.value.target_ids_str.split(',').map(id => parseInt(id.trim()))
       : [];
 
-    await request.post('/super-admin/system/broadcast', {
+    await request.post('/super-admin/broadcast', {
       message: broadcastForm.value.message,
-      target_type: broadcastForm.value.target_type,
-      target_ids: targetIds,
     });
 
     ElMessage.success('系统消息已广播');
@@ -555,7 +553,8 @@ const moderateContent = async (contentId: number, action: string) => {
       inputErrorMessage: '原因不能为空',
     });
 
-    await request.post(`/super-admin/moderation/${contentId}/moderate`, {
+    // 使用正确的审核API路径
+    await request.post(`/moderation/reports/${contentId}/handle`, {
       action,
       reason: reason.value,
     });
