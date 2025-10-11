@@ -101,54 +101,58 @@ func main() {
 	// Prometheus指标端点
 	r.GET("/metrics", controller.MetricsHandler())
 
+	// ============================================
+	// 初始化所有服务
+	// ============================================
+	authService := service.NewAuthService()
+	messageService := service.NewMessageService()
+	userManagementService := service.NewUserManagementService(config.DB)
+	messageEncryptionService := service.NewMessageEncryptionService(config.DB)
+	messageEnhancementService := service.NewMessageEnhancementService(config.DB)
+	contentModerationService := service.NewContentModerationService(config.DB)
+	themeService := service.NewThemeService(config.DB)
+	groupMgmtService := service.NewGroupManagementService(config.DB)
+	chatPermissionService := service.NewChatPermissionService(config.DB)
+	chatAnnouncementService := service.NewChatAnnouncementService(config.DB)
+	chatStatisticsService := service.NewChatStatisticsService(config.DB)
+	chatBackupService := service.NewChatBackupService(config.DB)
+	_ = service.NewFileEncryptionService()
+
+	// ============================================
+	// 初始化所有控制器
+	// ============================================
+	authController := controller.NewAuthController(authService)
+	messageController := controller.NewMessageController(messageService)
+	userController := controller.NewUserController()
+	websocketController := controller.NewWebSocketController(authService)
+	userMgmtController := controller.NewUserManagementController(userManagementService)
+	messageEncryptionController := controller.NewMessageEncryptionController(messageEncryptionService)
+	messageEnhancementController := controller.NewMessageEnhancementController(messageEnhancementService)
+	contentModerationController := controller.NewContentModerationController(contentModerationService)
+	themeController := controller.NewThemeController(themeService)
+	groupMgmtController := controller.NewGroupManagementController(groupMgmtService)
+	chatMgmtController := controller.NewChatManagementController(
+		chatPermissionService,
+		chatAnnouncementService,
+		chatStatisticsService,
+		chatBackupService,
+	)
+	fileController := controller.NewFileController()
+	superAdminController := controller.NewSuperAdminController()
+	twoFactorController := controller.NewTwoFactorController()
+	deviceMgmtController := controller.NewDeviceManagementController()
+	botController := controller.NewBotController()
+	botUserController := controller.NewBotUserController()
+	webrtcController := controller.NewWebRTCController(webrtcService)
+	screenShareEnhancedService := service.NewScreenShareEnhancedService(webrtcService)
+	screenShareEnhancedController := controller.NewScreenShareEnhancedController(screenShareEnhancedService)
+
+	// WebSocket端点（公开，通过token认证）
+	r.GET("/ws", websocketController.HandleConnection)
+
 	// API路由组
 	api := r.Group("/api")
 	{
-		// ============================================
-		// 初始化所有服务
-		// ============================================
-		authService := service.NewAuthService()
-		messageService := service.NewMessageService()
-		userManagementService := service.NewUserManagementService(config.DB)
-		messageEncryptionService := service.NewMessageEncryptionService(config.DB)
-		messageEnhancementService := service.NewMessageEnhancementService(config.DB)
-		contentModerationService := service.NewContentModerationService(config.DB)
-		themeService := service.NewThemeService(config.DB)
-		groupMgmtService := service.NewGroupManagementService(config.DB)
-		chatPermissionService := service.NewChatPermissionService(config.DB)
-		chatAnnouncementService := service.NewChatAnnouncementService(config.DB)
-		chatStatisticsService := service.NewChatStatisticsService(config.DB)
-		chatBackupService := service.NewChatBackupService(config.DB)
-		_ = service.NewFileEncryptionService()
-
-		// ============================================
-		// 初始化所有控制器
-		// ============================================
-		authController := controller.NewAuthController(authService)
-		messageController := controller.NewMessageController(messageService) // 消息控制器
-		userController := controller.NewUserController()                      // 用户基础控制器
-		userMgmtController := controller.NewUserManagementController(userManagementService)
-		messageEncryptionController := controller.NewMessageEncryptionController(messageEncryptionService)
-		messageEnhancementController := controller.NewMessageEnhancementController(messageEnhancementService)
-		contentModerationController := controller.NewContentModerationController(contentModerationService)
-		themeController := controller.NewThemeController(themeService)
-		groupMgmtController := controller.NewGroupManagementController(groupMgmtService)
-		chatMgmtController := controller.NewChatManagementController(
-			chatPermissionService,
-			chatAnnouncementService,
-			chatStatisticsService,
-			chatBackupService,
-		)
-		fileController := controller.NewFileController()
-		superAdminController := controller.NewSuperAdminController()
-		twoFactorController := controller.NewTwoFactorController()
-		deviceMgmtController := controller.NewDeviceManagementController()
-		botController := controller.NewBotController()
-		botUserController := controller.NewBotUserController()
-		webrtcController := controller.NewWebRTCController(webrtcService)
-		screenShareEnhancedService := service.NewScreenShareEnhancedService(webrtcService)
-		screenShareEnhancedController := controller.NewScreenShareEnhancedController(screenShareEnhancedService)
-
 		// ============================================
 		// 认证路由（公开）
 		// ============================================

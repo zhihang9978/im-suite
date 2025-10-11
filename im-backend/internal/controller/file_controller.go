@@ -39,21 +39,30 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 	// 获取用户ID
 	userID, exists := ctx.Get("user_id")
 	if !exists {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "未授权"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "未授权",
+		})
 		return
 	}
 
 	// 获取上传的文件
 	file, err := ctx.FormFile("file")
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "获取文件失败: " + err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "获取文件失败: " + err.Error(),
+		})
 		return
 	}
 
 	// 读取文件内容
 	src, err := file.Open()
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "打开文件失败: " + err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "打开文件失败: " + err.Error(),
+		})
 		return
 	}
 	defer src.Close()
@@ -61,7 +70,10 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 	// 读取文件数据
 	fileData := make([]byte, file.Size)
 	if _, err := src.Read(fileData); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "读取文件失败: " + err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "读取文件失败: " + err.Error(),
+		})
 		return
 	}
 
@@ -82,11 +94,22 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 	// 执行上传
 	response, err := c.fileService.UploadFile(uploadReq)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response)
+	// 统一响应格式
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"url":       response.FileURL,
+			"file_id":   response.FileID,
+			"file_name": response.FileName,
+		},
+	})
 }
 
 // UploadChunk 上传文件分片
