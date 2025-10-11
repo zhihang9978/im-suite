@@ -24,10 +24,10 @@ docker-compose -f docker-compose.production.yml build backend
 
 
 ────────────────────────────────────────────────────────────────
-3. 重启所有服务
+3. 重启所有服务（关键：-v 参数删除旧数据卷！）
 ────────────────────────────────────────────────────────────────
 
-docker-compose -f docker-compose.production.yml down
+docker-compose -f docker-compose.production.yml down -v
 docker-compose -f docker-compose.production.yml up -d
 
 

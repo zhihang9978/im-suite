@@ -20,10 +20,10 @@ git pull origin main
 # 3. 重建后端镜像（必须！）
 docker-compose -f docker-compose.production.yml build backend
 
-# 4. 停止旧服务
-docker-compose -f docker-compose.production.yml down
+# 4. 停止旧服务并删除数据卷（关键：-v 参数必须！）
+docker-compose -f docker-compose.production.yml down -v
 
-# 5. 启动所有服务
+# 5. 启动所有服务（将创建全新表结构）
 docker-compose -f docker-compose.production.yml up -d
 
 # 6. 等待服务启动（重要）
