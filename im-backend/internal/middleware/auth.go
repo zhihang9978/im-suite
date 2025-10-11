@@ -7,6 +7,13 @@ import (
 	"zhihang-messenger/im-backend/internal/service"
 )
 
+// 全局AuthService实例（避免每次请求都创建新实例）
+var authService *service.AuthService
+
+func init() {
+	authService = service.NewAuthService()
+}
+
 // AuthMiddleware JWT认证中间件
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -28,8 +35,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		token := tokenParts[1]
 
-		// 验证令牌
-		authService := service.NewAuthService()
+		// 验证令牌（使用全局实例）
 		user, err := authService.ValidateToken(token)
 		if err != nil {
 			c.JSON(401, gin.H{"error": "认证令牌无效"})
