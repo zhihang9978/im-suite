@@ -34,10 +34,10 @@ request.interceptors.response.use(
     if (response) {
       switch (response.status) {
         case 401:
-          ElMessage.error('登录已过期，请重新登录')
-          const userStore = useUserStore()
-          userStore.logoutUser()
-          router.push('/login')
+          // 不显示错误消息和不调用logout，让调用方处理
+          // Don't show error message or call logout, let the caller handle it
+          // 这避免了与stores/user.js中的错误处理重复
+          // This avoids duplication with error handling in stores/user.js
           break
         case 403:
           ElMessage.error('没有权限访问')
