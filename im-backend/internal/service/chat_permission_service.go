@@ -23,29 +23,29 @@ func NewChatPermissionService(db *gorm.DB) *ChatPermissionService {
 
 // SetPermissionRequest 设置权限请求
 type SetPermissionRequest struct {
-	ChatID                uint  `json:"chat_id" binding:"required"`
-	CanSendMessages       *bool `json:"can_send_messages,omitempty"`
-	CanSendMedia          *bool `json:"can_send_media,omitempty"`
-	CanSendStickers       *bool `json:"can_send_stickers,omitempty"`
-	CanSendPolls          *bool `json:"can_send_polls,omitempty"`
-	CanChangeInfo         *bool `json:"can_change_info,omitempty"`
-	CanInviteUsers        *bool `json:"can_invite_users,omitempty"`
-	CanPinMessages        *bool `json:"can_pin_messages,omitempty"`
-	CanDeleteMessages     *bool `json:"can_delete_messages,omitempty"`
-	CanEditMessages       *bool `json:"can_edit_messages,omitempty"`
-	CanManageChat         *bool `json:"can_manage_chat,omitempty"`
-	CanManageVoiceChats   *bool `json:"can_manage_voice_chats,omitempty"`
-	CanRestrictMembers    *bool `json:"can_restrict_members,omitempty"`
-	CanPromoteMembers     *bool `json:"can_promote_members,omitempty"`
-	CanAddAdmins          *bool `json:"can_add_admins,omitempty"`
+	ChatID              uint  `json:"chat_id" binding:"required"`
+	CanSendMessages     *bool `json:"can_send_messages,omitempty"`
+	CanSendMedia        *bool `json:"can_send_media,omitempty"`
+	CanSendStickers     *bool `json:"can_send_stickers,omitempty"`
+	CanSendPolls        *bool `json:"can_send_polls,omitempty"`
+	CanChangeInfo       *bool `json:"can_change_info,omitempty"`
+	CanInviteUsers      *bool `json:"can_invite_users,omitempty"`
+	CanPinMessages      *bool `json:"can_pin_messages,omitempty"`
+	CanDeleteMessages   *bool `json:"can_delete_messages,omitempty"`
+	CanEditMessages     *bool `json:"can_edit_messages,omitempty"`
+	CanManageChat       *bool `json:"can_manage_chat,omitempty"`
+	CanManageVoiceChats *bool `json:"can_manage_voice_chats,omitempty"`
+	CanRestrictMembers  *bool `json:"can_restrict_members,omitempty"`
+	CanPromoteMembers   *bool `json:"can_promote_members,omitempty"`
+	CanAddAdmins        *bool `json:"can_add_admins,omitempty"`
 }
 
 // MuteMemberRequest 禁言成员请求
 type MuteMemberRequest struct {
-	ChatID     uint   `json:"chat_id" binding:"required"`
-	UserID     uint   `json:"user_id" binding:"required"`
-	Duration   int    `json:"duration" binding:"required"` // 禁言时长（分钟）
-	Reason     string `json:"reason,omitempty"`
+	ChatID   uint   `json:"chat_id" binding:"required"`
+	UserID   uint   `json:"user_id" binding:"required"`
+	Duration int    `json:"duration" binding:"required"` // 禁言时长（分钟）
+	Reason   string `json:"reason,omitempty"`
 }
 
 // BanMemberRequest 踢出成员请求
@@ -84,7 +84,7 @@ func (s *ChatPermissionService) SetChatPermissions(ctx context.Context, userID u
 
 	// 更新权限设置
 	updates := make(map[string]interface{})
-	
+
 	if req.CanSendMessages != nil {
 		updates["can_send_messages"] = *req.CanSendMessages
 	}
@@ -157,17 +157,17 @@ func (s *ChatPermissionService) GetChatPermissions(ctx context.Context, chatID u
 		if err == gorm.ErrRecordNotFound {
 			// 返回默认权限配置
 			return &model.ChatPermission{
-				ChatID:            chatID,
-				CanSendMessages:   true,
-				CanSendMedia:      true,
-				CanSendStickers:   true,
-				CanSendPolls:      true,
-				CanChangeInfo:     false,
-				CanInviteUsers:    false,
-				CanPinMessages:    false,
-				CanDeleteMessages: false,
-				CanEditMessages:   false,
-				CanManageChat:     false,
+				ChatID:              chatID,
+				CanSendMessages:     true,
+				CanSendMedia:        true,
+				CanSendStickers:     true,
+				CanSendPolls:        true,
+				CanChangeInfo:       false,
+				CanInviteUsers:      false,
+				CanPinMessages:      false,
+				CanDeleteMessages:   false,
+				CanEditMessages:     false,
+				CanManageChat:       false,
 				CanManageVoiceChats: false,
 				CanRestrictMembers:  false,
 				CanPromoteMembers:   false,
@@ -209,9 +209,9 @@ func (s *ChatPermissionService) MuteMember(ctx context.Context, userID uint, req
 	if err := s.db.WithContext(ctx).Model(&model.ChatMember{}).
 		Where("chat_id = ? AND user_id = ?", req.ChatID, req.UserID).
 		Updates(map[string]interface{}{
-			"mute_until":  &muteUntil,
-			"is_banned":   false,
-			"ban_reason":  req.Reason,
+			"mute_until": &muteUntil,
+			"is_banned":  false,
+			"ban_reason": req.Reason,
 		}).Error; err != nil {
 		return fmt.Errorf("禁言成员失败: %w", err)
 	}

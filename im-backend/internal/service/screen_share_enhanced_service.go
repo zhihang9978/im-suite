@@ -547,4 +547,3 @@ func (s *ScreenShareEnhancedService) ExportStatistics(ctx context.Context, userI
 
 	return string(jsonData), nil
 }
-

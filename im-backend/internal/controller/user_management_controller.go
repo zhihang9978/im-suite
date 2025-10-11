@@ -23,10 +23,10 @@ func NewUserManagementController(userManagementService *service.UserManagementSe
 
 // AddToBlacklistRequest 添加到黑名单请求
 type AddToBlacklistRequest struct {
-	UserID        uint       `json:"user_id" binding:"required"`
-	Reason        string     `json:"reason" binding:"required"`
-	BlacklistType string     `json:"blacklist_type" binding:"required"`
-	Duration      *int64     `json:"duration,omitempty"` // 秒数，nil表示永久
+	UserID        uint   `json:"user_id" binding:"required"`
+	Reason        string `json:"reason" binding:"required"`
+	BlacklistType string `json:"blacklist_type" binding:"required"`
+	Duration      *int64 `json:"duration,omitempty"` // 秒数，nil表示永久
 }
 
 // AddToBlacklist 添加用户到黑名单
@@ -148,9 +148,9 @@ func (c *UserManagementController) GetUserActivity(ctx *gin.Context) {
 
 // SetUserRestrictionRequest 设置用户限制请求
 type SetUserRestrictionRequest struct {
-	UserID           uint   `json:"user_id" binding:"required"`
-	RestrictionType  string `json:"restriction_type" binding:"required"`
-	LimitValue       int    `json:"limit_value" binding:"required,min=1"`
+	UserID          uint   `json:"user_id" binding:"required"`
+	RestrictionType string `json:"restriction_type" binding:"required"`
+	LimitValue      int    `json:"limit_value" binding:"required,min=1"`
 }
 
 // SetUserRestriction 设置用户限制
@@ -314,8 +314,8 @@ func (c *UserManagementController) CheckUserRestriction(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"allowed": allowed,
-		"user_id": userID,
+		"allowed":          allowed,
+		"user_id":          userID,
 		"restriction_type": restrictionType,
 	})
 }

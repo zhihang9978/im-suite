@@ -14,7 +14,7 @@ import (
 	"time"
 	"zhihang-messenger/im-backend/config"
 	"zhihang-messenger/im-backend/internal/model"
-	
+
 	"gorm.io/gorm"
 )
 
@@ -46,23 +46,23 @@ type UploadRequest struct {
 
 // UploadResponse 文件上传响应
 type UploadResponse struct {
-	FileID      uint   `json:"file_id"`
-	FileName    string `json:"file_name"`
-	FileURL     string `json:"file_url"`
+	FileID       uint   `json:"file_id"`
+	FileName     string `json:"file_name"`
+	FileURL      string `json:"file_url"`
 	ThumbnailURL string `json:"thumbnail_url"`
-	PreviewURL  string `json:"preview_url"`
-	UploadID    string `json:"upload_id"`
-	ChunkIndex  int    `json:"chunk_index"`
-	IsComplete  bool   `json:"is_complete"`
+	PreviewURL   string `json:"preview_url"`
+	UploadID     string `json:"upload_id"`
+	ChunkIndex   int    `json:"chunk_index"`
+	IsComplete   bool   `json:"is_complete"`
 }
 
 // PreviewRequest 文件预览请求
 type PreviewRequest struct {
-	FileID     uint   `json:"file_id" binding:"required"`
+	FileID      uint   `json:"file_id" binding:"required"`
 	PreviewType string `json:"preview_type"` // image/video/audio/document
-	Width      int    `json:"width"`
-	Height     int    `json:"height"`
-	Quality    string `json:"quality"`
+	Width       int    `json:"width"`
+	Height      int    `json:"height"`
+	Quality     string `json:"quality"`
 }
 
 // VersionRequest 文件版本请求
@@ -77,7 +77,7 @@ type VersionRequest struct {
 func (s *FileService) UploadFile(req UploadRequest) (*UploadResponse, error) {
 	// 生成文件哈希值
 	fileHash := s.calculateFileHash(req.FileData)
-	
+
 	// 检查文件是否已存在
 	var existingFile model.File
 	err := s.db.Where("file_hash = ? AND owner_id = ?", fileHash, req.OwnerID).First(&existingFile).Error
@@ -94,12 +94,12 @@ func (s *FileService) UploadFile(req UploadRequest) (*UploadResponse, error) {
 			IsComplete:   true,
 		}, nil
 	}
-	
+
 	// 如果是分片上传
 	if req.TotalChunks > 1 {
 		return s.handleChunkedUpload(req, fileHash)
 	}
-	
+
 	// 单文件上传
 	return s.handleSingleUpload(req, fileHash)
 }
@@ -108,32 +108,32 @@ func (s *FileService) UploadFile(req UploadRequest) (*UploadResponse, error) {
 func (s *FileService) handleSingleUpload(req UploadRequest, fileHash string) (*UploadResponse, error) {
 	// 生成存储路径
 	storagePath := s.generateStoragePath(req.FileName)
-	
+
 	// 保存文件到存储
 	if err := s.saveFileToStorage(storagePath, req.FileData); err != nil {
 		return nil, fmt.Errorf("保存文件失败: %v", err)
 	}
-	
+
 	// 生成访问URL
 	fileURL := s.generateFileURL(storagePath)
-	
+
 	// 创建文件记录
 	file := model.File{
-		FileName:     req.FileName,
-		FileSize:     req.FileSize,
-		FileType:     req.FileType,
-		MimeType:     req.MimeType,
-		FileHash:     fileHash,
-		StoragePath:  storagePath,
-		StorageURL:   fileURL,
-		IsEncrypted:  req.IsEncrypted,
-		Version:      1,
-		IsLatest:     true,
-		OwnerID:      req.OwnerID,
-		IsPublic:     false,
-		UploadID:     req.UploadID,
+		FileName:    req.FileName,
+		FileSize:    req.FileSize,
+		FileType:    req.FileType,
+		MimeType:    req.MimeType,
+		FileHash:    fileHash,
+		StoragePath: storagePath,
+		StorageURL:  fileURL,
+		IsEncrypted: req.IsEncrypted,
+		Version:     1,
+		IsLatest:    true,
+		OwnerID:     req.OwnerID,
+		IsPublic:    false,
+		UploadID:    req.UploadID,
 	}
-	
+
 	// 如果是加密文件，生成加密密钥
 	if req.IsEncrypted {
 		encryptionKey, err := s.generateEncryptionKey()
@@ -142,15 +142,15 @@ func (s *FileService) handleSingleUpload(req UploadRequest, fileHash string) (*U
 		}
 		file.EncryptionKey = encryptionKey
 	}
-	
+
 	// 保存到数据库
 	if err := s.db.Create(&file).Error; err != nil {
 		return nil, fmt.Errorf("创建文件记录失败: %v", err)
 	}
-	
+
 	// 生成缩略图和预览
 	thumbnailURL, previewURL := s.generatePreview(&file)
-	
+
 	return &UploadResponse{
 		FileID:       file.ID,
 		FileName:     file.FileName,
@@ -169,7 +169,7 @@ func (s *FileService) handleChunkedUpload(req UploadRequest, fileHash string) (*
 	if req.UploadID == "" {
 		req.UploadID = s.generateUploadID()
 	}
-	
+
 	// 创建或更新分片记录
 	chunk := model.FileChunk{
 		UploadID:   req.UploadID,
@@ -177,37 +177,37 @@ func (s *FileService) handleChunkedUpload(req UploadRequest, fileHash string) (*
 		ChunkSize:  int64(len(req.FileData)),
 		ChunkHash:  s.calculateFileHash(req.FileData),
 	}
-	
+
 	// 生成分片存储路径
 	chunkPath := s.generateChunkPath(req.UploadID, req.ChunkIndex)
 	chunk.StoragePath = chunkPath
-	
+
 	// 保存分片文件
 	if err := s.saveFileToStorage(chunkPath, req.FileData); err != nil {
 		return nil, fmt.Errorf("保存分片失败: %v", err)
 	}
-	
+
 	chunk.IsUploaded = true
 	chunk.IsVerified = true
-	
+
 	// 保存分片记录
 	if err := s.db.Create(&chunk).Error; err != nil {
 		return nil, fmt.Errorf("创建分片记录失败: %v", err)
 	}
-	
+
 	// 检查是否所有分片都已上传
 	var uploadedChunks int64
 	s.db.Model(&model.FileChunk{}).Where("upload_id = ? AND is_uploaded = ?", req.UploadID, true).Count(&uploadedChunks)
-	
+
 	if uploadedChunks == int64(req.TotalChunks) {
 		// 所有分片都已上传，合并文件
 		return s.mergeChunks(req, fileHash)
 	}
-	
+
 	return &UploadResponse{
-		UploadID:    req.UploadID,
-		ChunkIndex:  req.ChunkIndex,
-		IsComplete:  false,
+		UploadID:   req.UploadID,
+		ChunkIndex: req.ChunkIndex,
+		IsComplete: false,
 	}, nil
 }
 
@@ -219,7 +219,7 @@ func (s *FileService) mergeChunks(req UploadRequest, fileHash string) (*UploadRe
 		Order("chunk_index ASC").Find(&chunks).Error; err != nil {
 		return nil, fmt.Errorf("获取分片失败: %v", err)
 	}
-	
+
 	// 生成最终文件路径
 	finalPath := s.generateStoragePath(req.FileName)
 	finalFile, err := os.Create(finalPath)
@@ -227,55 +227,55 @@ func (s *FileService) mergeChunks(req UploadRequest, fileHash string) (*UploadRe
 		return nil, fmt.Errorf("创建最终文件失败: %v", err)
 	}
 	defer finalFile.Close()
-	
+
 	// 合并所有分片
 	for _, chunk := range chunks {
 		chunkFile, err := os.Open(chunk.StoragePath)
 		if err != nil {
 			return nil, fmt.Errorf("打开分片文件失败: %v", err)
 		}
-		
+
 		_, err = io.Copy(finalFile, chunkFile)
 		chunkFile.Close()
-		
+
 		if err != nil {
 			return nil, fmt.Errorf("合并分片失败: %v", err)
 		}
 	}
-	
+
 	// 生成访问URL
 	fileURL := s.generateFileURL(finalPath)
-	
+
 	// 创建文件记录
 	file := model.File{
-		FileName:     req.FileName,
-		FileSize:     req.FileSize,
-		FileType:     req.FileType,
-		MimeType:     req.MimeType,
-		FileHash:     fileHash,
-		StoragePath:  finalPath,
-		StorageURL:   fileURL,
-		IsEncrypted:  req.IsEncrypted,
-		Version:      1,
-		IsLatest:     true,
-		OwnerID:      req.OwnerID,
-		IsPublic:     false,
-		UploadID:     req.UploadID,
-		ChunkSize:    int64(len(chunks)),
-		TotalChunks:  len(chunks),
+		FileName:    req.FileName,
+		FileSize:    req.FileSize,
+		FileType:    req.FileType,
+		MimeType:    req.MimeType,
+		FileHash:    fileHash,
+		StoragePath: finalPath,
+		StorageURL:  fileURL,
+		IsEncrypted: req.IsEncrypted,
+		Version:     1,
+		IsLatest:    true,
+		OwnerID:     req.OwnerID,
+		IsPublic:    false,
+		UploadID:    req.UploadID,
+		ChunkSize:   int64(len(chunks)),
+		TotalChunks: len(chunks),
 	}
-	
+
 	// 保存到数据库
 	if err := s.db.Create(&file).Error; err != nil {
 		return nil, fmt.Errorf("创建文件记录失败: %v", err)
 	}
-	
+
 	// 清理分片文件
 	go s.cleanupChunks(req.UploadID)
-	
+
 	// 生成缩略图和预览
 	thumbnailURL, previewURL := s.generatePreview(&file)
-	
+
 	return &UploadResponse{
 		FileID:       file.ID,
 		FileName:     file.FileName,
@@ -295,33 +295,33 @@ func (s *FileService) GetFilePreview(req PreviewRequest) (*model.FilePreview, er
 	if err := s.db.Where("id = ?", req.FileID).First(&file).Error; err != nil {
 		return nil, errors.New("文件不存在")
 	}
-	
+
 	// 检查是否已有预览
 	var preview model.FilePreview
 	err := s.db.Where("file_id = ? AND preview_type = ?", req.FileID, req.PreviewType).First(&preview).Error
 	if err == nil {
 		return &preview, nil
 	}
-	
+
 	// 生成新的预览
 	previewURL := s.generatePreviewURL(&file, req.PreviewType, req.Width, req.Height, req.Quality)
 	thumbnailURL := s.generateThumbnailURL(&file)
-	
+
 	preview = model.FilePreview{
-		FileID:        req.FileID,
-		PreviewType:   req.PreviewType,
-		PreviewURL:    previewURL,
-		ThumbnailURL:  thumbnailURL,
-		Width:         req.Width,
-		Height:        req.Height,
-		Quality:       req.Quality,
+		FileID:       req.FileID,
+		PreviewType:  req.PreviewType,
+		PreviewURL:   previewURL,
+		ThumbnailURL: thumbnailURL,
+		Width:        req.Width,
+		Height:       req.Height,
+		Quality:      req.Quality,
 	}
-	
+
 	// 保存预览记录
 	if err := s.db.Create(&preview).Error; err != nil {
 		return nil, fmt.Errorf("创建预览记录失败: %v", err)
 	}
-	
+
 	return &preview, nil
 }
 
@@ -332,11 +332,11 @@ func (s *FileService) CreateFileVersion(req VersionRequest) (*model.File, error)
 	if err := s.db.Where("id = ? AND owner_id = ?", req.FileID, req.OwnerID).First(&originalFile).Error; err != nil {
 		return nil, errors.New("文件不存在或无权限")
 	}
-	
+
 	// 将原文件标记为非最新版本
 	originalFile.IsLatest = false
 	s.db.Save(&originalFile)
-	
+
 	// 创建新版本
 	newFile := originalFile
 	newFile.ID = 0 // 重置ID
@@ -345,16 +345,16 @@ func (s *FileService) CreateFileVersion(req VersionRequest) (*model.File, error)
 	newFile.IsLatest = true
 	newFile.CreatedAt = time.Now()
 	newFile.UpdatedAt = time.Now()
-	
+
 	if req.NewFileName != "" {
 		newFile.FileName = req.NewFileName
 	}
-	
+
 	// 保存新版本
 	if err := s.db.Create(&newFile).Error; err != nil {
 		return nil, fmt.Errorf("创建文件版本失败: %v", err)
 	}
-	
+
 	return &newFile, nil
 }
 
@@ -365,16 +365,16 @@ func (s *FileService) GetFileVersions(fileID uint, ownerID uint) ([]model.File, 
 	if err := s.db.Where("id = ? AND owner_id = ?", fileID, ownerID).First(&originalFile).Error; err != nil {
 		return nil, errors.New("文件不存在或无权限")
 	}
-	
+
 	// 获取所有版本
 	var versions []model.File
 	query := s.db.Where("parent_id = ? OR id = ?", originalFile.ID, originalFile.ID).
 		Order("version DESC")
-	
+
 	if err := query.Find(&versions).Error; err != nil {
 		return nil, fmt.Errorf("获取文件版本失败: %v", err)
 	}
-	
+
 	return versions, nil
 }
 
@@ -385,15 +385,15 @@ func (s *FileService) DeleteFile(fileID uint, ownerID uint) error {
 	if err := s.db.Where("id = ? AND owner_id = ?", fileID, ownerID).First(&file).Error; err != nil {
 		return errors.New("文件不存在或无权限")
 	}
-	
+
 	// 软删除文件记录
 	if err := s.db.Delete(&file).Error; err != nil {
 		return fmt.Errorf("删除文件记录失败: %v", err)
 	}
-	
+
 	// 异步删除物理文件
 	go s.deletePhysicalFile(file.StoragePath)
-	
+
 	return nil
 }
 
@@ -401,19 +401,19 @@ func (s *FileService) DeleteFile(fileID uint, ownerID uint) error {
 func (s *FileService) GetFile(fileID uint, userID uint) (*model.File, error) {
 	var file model.File
 	query := s.db.Where("id = ?", fileID)
-	
+
 	// 如果不是公开文件，需要检查权限
 	if err := query.First(&file).Error; err != nil {
 		return nil, errors.New("文件不存在")
 	}
-	
+
 	if !file.IsPublic && file.OwnerID != userID {
 		return nil, errors.New("无权限访问该文件")
 	}
-	
+
 	// 增加查看次数
 	s.db.Model(&file).Update("view_count", gorm.Expr("view_count + 1"))
-	
+
 	return &file, nil
 }
 
@@ -445,7 +445,7 @@ func (s *FileService) generateFileURL(storagePath string) string {
 
 // generatePreviewURL 生成预览URL
 func (s *FileService) generatePreviewURL(file *model.File, previewType string, width, height int, quality string) string {
-	return fmt.Sprintf("/api/files/%d/preview?type=%s&w=%d&h=%d&q=%s", 
+	return fmt.Sprintf("/api/files/%d/preview?type=%s&w=%d&h=%d&q=%s",
 		file.ID, previewType, width, height, quality)
 }
 
@@ -477,7 +477,7 @@ func (s *FileService) saveFileToStorage(storagePath string, data []byte) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
-	
+
 	// 写入文件
 	return os.WriteFile(storagePath, data, 0644)
 }
@@ -486,7 +486,7 @@ func (s *FileService) saveFileToStorage(storagePath string, data []byte) error {
 func (s *FileService) generatePreview(file *model.File) (string, string) {
 	thumbnailURL := s.generateThumbnailURL(file)
 	previewURL := ""
-	
+
 	// 根据文件类型生成预览URL
 	switch {
 	case strings.HasPrefix(file.MimeType, "image/"):
@@ -498,7 +498,7 @@ func (s *FileService) generatePreview(file *model.File) (string, string) {
 	default:
 		previewURL = s.generatePreviewURL(file, "document", 0, 0, "high")
 	}
-	
+
 	return thumbnailURL, previewURL
 }
 
@@ -506,7 +506,7 @@ func (s *FileService) generatePreview(file *model.File) (string, string) {
 func (s *FileService) cleanupChunks(uploadID string) {
 	// 删除分片记录
 	s.db.Where("upload_id = ?", uploadID).Delete(&model.FileChunk{})
-	
+
 	// 删除物理分片文件
 	chunkDir := fmt.Sprintf("chunks/%s", uploadID)
 	os.RemoveAll(chunkDir)

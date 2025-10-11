@@ -23,10 +23,10 @@ func NewChatAnnouncementService(db *gorm.DB) *ChatAnnouncementService {
 
 // CreateAnnouncementRequest 创建公告请求
 type CreateAnnouncementRequest struct {
-	ChatID  uint   `json:"chat_id" binding:"required"`
-	Title   string `json:"title" binding:"required"`
-	Content string `json:"content" binding:"required"`
-	IsPinned bool  `json:"is_pinned"`
+	ChatID   uint   `json:"chat_id" binding:"required"`
+	Title    string `json:"title" binding:"required"`
+	Content  string `json:"content" binding:"required"`
+	IsPinned bool   `json:"is_pinned"`
 }
 
 // UpdateAnnouncementRequest 更新公告请求
@@ -94,7 +94,7 @@ func (s *ChatAnnouncementService) CreateAnnouncement(ctx context.Context, userID
 // UpdateAnnouncement 更新群组公告
 func (s *ChatAnnouncementService) UpdateAnnouncement(ctx context.Context, userID uint, req *UpdateAnnouncementRequest) error {
 	var announcement model.ChatAnnouncement
-	
+
 	// 查找公告
 	if err := s.db.WithContext(ctx).First(&announcement, req.AnnouncementID).Error; err != nil {
 		return fmt.Errorf("公告不存在: %w", err)
@@ -113,7 +113,7 @@ func (s *ChatAnnouncementService) UpdateAnnouncement(ctx context.Context, userID
 	// 如果要置顶，先取消其他置顶公告
 	if req.IsPinned != nil && *req.IsPinned {
 		if err := s.db.WithContext(ctx).Model(&model.ChatAnnouncement{}).
-			Where("chat_id = ? AND is_pinned = ? AND is_active = ? AND id != ?", 
+			Where("chat_id = ? AND is_pinned = ? AND is_active = ? AND id != ?",
 				announcement.ChatID, true, true, req.AnnouncementID).
 			Update("is_pinned", false).Error; err != nil {
 			return fmt.Errorf("取消其他置顶公告失败: %w", err)
@@ -143,7 +143,7 @@ func (s *ChatAnnouncementService) UpdateAnnouncement(ctx context.Context, userID
 // DeleteAnnouncement 删除群组公告
 func (s *ChatAnnouncementService) DeleteAnnouncement(ctx context.Context, userID uint, announcementID uint) error {
 	var announcement model.ChatAnnouncement
-	
+
 	// 查找公告
 	if err := s.db.WithContext(ctx).First(&announcement, announcementID).Error; err != nil {
 		return fmt.Errorf("公告不存在: %w", err)
@@ -214,7 +214,7 @@ func (s *ChatAnnouncementService) CreateRule(ctx context.Context, userID uint, r
 
 	// 检查规则编号是否已存在
 	var existingRule model.ChatRule
-	if err := s.db.WithContext(ctx).Where("chat_id = ? AND rule_number = ? AND is_active = ?", 
+	if err := s.db.WithContext(ctx).Where("chat_id = ? AND rule_number = ? AND is_active = ?",
 		req.ChatID, req.RuleNumber, true).First(&existingRule).Error; err == nil {
 		return nil, fmt.Errorf("规则编号 %d 已存在", req.RuleNumber)
 	}
@@ -244,7 +244,7 @@ func (s *ChatAnnouncementService) CreateRule(ctx context.Context, userID uint, r
 // UpdateRule 更新群组规则
 func (s *ChatAnnouncementService) UpdateRule(ctx context.Context, userID uint, req *UpdateRuleRequest) error {
 	var rule model.ChatRule
-	
+
 	// 查找规则
 	if err := s.db.WithContext(ctx).First(&rule, req.RuleID).Error; err != nil {
 		return fmt.Errorf("规则不存在: %w", err)
@@ -263,7 +263,7 @@ func (s *ChatAnnouncementService) UpdateRule(ctx context.Context, userID uint, r
 	// 如果要修改规则编号，检查是否冲突
 	if req.RuleNumber != nil && *req.RuleNumber != rule.RuleNumber {
 		var existingRule model.ChatRule
-		if err := s.db.WithContext(ctx).Where("chat_id = ? AND rule_number = ? AND is_active = ? AND id != ?", 
+		if err := s.db.WithContext(ctx).Where("chat_id = ? AND rule_number = ? AND is_active = ? AND id != ?",
 			rule.ChatID, *req.RuleNumber, true, req.RuleID).First(&existingRule).Error; err == nil {
 			return fmt.Errorf("规则编号 %d 已存在", *req.RuleNumber)
 		}
@@ -292,7 +292,7 @@ func (s *ChatAnnouncementService) UpdateRule(ctx context.Context, userID uint, r
 // DeleteRule 删除群组规则
 func (s *ChatAnnouncementService) DeleteRule(ctx context.Context, userID uint, ruleID uint) error {
 	var rule model.ChatRule
-	
+
 	// 查找规则
 	if err := s.db.WithContext(ctx).First(&rule, ruleID).Error; err != nil {
 		return fmt.Errorf("规则不存在: %w", err)
@@ -337,7 +337,7 @@ func (s *ChatAnnouncementService) GetChatRules(ctx context.Context, chatID uint,
 // PinAnnouncement 置顶公告
 func (s *ChatAnnouncementService) PinAnnouncement(ctx context.Context, userID uint, announcementID uint) error {
 	var announcement model.ChatAnnouncement
-	
+
 	// 查找公告
 	if err := s.db.WithContext(ctx).First(&announcement, announcementID).Error; err != nil {
 		return fmt.Errorf("公告不存在: %w", err)
@@ -350,7 +350,7 @@ func (s *ChatAnnouncementService) PinAnnouncement(ctx context.Context, userID ui
 
 	// 取消其他置顶公告
 	if err := s.db.WithContext(ctx).Model(&model.ChatAnnouncement{}).
-		Where("chat_id = ? AND is_pinned = ? AND is_active = ? AND id != ?", 
+		Where("chat_id = ? AND is_pinned = ? AND is_active = ? AND id != ?",
 			announcement.ChatID, true, true, announcementID).
 		Update("is_pinned", false).Error; err != nil {
 		return fmt.Errorf("取消其他置顶公告失败: %w", err)
@@ -367,7 +367,7 @@ func (s *ChatAnnouncementService) PinAnnouncement(ctx context.Context, userID ui
 // UnpinAnnouncement 取消置顶公告
 func (s *ChatAnnouncementService) UnpinAnnouncement(ctx context.Context, userID uint, announcementID uint) error {
 	var announcement model.ChatAnnouncement
-	
+
 	// 查找公告
 	if err := s.db.WithContext(ctx).First(&announcement, announcementID).Error; err != nil {
 		return fmt.Errorf("公告不存在: %w", err)

@@ -77,7 +77,7 @@ func (s *GroupManagementService) CreateInvite(req CreateInviteRequest) (*model.G
 	}
 
 	// 记录审计日志
-	s.logAudit(req.ChatID, req.CreatorID, "create_invite", "invite", invite.ID, 
+	s.logAudit(req.ChatID, req.CreatorID, "create_invite", "invite", invite.ID,
 		fmt.Sprintf("创建邀请链接: %s", inviteCode), "")
 
 	return &invite, nil
@@ -152,7 +152,7 @@ func (s *GroupManagementService) UseInvite(inviteCode string, userID uint, ipAdd
 	s.db.Model(&invite).Update("used_count", gorm.Expr("used_count + 1"))
 
 	// 记录审计日志
-	s.logAudit(invite.ChatID, userID, "use_invite", "invite", invite.ID, 
+	s.logAudit(invite.ChatID, userID, "use_invite", "invite", invite.ID,
 		fmt.Sprintf("使用邀请链接: %s", inviteCode), "")
 
 	return nil
@@ -167,10 +167,10 @@ func (s *GroupManagementService) RevokeInvite(inviteID, revokerID uint, reason s
 
 	now := time.Now()
 	updates := map[string]interface{}{
-		"is_revoked":     true,
-		"revoked_by":     revokerID,
-		"revoked_at":     now,
-		"revoke_reason":  reason,
+		"is_revoked":    true,
+		"revoked_by":    revokerID,
+		"revoked_at":    now,
+		"revoke_reason": reason,
 	}
 
 	if err := s.db.Model(&invite).Updates(updates).Error; err != nil {
@@ -178,7 +178,7 @@ func (s *GroupManagementService) RevokeInvite(inviteID, revokerID uint, reason s
 	}
 
 	// 记录审计日志
-	s.logAudit(invite.ChatID, revokerID, "revoke_invite", "invite", inviteID, 
+	s.logAudit(invite.ChatID, revokerID, "revoke_invite", "invite", inviteID,
 		fmt.Sprintf("撤销邀请: %s", reason), "")
 
 	return nil
@@ -218,7 +218,7 @@ func (s *GroupManagementService) ApproveJoinRequest(req ApproveJoinRequestReques
 	status := "rejected"
 	if req.Approved {
 		status = "approved"
-		
+
 		// 添加用户到群组
 		member := model.ChatMember{
 			ChatID: joinRequest.ChatID,
@@ -232,10 +232,10 @@ func (s *GroupManagementService) ApproveJoinRequest(req ApproveJoinRequestReques
 
 	// 更新申请状态
 	updates := map[string]interface{}{
-		"status":       status,
-		"reviewed_by":  req.ReviewerID,
-		"reviewed_at":  now,
-		"review_note":  req.ReviewNote,
+		"status":      status,
+		"reviewed_by": req.ReviewerID,
+		"reviewed_at": now,
+		"review_note": req.ReviewNote,
 	}
 	if err := s.db.Model(&joinRequest).Updates(updates).Error; err != nil {
 		return fmt.Errorf("更新申请状态失败: %v", err)
@@ -246,7 +246,7 @@ func (s *GroupManagementService) ApproveJoinRequest(req ApproveJoinRequestReques
 	if req.Approved {
 		action = "approve_join_request"
 	}
-	s.logAudit(joinRequest.ChatID, req.ReviewerID, action, "join_request", req.RequestID, 
+	s.logAudit(joinRequest.ChatID, req.ReviewerID, action, "join_request", req.RequestID,
 		fmt.Sprintf("审批入群申请: %s", req.ReviewNote), "")
 
 	return nil
@@ -283,68 +283,68 @@ func (s *GroupManagementService) InitializeAdminRoles() error {
 
 	// 超级管理员（群主）
 	owner := model.AdminRole{
-		Name:                 "owner",
-		DisplayName:          "群主",
-		Description:          "群组创建者，拥有所有权限",
-		Level:                100,
-		IsBuiltIn:            true,
-		IsEnabled:            true,
-		CanManageMembers:     true,
-		CanDeleteMessages:    true,
-		CanEditChat:          true,
-		CanInviteUsers:       true,
-		CanBanUsers:          true,
-		CanPromoteMembers:    true,
-		CanManagePermissions: true,
-		CanManageInvites:     true,
-		CanPinMessages:       true,
+		Name:                   "owner",
+		DisplayName:            "群主",
+		Description:            "群组创建者，拥有所有权限",
+		Level:                  100,
+		IsBuiltIn:              true,
+		IsEnabled:              true,
+		CanManageMembers:       true,
+		CanDeleteMessages:      true,
+		CanEditChat:            true,
+		CanInviteUsers:         true,
+		CanBanUsers:            true,
+		CanPromoteMembers:      true,
+		CanManagePermissions:   true,
+		CanManageInvites:       true,
+		CanPinMessages:         true,
 		CanManageAnnouncements: true,
-		CanViewStatistics:    true,
-		CanManageRoles:       true,
+		CanViewStatistics:      true,
+		CanManageRoles:         true,
 	}
 
 	// 管理员
 	admin := model.AdminRole{
-		Name:                 "admin",
-		DisplayName:          "管理员",
-		Description:          "群组管理员，拥有大部分管理权限",
-		Level:                80,
-		IsBuiltIn:            true,
-		IsEnabled:            true,
-		CanManageMembers:     true,
-		CanDeleteMessages:    true,
-		CanEditChat:          false,
-		CanInviteUsers:       true,
-		CanBanUsers:          true,
-		CanPromoteMembers:    false,
-		CanManagePermissions: false,
-		CanManageInvites:     true,
-		CanPinMessages:       true,
+		Name:                   "admin",
+		DisplayName:            "管理员",
+		Description:            "群组管理员，拥有大部分管理权限",
+		Level:                  80,
+		IsBuiltIn:              true,
+		IsEnabled:              true,
+		CanManageMembers:       true,
+		CanDeleteMessages:      true,
+		CanEditChat:            false,
+		CanInviteUsers:         true,
+		CanBanUsers:            true,
+		CanPromoteMembers:      false,
+		CanManagePermissions:   false,
+		CanManageInvites:       true,
+		CanPinMessages:         true,
 		CanManageAnnouncements: true,
-		CanViewStatistics:    true,
-		CanManageRoles:       false,
+		CanViewStatistics:      true,
+		CanManageRoles:         false,
 	}
 
 	// 协管员
 	moderator := model.AdminRole{
-		Name:                 "moderator",
-		DisplayName:          "协管员",
-		Description:          "群组协管员，拥有基础管理权限",
-		Level:                50,
-		IsBuiltIn:            true,
-		IsEnabled:            true,
-		CanManageMembers:     false,
-		CanDeleteMessages:    true,
-		CanEditChat:          false,
-		CanInviteUsers:       true,
-		CanBanUsers:          false,
-		CanPromoteMembers:    false,
-		CanManagePermissions: false,
-		CanManageInvites:     false,
-		CanPinMessages:       true,
+		Name:                   "moderator",
+		DisplayName:            "协管员",
+		Description:            "群组协管员，拥有基础管理权限",
+		Level:                  50,
+		IsBuiltIn:              true,
+		IsEnabled:              true,
+		CanManageMembers:       false,
+		CanDeleteMessages:      true,
+		CanEditChat:            false,
+		CanInviteUsers:         true,
+		CanBanUsers:            false,
+		CanPromoteMembers:      false,
+		CanManagePermissions:   false,
+		CanManageInvites:       false,
+		CanPinMessages:         true,
 		CanManageAnnouncements: false,
-		CanViewStatistics:    false,
-		CanManageRoles:       false,
+		CanViewStatistics:      false,
+		CanManageRoles:         false,
 	}
 
 	roles := []model.AdminRole{owner, admin, moderator}
@@ -367,7 +367,7 @@ func (s *GroupManagementService) PromoteMember(req PromoteAdminRequest) error {
 
 	// 检查是否已经是管理员
 	var existingAdmin model.ChatAdmin
-	if err := s.db.Where("chat_id = ? AND user_id = ? AND is_active = ?", 
+	if err := s.db.Where("chat_id = ? AND user_id = ? AND is_active = ?",
 		req.ChatID, req.UserID, true).First(&existingAdmin).Error; err == nil {
 		return errors.New("该用户已经是管理员")
 	}
@@ -387,7 +387,7 @@ func (s *GroupManagementService) PromoteMember(req PromoteAdminRequest) error {
 	}
 
 	// 记录审计日志
-	s.logAudit(req.ChatID, req.PromotedBy, "promote_member", "user", req.UserID, 
+	s.logAudit(req.ChatID, req.PromotedBy, "promote_member", "user", req.UserID,
 		fmt.Sprintf("提升为%s", role.DisplayName), "")
 
 	return nil
@@ -396,7 +396,7 @@ func (s *GroupManagementService) PromoteMember(req PromoteAdminRequest) error {
 // DemoteMember 降级管理员
 func (s *GroupManagementService) DemoteMember(chatID, userID, demotedBy uint) error {
 	var admin model.ChatAdmin
-	if err := s.db.Where("chat_id = ? AND user_id = ? AND is_active = ?", 
+	if err := s.db.Where("chat_id = ? AND user_id = ? AND is_active = ?",
 		chatID, userID, true).First(&admin).Error; err != nil {
 		return errors.New("该用户不是管理员")
 	}
@@ -406,7 +406,7 @@ func (s *GroupManagementService) DemoteMember(chatID, userID, demotedBy uint) er
 	}
 
 	// 记录审计日志
-	s.logAudit(chatID, demotedBy, "demote_member", "user", userID, 
+	s.logAudit(chatID, demotedBy, "demote_member", "user", userID,
 		"降级管理员", "")
 
 	return nil

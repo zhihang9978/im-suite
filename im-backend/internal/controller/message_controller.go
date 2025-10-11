@@ -319,4 +319,3 @@ func (c *MessageController) GetUnreadCount(ctx *gin.Context) {
 		"count":   count,
 	})
 }
-

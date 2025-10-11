@@ -39,11 +39,8 @@ func (s *StorageOptimizationService) cleanupExpiredData() {
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			s.performCleanup()
-		}
+	for range ticker.C {
+		s.performCleanup()
 	}
 }
 
@@ -163,4 +160,3 @@ func (s *StorageOptimizationService) CompressOldMessages(beforeDays int) error {
 	logrus.Infof("成功压缩 %d 条消息", result.RowsAffected)
 	return nil
 }
-

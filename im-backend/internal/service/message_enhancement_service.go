@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 	"zhihang-messenger/im-backend/internal/model"
-	
+
 	"gorm.io/gorm"
 )
 
@@ -39,30 +39,30 @@ type MarkMessageRequest struct {
 
 // ReplyMessageRequest 回复消息请求
 type ReplyMessageRequest struct {
-	MessageID    uint   `json:"message_id" binding:"required"`
-	ReplyToID    uint   `json:"reply_to_id" binding:"required"`
-	UserID       uint   `json:"user_id" binding:"required"`
-	Content      string `json:"content" binding:"required"`
-	MessageType  string `json:"message_type" default:"text"`
+	MessageID   uint   `json:"message_id" binding:"required"`
+	ReplyToID   uint   `json:"reply_to_id" binding:"required"`
+	UserID      uint   `json:"user_id" binding:"required"`
+	Content     string `json:"content" binding:"required"`
+	MessageType string `json:"message_type" default:"text"`
 }
 
 // ShareMessageRequest 分享消息请求
 type ShareMessageRequest struct {
 	MessageID      uint   `json:"message_id" binding:"required"`
 	UserID         uint   `json:"user_id" binding:"required"`
-	SharedTo       *uint  `json:"shared_to"` // 分享给用户
-	SharedToChatID *uint  `json:"shared_to_chat_id"` // 分享到群聊
+	SharedTo       *uint  `json:"shared_to"`                 // 分享给用户
+	SharedToChatID *uint  `json:"shared_to_chat_id"`         // 分享到群聊
 	ShareType      string `json:"share_type" default:"copy"` // copy, forward, link
-	ShareData      string `json:"share_data"` // 额外数据
+	ShareData      string `json:"share_data"`                // 额外数据
 }
 
 // UpdateMessageStatusRequest 更新消息状态请求
 type UpdateMessageStatusRequest struct {
-	MessageID  uint   `json:"message_id" binding:"required"`
-	UserID     uint   `json:"user_id" binding:"required"`
-	Status     string `json:"status" binding:"required"` // sent, delivered, read
-	DeviceID   string `json:"device_id"`
-	IPAddress  string `json:"ip_address"`
+	MessageID uint   `json:"message_id" binding:"required"`
+	UserID    uint   `json:"user_id" binding:"required"`
+	Status    string `json:"status" binding:"required"` // sent, delivered, read
+	DeviceID  string `json:"device_id"`
+	IPAddress string `json:"ip_address"`
 }
 
 // PinMessage 置顶消息
@@ -114,9 +114,9 @@ func (s *MessageEnhancementService) UnpinMessage(messageID, userID uint) error {
 	// 更新置顶记录
 	now := time.Now()
 	if err := s.db.Model(&pin).Updates(map[string]interface{}{
-		"is_active":   false,
-		"unpin_time":  now,
-		"unpin_by":    userID,
+		"is_active":  false,
+		"unpin_time": now,
+		"unpin_by":   userID,
 	}).Error; err != nil {
 		return fmt.Errorf("取消置顶失败: %v", err)
 	}
@@ -148,7 +148,7 @@ func (s *MessageEnhancementService) MarkMessage(req MarkMessageRequest) error {
 
 	// 检查是否已经标记
 	var existingMark model.MessageMark
-	if err := s.db.Where("message_id = ? AND mark_type = ? AND is_active = ?", 
+	if err := s.db.Where("message_id = ? AND mark_type = ? AND is_active = ?",
 		req.MessageID, req.MarkType, true).First(&existingMark).Error; err == nil {
 		return errors.New("消息已经标记")
 	}
@@ -183,7 +183,7 @@ func (s *MessageEnhancementService) MarkMessage(req MarkMessageRequest) error {
 func (s *MessageEnhancementService) UnmarkMessage(messageID, userID uint, markType string) error {
 	// 检查标记记录是否存在
 	var mark model.MessageMark
-	if err := s.db.Where("message_id = ? AND mark_type = ? AND is_active = ?", 
+	if err := s.db.Where("message_id = ? AND mark_type = ? AND is_active = ?",
 		messageID, markType, true).First(&mark).Error; err != nil {
 		return errors.New("消息未标记")
 	}
@@ -324,7 +324,7 @@ func (s *MessageEnhancementService) UpdateMessageStatus(req UpdateMessageStatusR
 
 	// 检查是否已存在该状态记录
 	var existingStatus model.MessageStatus
-	if err := s.db.Where("message_id = ? AND user_id = ? AND status = ?", 
+	if err := s.db.Where("message_id = ? AND user_id = ? AND status = ?",
 		req.MessageID, req.UserID, req.Status).First(&existingStatus).Error; err == nil {
 		return errors.New("状态已存在")
 	}
@@ -378,7 +378,7 @@ func (s *MessageEnhancementService) GetMessageReplyChain(messageID uint) ([]mode
 // GetPinnedMessages 获取置顶消息列表
 func (s *MessageEnhancementService) GetPinnedMessages(chatID uint, limit, offset int) ([]model.Message, error) {
 	var messages []model.Message
-	
+
 	query := s.db.Preload("Sender").Preload("ReplyTo").
 		Where("chat_id = ? AND is_pinned = ?", chatID, true).
 		Order("pin_time DESC")
@@ -400,10 +400,10 @@ func (s *MessageEnhancementService) GetPinnedMessages(chatID uint, limit, offset
 // GetMarkedMessages 获取标记消息列表
 func (s *MessageEnhancementService) GetMarkedMessages(userID uint, markType string, limit, offset int) ([]model.Message, error) {
 	var messages []model.Message
-	
+
 	query := s.db.Preload("Sender").Preload("ReplyTo").
 		Joins("JOIN message_marks ON messages.id = message_marks.message_id").
-		Where("message_marks.marked_by = ? AND message_marks.mark_type = ? AND message_marks.is_active = ?", 
+		Where("message_marks.marked_by = ? AND message_marks.mark_type = ? AND message_marks.is_active = ?",
 			userID, markType, true).
 		Order("message_marks.mark_time DESC")
 
@@ -424,7 +424,7 @@ func (s *MessageEnhancementService) GetMarkedMessages(userID uint, markType stri
 // GetMessageStatus 获取消息状态
 func (s *MessageEnhancementService) GetMessageStatus(messageID uint) ([]model.MessageStatus, error) {
 	var statuses []model.MessageStatus
-	
+
 	if err := s.db.Preload("User").Where("message_id = ?", messageID).
 		Order("status_time ASC").Find(&statuses).Error; err != nil {
 		return nil, fmt.Errorf("获取消息状态失败: %v", err)
@@ -436,7 +436,7 @@ func (s *MessageEnhancementService) GetMessageStatus(messageID uint) ([]model.Me
 // GetMessageShareHistory 获取消息分享历史
 func (s *MessageEnhancementService) GetMessageShareHistory(messageID uint, limit, offset int) ([]model.MessageShare, error) {
 	var shares []model.MessageShare
-	
+
 	query := s.db.Preload("ShareUser").Preload("SharedToUser").Preload("SharedToChat").
 		Where("message_id = ?", messageID).
 		Order("share_time DESC")

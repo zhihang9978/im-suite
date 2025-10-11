@@ -58,7 +58,7 @@ func TestMigrationIndexConstraints(t *testing.T) {
 		// 验证索引（SQLite特定查询）
 		for _, indexName := range indexes {
 			var count int64
-			err := db.Raw("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND tbl_name=? AND name LIKE ?", 
+			err := db.Raw("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND tbl_name=? AND name LIKE ?",
 				table, "%"+indexName+"%").Scan(&count).Error
 			if err != nil {
 				t.Errorf("查询索引失败 %s.%s: %v", table, indexName, err)
@@ -221,4 +221,3 @@ func TestMigrationPerformance(t *testing.T) {
 }
 
 // 注: BenchmarkMigration已在database_migration_test.go中定义，这里不重复
-

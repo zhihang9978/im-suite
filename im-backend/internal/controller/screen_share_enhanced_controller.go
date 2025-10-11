@@ -344,4 +344,3 @@ func (c *ScreenShareEnhancedController) RecordQualityChange(ctx *gin.Context) {
 		"message": "质量变更已记录",
 	})
 }
-

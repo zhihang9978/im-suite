@@ -54,10 +54,10 @@ type MessageKey struct {
 
 // SelfDestructLog 自毁日志
 type SelfDestructLog struct {
-	ID        uint      `gorm:"primaryKey" json:"id"`
-	MessageID uint      `gorm:"not null;index" json:"message_id"`
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	MessageID    uint      `gorm:"not null;index" json:"message_id"`
 	DestructTime time.Time `json:"destruct_time"`
-	Reason    string    `gorm:"type:varchar(255)" json:"reason"`
+	Reason       string    `gorm:"type:varchar(255)" json:"reason"`
 
 	// 关联
 	Message model.Message `gorm:"foreignKey:MessageID" json:"message,omitempty"`
@@ -66,7 +66,7 @@ type SelfDestructLog struct {
 // EncryptMessage 加密消息
 func (s *MessageEncryptionService) EncryptMessage(ctx context.Context, userID uint, req *EncryptMessageRequest) error {
 	var message model.Message
-	
+
 	// 查找消息
 	if err := s.db.WithContext(ctx).First(&message, req.MessageID).Error; err != nil {
 		return fmt.Errorf("消息不存在: %w", err)
@@ -98,7 +98,7 @@ func (s *MessageEncryptionService) EncryptMessage(ctx context.Context, userID ui
 	// 生成加密密钥
 	var encryptionKey []byte
 	var keyHash string
-	
+
 	if req.EncryptionType == "simple" {
 		// 简单加密：使用用户密码生成密钥
 		if req.Password == "" {
@@ -171,7 +171,7 @@ func (s *MessageEncryptionService) EncryptMessage(ctx context.Context, userID ui
 func (s *MessageEncryptionService) DecryptMessage(ctx context.Context, userID uint, req *DecryptMessageRequest) (string, error) {
 	var message model.Message
 	var messageKey MessageKey
-	
+
 	// 查找消息
 	if err := s.db.WithContext(ctx).Preload("Sender").First(&message, req.MessageID).Error; err != nil {
 		return "", fmt.Errorf("消息不存在: %w", err)
@@ -187,7 +187,7 @@ func (s *MessageEncryptionService) DecryptMessage(ctx context.Context, userID ui
 		// 检查是否为群成员
 		if message.ChatID != nil {
 			var chatMember model.ChatMember
-			if err := s.db.WithContext(ctx).Where("chat_id = ? AND user_id = ?", 
+			if err := s.db.WithContext(ctx).Where("chat_id = ? AND user_id = ?",
 				*message.ChatID, userID).First(&chatMember).Error; err != nil {
 				return "", fmt.Errorf("没有权限解密此消息")
 			}
@@ -230,7 +230,7 @@ func (s *MessageEncryptionService) ProcessSelfDestructMessages(ctx context.Conte
 	var messages []model.Message
 
 	// 查找到期的自毁消息
-	if err := s.db.WithContext(ctx).Where("is_self_destruct = ? AND self_destruct_time <= ?", 
+	if err := s.db.WithContext(ctx).Where("is_self_destruct = ? AND self_destruct_time <= ?",
 		true, now).Find(&messages).Error; err != nil {
 		return fmt.Errorf("查找自毁消息失败: %w", err)
 	}
@@ -259,10 +259,10 @@ func (s *MessageEncryptionService) ProcessSelfDestructMessages(ctx context.Conte
 
 		// 更新消息状态
 		if err := tx.Model(&message).Updates(map[string]interface{}{
-			"content":             "[消息已自毁]",
-			"is_self_destruct":    false,
-			"self_destruct_time":  nil,
-			"status":              "destroyed",
+			"content":            "[消息已自毁]",
+			"is_self_destruct":   false,
+			"self_destruct_time": nil,
+			"status":             "destroyed",
 		}).Error; err != nil {
 			tx.Rollback()
 			continue
@@ -281,7 +281,7 @@ func (s *MessageEncryptionService) ProcessSelfDestructMessages(ctx context.Conte
 func (s *MessageEncryptionService) GetEncryptedMessageInfo(ctx context.Context, messageID uint, userID uint) (map[string]interface{}, error) {
 	var message model.Message
 	var messageKey MessageKey
-	
+
 	// 查找消息
 	if err := s.db.WithContext(ctx).First(&message, messageID).Error; err != nil {
 		return nil, fmt.Errorf("消息不存在: %w", err)
@@ -291,7 +291,7 @@ func (s *MessageEncryptionService) GetEncryptedMessageInfo(ctx context.Context, 
 	if message.SenderID != userID && (message.ReceiverID == nil || *message.ReceiverID != userID) {
 		if message.ChatID != nil {
 			var chatMember model.ChatMember
-			if err := s.db.WithContext(ctx).Where("chat_id = ? AND user_id = ?", 
+			if err := s.db.WithContext(ctx).Where("chat_id = ? AND user_id = ?",
 				*message.ChatID, userID).First(&chatMember).Error; err != nil {
 				return nil, fmt.Errorf("没有权限访问此消息")
 			}
@@ -301,10 +301,10 @@ func (s *MessageEncryptionService) GetEncryptedMessageInfo(ctx context.Context, 
 	}
 
 	info := map[string]interface{}{
-		"is_encrypted":      message.IsEncrypted,
-		"is_self_destruct":  message.IsSelfDestruct,
-		"message_type":      message.MessageType,
-		"created_at":        message.CreatedAt,
+		"is_encrypted":     message.IsEncrypted,
+		"is_self_destruct": message.IsSelfDestruct,
+		"message_type":     message.MessageType,
+		"created_at":       message.CreatedAt,
 	}
 
 	if message.IsEncrypted {
@@ -315,7 +315,7 @@ func (s *MessageEncryptionService) GetEncryptedMessageInfo(ctx context.Context, 
 
 	if message.IsSelfDestruct && message.SelfDestructTime != nil {
 		info["self_destruct_time"] = message.SelfDestructTime
-		info["time_remaining"] = message.SelfDestructTime.Sub(time.Now()).Seconds()
+		info["time_remaining"] = time.Until(*message.SelfDestructTime).Seconds()
 	}
 
 	return info, nil
@@ -383,7 +383,7 @@ func (s *MessageEncryptionService) decryptContent(encryptedContent string, key [
 // SetMessageSelfDestruct 设置消息自毁时间
 func (s *MessageEncryptionService) SetMessageSelfDestruct(ctx context.Context, messageID uint, userID uint, destructTime int) error {
 	var message model.Message
-	
+
 	// 查找消息
 	if err := s.db.WithContext(ctx).First(&message, messageID).Error; err != nil {
 		return fmt.Errorf("消息不存在: %w", err)

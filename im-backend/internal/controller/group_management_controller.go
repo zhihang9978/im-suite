@@ -160,7 +160,7 @@ func (c *GroupManagementController) DemoteMember(ctx *gin.Context) {
 	userID, _ := ctx.Get("user_id")
 	chatIDStr := ctx.Param("chat_id")
 	targetUserIDStr := ctx.Param("user_id")
-	
+
 	chatID, _ := strconv.ParseUint(chatIDStr, 10, 32)
 	targetUserID, _ := strconv.ParseUint(targetUserIDStr, 10, 32)
 

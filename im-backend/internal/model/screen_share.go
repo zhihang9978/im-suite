@@ -76,15 +76,15 @@ type ScreenShareStatistics struct {
 	UpdatedAt time.Time `json:"updated_at"`
 
 	UserID             uint       `json:"user_id" gorm:"index:idx_screen_share_stats_user,unique;not null"` // 用户ID
-	TotalSessions      int64      `json:"total_sessions"`                      // 总共享次数
-	TotalDuration      int64      `json:"total_duration"`                      // 总共享时长（秒）
-	AverageDuration    float64    `json:"average_duration"`                    // 平均时长（秒）
-	TotalParticipants  int64      `json:"total_participants"`                  // 总参与人次
-	HighQualityCount   int64      `json:"high_quality_count"`                  // 高清次数
-	MediumQualityCount int64      `json:"medium_quality_count"`                // 标准次数
-	LowQualityCount    int64      `json:"low_quality_count"`                   // 流畅次数
-	WithAudioCount     int64      `json:"with_audio_count"`                    // 包含音频次数
-	LastShareTime      *time.Time `json:"last_share_time"`                     // 最后共享时间
+	TotalSessions      int64      `json:"total_sessions"`                                                   // 总共享次数
+	TotalDuration      int64      `json:"total_duration"`                                                   // 总共享时长（秒）
+	AverageDuration    float64    `json:"average_duration"`                                                 // 平均时长（秒）
+	TotalParticipants  int64      `json:"total_participants"`                                               // 总参与人次
+	HighQualityCount   int64      `json:"high_quality_count"`                                               // 高清次数
+	MediumQualityCount int64      `json:"medium_quality_count"`                                             // 标准次数
+	LowQualityCount    int64      `json:"low_quality_count"`                                                // 流畅次数
+	WithAudioCount     int64      `json:"with_audio_count"`                                                 // 包含音频次数
+	LastShareTime      *time.Time `json:"last_share_time"`                                                  // 最后共享时间
 
 	// 关联关系
 	User User `json:"user" gorm:"foreignKey:UserID"`
@@ -135,4 +135,3 @@ func (ScreenShareStatistics) TableName() string {
 func (ScreenShareRecording) TableName() string {
 	return "screen_share_recordings"
 }
-

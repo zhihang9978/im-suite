@@ -119,9 +119,9 @@ func (s *SuperAdminService) GetSystemStats() (*SystemStats, error) {
 func (s *SuperAdminService) GetUserList(page, pageSize int, username, phone, status string) ([]model.User, int64, error) {
 	var users []model.User
 	var total int64
-	
+
 	query := s.db.Model(&model.User{})
-	
+
 	// 搜索条件
 	if username != "" {
 		query = query.Where("username LIKE ?", "%"+username+"%")
@@ -134,12 +134,12 @@ func (s *SuperAdminService) GetUserList(page, pageSize int, username, phone, sta
 	} else if status == "offline" {
 		query = query.Where("online = ?", false)
 	}
-	
+
 	// 统计总数
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("统计用户数失败: %w", err)
 	}
-	
+
 	// 分页查询
 	offset := (page - 1) * pageSize
 	if err := query.
@@ -149,7 +149,7 @@ func (s *SuperAdminService) GetUserList(page, pageSize int, username, phone, sta
 		Find(&users).Error; err != nil {
 		return nil, 0, fmt.Errorf("查询用户列表失败: %w", err)
 	}
-	
+
 	return users, total, nil
 }
 

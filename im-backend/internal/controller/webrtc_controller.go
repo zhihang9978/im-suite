@@ -283,4 +283,3 @@ func (c *WebRTCController) ChangeScreenShareQuality(ctx *gin.Context) {
 		"message": "屏幕共享质量已更改为: " + req.Quality,
 	})
 }
-

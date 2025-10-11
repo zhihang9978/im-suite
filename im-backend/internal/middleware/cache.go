@@ -56,11 +56,11 @@ func CacheMiddleware(ttl time.Duration) gin.HandlerFunc {
 			// 复制数据避免竞态条件
 			cacheData := make([]byte, len(blw.body))
 			copy(cacheData, blw.body)
-			
+
 			go func() {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
-				
+
 				if err := config.Redis.Set(ctx, cacheKey, cacheData, ttl).Err(); err != nil {
 					// 缓存写入失败不影响主流程，只记录日志
 					// logrus.Debugf("缓存写入失败: %v", err)

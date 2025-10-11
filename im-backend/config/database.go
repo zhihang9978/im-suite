@@ -42,10 +42,10 @@ func InitDatabase() error {
 	}
 
 	// 设置连接池参数
-	sqlDB.SetMaxIdleConns(10)                          // 空闲连接数
-	sqlDB.SetMaxOpenConns(100)                         // 最大连接数
-	sqlDB.SetConnMaxLifetime(30 * time.Minute)         // 连接最大生命周期：30分钟
-	sqlDB.SetConnMaxIdleTime(10 * time.Minute)         // 空闲连接超时：10分钟
+	sqlDB.SetMaxIdleConns(10)                  // 空闲连接数
+	sqlDB.SetMaxOpenConns(100)                 // 最大连接数
+	sqlDB.SetConnMaxLifetime(30 * time.Minute) // 连接最大生命周期：30分钟
+	sqlDB.SetConnMaxIdleTime(10 * time.Minute) // 空闲连接超时：10分钟
 
 	return nil
 }

@@ -19,7 +19,7 @@ func TestMigrationOrder(t *testing.T) {
 		t.Skipf("跳过测试: SQLite需要CGO支持 (CGO_ENABLED=0): %v", err)
 		return
 	}
-	
+
 	t.Log("测试数据库迁移顺序...")
 
 	// 执行迁移

@@ -23,44 +23,44 @@ func NewChatStatisticsService(db *gorm.DB) *ChatStatisticsService {
 
 // StatisticsRequest 统计请求
 type StatisticsRequest struct {
-	ChatID    uint      `json:"chat_id" binding:"required"`
-	DateFrom  *time.Time `json:"date_from,omitempty"`
-	DateTo    *time.Time `json:"date_to,omitempty"`
-	GroupBy   string    `json:"group_by,omitempty"` // hour, day, week, month
+	ChatID   uint       `json:"chat_id" binding:"required"`
+	DateFrom *time.Time `json:"date_from,omitempty"`
+	DateTo   *time.Time `json:"date_to,omitempty"`
+	GroupBy  string     `json:"group_by,omitempty"` // hour, day, week, month
 }
 
 // StatisticsResponse 统计响应
 type StatisticsResponse struct {
-	ChatID                uint                    `json:"chat_id"`
-	TotalMembers          int64                   `json:"total_members"`
-	ActiveMembers         int64                   `json:"active_members"`
-	TotalMessages         int64                   `json:"total_messages"`
-	MessagesToday         int64                   `json:"messages_today"`
-	MessagesThisWeek      int64                   `json:"messages_this_week"`
-	MessagesThisMonth     int64                   `json:"messages_this_month"`
-	TotalFiles            int64                   `json:"total_files"`
-	TotalImages           int64                   `json:"total_images"`
-	TotalVideos           int64                   `json:"total_videos"`
-	TotalAudios           int64                   `json:"total_audios"`
-	TotalVoiceCalls       int                     `json:"total_voice_calls"`
-	TotalVideoCalls       int                     `json:"total_video_calls"`
-	AverageMessageLength  float64                 `json:"average_message_length"`
-	PeakActivityHour      int                     `json:"peak_activity_hour"`
-	LastActivityAt        time.Time               `json:"last_activity_at"`
-	MessageTrends         []MessageTrendData      `json:"message_trends,omitempty"`
-	MemberActivity        []MemberActivityData    `json:"member_activity,omitempty"`
-	MessageTypeDistribution []MessageTypeData     `json:"message_type_distribution,omitempty"`
-	TopActiveMembers      []TopMemberData         `json:"top_active_members,omitempty"`
+	ChatID                  uint                 `json:"chat_id"`
+	TotalMembers            int64                `json:"total_members"`
+	ActiveMembers           int64                `json:"active_members"`
+	TotalMessages           int64                `json:"total_messages"`
+	MessagesToday           int64                `json:"messages_today"`
+	MessagesThisWeek        int64                `json:"messages_this_week"`
+	MessagesThisMonth       int64                `json:"messages_this_month"`
+	TotalFiles              int64                `json:"total_files"`
+	TotalImages             int64                `json:"total_images"`
+	TotalVideos             int64                `json:"total_videos"`
+	TotalAudios             int64                `json:"total_audios"`
+	TotalVoiceCalls         int                  `json:"total_voice_calls"`
+	TotalVideoCalls         int                  `json:"total_video_calls"`
+	AverageMessageLength    float64              `json:"average_message_length"`
+	PeakActivityHour        int                  `json:"peak_activity_hour"`
+	LastActivityAt          time.Time            `json:"last_activity_at"`
+	MessageTrends           []MessageTrendData   `json:"message_trends,omitempty"`
+	MemberActivity          []MemberActivityData `json:"member_activity,omitempty"`
+	MessageTypeDistribution []MessageTypeData    `json:"message_type_distribution,omitempty"`
+	TopActiveMembers        []TopMemberData      `json:"top_active_members,omitempty"`
 }
 
 // MessageTrendData 消息趋势数据
 type MessageTrendData struct {
-	Date      string `json:"date"`
-	Count     int    `json:"count"`
-	Hour      *int   `json:"hour,omitempty"`
-	Day       *int   `json:"day,omitempty"`
-	Week      *int   `json:"week,omitempty"`
-	Month     *int   `json:"month,omitempty"`
+	Date  string `json:"date"`
+	Count int    `json:"count"`
+	Hour  *int   `json:"hour,omitempty"`
+	Day   *int   `json:"day,omitempty"`
+	Week  *int   `json:"week,omitempty"`
+	Month *int   `json:"month,omitempty"`
 }
 
 // MemberActivityData 成员活跃度数据
@@ -75,8 +75,8 @@ type MemberActivityData struct {
 
 // MessageTypeData 消息类型分布数据
 type MessageTypeData struct {
-	MessageType string `json:"message_type"`
-	Count       int    `json:"count"`
+	MessageType string  `json:"message_type"`
+	Count       int     `json:"count"`
 	Percentage  float64 `json:"percentage"`
 }
 
@@ -175,22 +175,22 @@ func (s *ChatStatisticsService) UpdateChatStatistics(ctx context.Context, chatID
 
 	// 更新统计信息
 	updates := map[string]interface{}{
-		"total_members":            stats.TotalMembers,
-		"active_members":           stats.ActiveMembers,
-		"total_messages":           stats.TotalMessages,
-		"messages_today":           stats.MessagesToday,
-		"messages_this_week":       stats.MessagesThisWeek,
-		"messages_this_month":      stats.MessagesThisMonth,
-		"total_files":              stats.TotalFiles,
-		"total_images":             stats.TotalImages,
-		"total_videos":             stats.TotalVideos,
-		"total_audios":             stats.TotalAudios,
-		"total_voice_calls":        stats.TotalVoiceCalls,
-		"total_video_calls":        stats.TotalVideoCalls,
-		"average_message_length":   stats.AverageMessageLength,
-		"peak_activity_hour":       stats.PeakActivityHour,
-		"last_activity_at":         stats.LastActivityAt,
-		"updated_at":               time.Now(),
+		"total_members":          stats.TotalMembers,
+		"active_members":         stats.ActiveMembers,
+		"total_messages":         stats.TotalMessages,
+		"messages_today":         stats.MessagesToday,
+		"messages_this_week":     stats.MessagesThisWeek,
+		"messages_this_month":    stats.MessagesThisMonth,
+		"total_files":            stats.TotalFiles,
+		"total_images":           stats.TotalImages,
+		"total_videos":           stats.TotalVideos,
+		"total_audios":           stats.TotalAudios,
+		"total_voice_calls":      stats.TotalVoiceCalls,
+		"total_video_calls":      stats.TotalVideoCalls,
+		"average_message_length": stats.AverageMessageLength,
+		"peak_activity_hour":     stats.PeakActivityHour,
+		"last_activity_at":       stats.LastActivityAt,
+		"updated_at":             time.Now(),
 	}
 
 	if chatStats.ID == 0 {
@@ -259,13 +259,13 @@ func (s *ChatStatisticsService) calculateBasicStatistics(ctx context.Context, ch
 		Count(&stats.MessagesToday)
 
 	// 计算本周消息数
-	weekStart := time.Now().Truncate(24 * time.Hour).AddDate(0, 0, -int(time.Now().Weekday()))
+	weekStart := time.Now().Truncate(24*time.Hour).AddDate(0, 0, -int(time.Now().Weekday()))
 	s.db.WithContext(ctx).Model(&model.Message{}).
 		Where("chat_id = ? AND created_at >= ? AND is_recalled = ?", chatID, weekStart, false).
 		Count(&stats.MessagesThisWeek)
 
 	// 计算本月消息数
-	monthStart := time.Now().Truncate(24 * time.Hour).AddDate(0, 0, -time.Now().Day()+1)
+	monthStart := time.Now().Truncate(24*time.Hour).AddDate(0, 0, -time.Now().Day()+1)
 	s.db.WithContext(ctx).Model(&model.Message{}).
 		Where("chat_id = ? AND created_at >= ? AND is_recalled = ?", chatID, monthStart, false).
 		Count(&stats.MessagesThisMonth)
@@ -451,7 +451,7 @@ func (s *ChatStatisticsService) getMemberActivity(ctx context.Context, chatID ui
 		var member MemberActivityData
 		var lastActive, joinDate time.Time
 
-		if err := rows.Scan(&member.UserID, &member.Username, &member.Nickname, 
+		if err := rows.Scan(&member.UserID, &member.Username, &member.Nickname,
 			&member.MessageCount, &lastActive, &joinDate); err != nil {
 			return nil, fmt.Errorf("扫描成员活跃度数据失败: %w", err)
 		}
@@ -482,7 +482,7 @@ func (s *ChatStatisticsService) getMessageTypeDistribution(ctx context.Context, 
 	// 获取总数
 	var total int64
 	s.db.WithContext(ctx).Model(&model.Message{}).
-		Where("chat_id = ? AND created_at >= ? AND created_at <= ? AND is_recalled = ?", 
+		Where("chat_id = ? AND created_at >= ? AND created_at <= ? AND is_recalled = ?",
 			chatID, *dateFrom, *dateTo, false).
 		Count(&total)
 

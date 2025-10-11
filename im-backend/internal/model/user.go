@@ -16,9 +16,9 @@ type User struct {
 	// 基本信息
 	Phone    string `json:"phone" gorm:"type:varchar(20);index:idx_users_phone,unique;not null"` // 手机号
 	Username string `json:"username" gorm:"type:varchar(50);index:idx_users_username,unique"`    // 用户名
-	Nickname string `json:"nickname" gorm:"type:varchar(100)"`                  // 昵称
-	Bio      string `json:"bio" gorm:"type:varchar(500)"`                       // 个人简介
-	Avatar   string `json:"avatar" gorm:"type:varchar(255)"`                    // 头像URL
+	Nickname string `json:"nickname" gorm:"type:varchar(100)"`                                   // 昵称
+	Bio      string `json:"bio" gorm:"type:varchar(500)"`                                        // 个人简介
+	Avatar   string `json:"avatar" gorm:"type:varchar(255)"`                                     // 头像URL
 
 	// 认证信息
 	Password string `json:"-" gorm:"not null"` // 密码(加密)
@@ -79,12 +79,12 @@ type Session struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 
-	UserID    uint      `json:"user_id" gorm:"not null"`                                        // 用户ID
+	UserID    uint      `json:"user_id" gorm:"not null"`                                                 // 用户ID
 	Token     string    `json:"token" gorm:"type:varchar(255);index:idx_sessions_token,unique;not null"` // 会话令牌
-	Device    string    `json:"device" gorm:"type:varchar(100)"`                                // 设备信息
-	IP        string    `json:"ip" gorm:"type:varchar(45)"`                          // IP地址
-	UserAgent string    `json:"user_agent" gorm:"type:varchar(500)"`                 // 用户代理
-	ExpiresAt time.Time `json:"expires_at"`                                          // 过期时间
+	Device    string    `json:"device" gorm:"type:varchar(100)"`                                         // 设备信息
+	IP        string    `json:"ip" gorm:"type:varchar(45)"`                                              // IP地址
+	UserAgent string    `json:"user_agent" gorm:"type:varchar(500)"`                                     // 用户代理
+	ExpiresAt time.Time `json:"expires_at"`                                                              // 过期时间
 
 	// 关联关系
 	User User `json:"user" gorm:"foreignKey:UserID"`

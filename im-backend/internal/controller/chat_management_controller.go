@@ -11,10 +11,10 @@ import (
 
 // ChatManagementController 群组管理控制器
 type ChatManagementController struct {
-	permissionService    *service.ChatPermissionService
-	announcementService  *service.ChatAnnouncementService
-	statisticsService    *service.ChatStatisticsService
-	backupService        *service.ChatBackupService
+	permissionService   *service.ChatPermissionService
+	announcementService *service.ChatAnnouncementService
+	statisticsService   *service.ChatStatisticsService
+	backupService       *service.ChatBackupService
 }
 
 // NewChatManagementController 创建群组管理控制器
@@ -91,7 +91,7 @@ func (c *ChatManagementController) MuteMember(ctx *gin.Context) {
 func (c *ChatManagementController) UnmuteMember(ctx *gin.Context) {
 	chatIDStr := ctx.Param("chat_id")
 	userIDStr := ctx.Param("user_id")
-	
+
 	chatID, err := strconv.ParseUint(chatIDStr, 10, 32)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的群组ID"})
@@ -134,7 +134,7 @@ func (c *ChatManagementController) BanMember(ctx *gin.Context) {
 func (c *ChatManagementController) UnbanMember(ctx *gin.Context) {
 	chatIDStr := ctx.Param("chat_id")
 	userIDStr := ctx.Param("user_id")
-	
+
 	chatID, err := strconv.ParseUint(chatIDStr, 10, 32)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的群组ID"})
@@ -177,7 +177,7 @@ func (c *ChatManagementController) PromoteMember(ctx *gin.Context) {
 func (c *ChatManagementController) DemoteMember(ctx *gin.Context) {
 	chatIDStr := ctx.Param("chat_id")
 	userIDStr := ctx.Param("user_id")
-	
+
 	chatID, err := strconv.ParseUint(chatIDStr, 10, 32)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的群组ID"})

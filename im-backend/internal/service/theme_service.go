@@ -24,29 +24,29 @@ func NewThemeService(db *gorm.DB) *ThemeService {
 
 // CreateThemeRequest 创建主题请求
 type CreateThemeRequest struct {
-	Name               string  `json:"name" binding:"required"`
-	DisplayName        string  `json:"display_name" binding:"required"`
-	Description        string  `json:"description"`
-	ThemeType          string  `json:"theme_type" binding:"required"` // light, dark, auto
-	PrimaryColor       string  `json:"primary_color"`
-	SecondaryColor     string  `json:"secondary_color"`
-	AccentColor        string  `json:"accent_color"`
-	BackgroundColor    string  `json:"background_color"`
-	SurfaceColor       string  `json:"surface_color"`
-	TextPrimaryColor   string  `json:"text_primary_color"`
-	TextSecondaryColor string  `json:"text_secondary_color"`
-	BorderColor        string  `json:"border_color"`
-	ErrorColor         string  `json:"error_color"`
-	SuccessColor       string  `json:"success_color"`
-	WarningColor       string  `json:"warning_color"`
-	BorderRadius       string  `json:"border_radius"`
-	Spacing            string  `json:"spacing"`
-	FontSize           string  `json:"font_size"`
-	FontFamily         string  `json:"font_family"`
+	Name                string `json:"name" binding:"required"`
+	DisplayName         string `json:"display_name" binding:"required"`
+	Description         string `json:"description"`
+	ThemeType           string `json:"theme_type" binding:"required"` // light, dark, auto
+	PrimaryColor        string `json:"primary_color"`
+	SecondaryColor      string `json:"secondary_color"`
+	AccentColor         string `json:"accent_color"`
+	BackgroundColor     string `json:"background_color"`
+	SurfaceColor        string `json:"surface_color"`
+	TextPrimaryColor    string `json:"text_primary_color"`
+	TextSecondaryColor  string `json:"text_secondary_color"`
+	BorderColor         string `json:"border_color"`
+	ErrorColor          string `json:"error_color"`
+	SuccessColor        string `json:"success_color"`
+	WarningColor        string `json:"warning_color"`
+	BorderRadius        string `json:"border_radius"`
+	Spacing             string `json:"spacing"`
+	FontSize            string `json:"font_size"`
+	FontFamily          string `json:"font_family"`
 	MessageBubbleRadius string `json:"message_bubble_radius"`
-	CustomCSS          string  `json:"custom_css"`
-	Preview            string  `json:"preview"`
-	CreatorID          uint    `json:"creator_id"`
+	CustomCSS           string `json:"custom_css"`
+	Preview             string `json:"preview"`
+	CreatorID           uint   `json:"creator_id"`
 }
 
 // UpdateUserThemeRequest 更新用户主题设置请求
@@ -154,7 +154,7 @@ func (s *ThemeService) UpdateUserTheme(req UpdateUserThemeRequest) (*model.UserT
 	// 查找或创建用户主题设置
 	var setting model.UserThemeSetting
 	err := s.db.Where("user_id = ?", req.UserID).First(&setting).Error
-	
+
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// 创建新设置
@@ -185,21 +185,21 @@ func (s *ThemeService) UpdateUserTheme(req UpdateUserThemeRequest) (*model.UserT
 	} else {
 		// 更新现有设置
 		updates := map[string]interface{}{
-			"theme_id":                 req.ThemeID,
-			"auto_dark_mode":           req.AutoDarkMode,
-			"dark_mode_start":          req.DarkModeStart,
-			"dark_mode_end":            req.DarkModeEnd,
-			"follow_system":            req.FollowSystem,
-			"custom_primary_color":     req.CustomPrimaryColor,
-			"custom_background_color":  req.CustomBackgroundColor,
-			"custom_font_size":         req.CustomFontSize,
-			"custom_message_bubble":    req.CustomMessageBubble,
-			"enable_animations":        req.EnableAnimations,
-			"reduced_motion":           req.ReducedMotion,
-			"animation_speed":          req.AnimationSpeed,
-			"compact_mode":             req.CompactMode,
-			"show_avatars":             req.ShowAvatars,
-			"message_grouping":         req.MessageGrouping,
+			"theme_id":                req.ThemeID,
+			"auto_dark_mode":          req.AutoDarkMode,
+			"dark_mode_start":         req.DarkModeStart,
+			"dark_mode_end":           req.DarkModeEnd,
+			"follow_system":           req.FollowSystem,
+			"custom_primary_color":    req.CustomPrimaryColor,
+			"custom_background_color": req.CustomBackgroundColor,
+			"custom_font_size":        req.CustomFontSize,
+			"custom_message_bubble":   req.CustomMessageBubble,
+			"enable_animations":       req.EnableAnimations,
+			"reduced_motion":          req.ReducedMotion,
+			"animation_speed":         req.AnimationSpeed,
+			"compact_mode":            req.CompactMode,
+			"show_avatars":            req.ShowAvatars,
+			"message_grouping":        req.MessageGrouping,
 		}
 		if err := s.db.Model(&setting).Updates(updates).Error; err != nil {
 			return nil, fmt.Errorf("更新用户主题设置失败: %v", err)
@@ -219,7 +219,7 @@ func (s *ThemeService) UpdateUserTheme(req UpdateUserThemeRequest) (*model.UserT
 func (s *ThemeService) GetUserTheme(userID uint) (*model.UserThemeSetting, error) {
 	var setting model.UserThemeSetting
 	err := s.db.Preload("Theme").Where("user_id = ?", userID).First(&setting).Error
-	
+
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// 返回默认主题

@@ -38,16 +38,16 @@ type RestoreBackupRequest struct {
 
 // BackupData 备份数据结构
 type BackupData struct {
-	ChatInfo     *model.Chat                    `json:"chat_info,omitempty"`
-	Members      []model.ChatMember             `json:"members,omitempty"`
-	Messages     []model.Message                `json:"messages,omitempty"`
-	Announcements []model.ChatAnnouncement      `json:"announcements,omitempty"`
-	Rules        []model.ChatRule               `json:"rules,omitempty"`
-	Permissions  *model.ChatPermission          `json:"permissions,omitempty"`
-	Statistics   *model.ChatStatistics          `json:"statistics,omitempty"`
-	CreatedAt    time.Time                      `json:"created_at"`
-	CreatedBy    uint                           `json:"created_by"`
-	BackupType   string                         `json:"backup_type"`
+	ChatInfo      *model.Chat              `json:"chat_info,omitempty"`
+	Members       []model.ChatMember       `json:"members,omitempty"`
+	Messages      []model.Message          `json:"messages,omitempty"`
+	Announcements []model.ChatAnnouncement `json:"announcements,omitempty"`
+	Rules         []model.ChatRule         `json:"rules,omitempty"`
+	Permissions   *model.ChatPermission    `json:"permissions,omitempty"`
+	Statistics    *model.ChatStatistics    `json:"statistics,omitempty"`
+	CreatedAt     time.Time                `json:"created_at"`
+	CreatedBy     uint                     `json:"created_by"`
+	BackupType    string                   `json:"backup_type"`
 }
 
 // CreateBackup 创建群组备份
@@ -182,7 +182,7 @@ func (s *ChatBackupService) GetBackupList(ctx context.Context, chatID uint, user
 // DeleteBackup 删除备份
 func (s *ChatBackupService) DeleteBackup(ctx context.Context, userID uint, backupID uint) error {
 	var backup model.ChatBackup
-	
+
 	// 查找备份记录
 	if err := s.db.WithContext(ctx).First(&backup, backupID).Error; err != nil {
 		return fmt.Errorf("备份不存在: %w", err)
@@ -209,7 +209,7 @@ func (s *ChatBackupService) DeleteBackup(ctx context.Context, userID uint, backu
 // CleanupExpiredBackups 清理过期备份（定时任务调用）
 func (s *ChatBackupService) CleanupExpiredBackups(ctx context.Context) error {
 	now := time.Now()
-	
+
 	if err := s.db.WithContext(ctx).Where("expires_at IS NOT NULL AND expires_at <= ?", now).
 		Delete(&model.ChatBackup{}).Error; err != nil {
 		return fmt.Errorf("清理过期备份失败: %w", err)
@@ -386,21 +386,21 @@ func (s *ChatBackupService) restoreFullBackup(tx *gorm.DB, chatID uint, backupDa
 		} else {
 			// 更新现有权限配置
 			if err := tx.Model(&permission).Updates(map[string]interface{}{
-				"can_send_messages":       backupData.Permissions.CanSendMessages,
-				"can_send_media":          backupData.Permissions.CanSendMedia,
-				"can_send_stickers":       backupData.Permissions.CanSendStickers,
-				"can_send_polls":          backupData.Permissions.CanSendPolls,
-				"can_change_info":         backupData.Permissions.CanChangeInfo,
-				"can_invite_users":        backupData.Permissions.CanInviteUsers,
-				"can_pin_messages":        backupData.Permissions.CanPinMessages,
-				"can_delete_messages":     backupData.Permissions.CanDeleteMessages,
-				"can_edit_messages":       backupData.Permissions.CanEditMessages,
-				"can_manage_chat":         backupData.Permissions.CanManageChat,
-				"can_manage_voice_chats":  backupData.Permissions.CanManageVoiceChats,
-				"can_restrict_members":    backupData.Permissions.CanRestrictMembers,
-				"can_promote_members":     backupData.Permissions.CanPromoteMembers,
-				"can_add_admins":          backupData.Permissions.CanAddAdmins,
-				"updated_at":              time.Now(),
+				"can_send_messages":      backupData.Permissions.CanSendMessages,
+				"can_send_media":         backupData.Permissions.CanSendMedia,
+				"can_send_stickers":      backupData.Permissions.CanSendStickers,
+				"can_send_polls":         backupData.Permissions.CanSendPolls,
+				"can_change_info":        backupData.Permissions.CanChangeInfo,
+				"can_invite_users":       backupData.Permissions.CanInviteUsers,
+				"can_pin_messages":       backupData.Permissions.CanPinMessages,
+				"can_delete_messages":    backupData.Permissions.CanDeleteMessages,
+				"can_edit_messages":      backupData.Permissions.CanEditMessages,
+				"can_manage_chat":        backupData.Permissions.CanManageChat,
+				"can_manage_voice_chats": backupData.Permissions.CanManageVoiceChats,
+				"can_restrict_members":   backupData.Permissions.CanRestrictMembers,
+				"can_promote_members":    backupData.Permissions.CanPromoteMembers,
+				"can_add_admins":         backupData.Permissions.CanAddAdmins,
+				"updated_at":             time.Now(),
 			}).Error; err != nil {
 				return fmt.Errorf("更新权限配置失败: %w", err)
 			}
@@ -414,18 +414,18 @@ func (s *ChatBackupService) restoreFullBackup(tx *gorm.DB, chatID uint, backupDa
 func (s *ChatBackupService) restoreMessagesBackup(tx *gorm.DB, chatID uint, backupData *BackupData) error {
 	// 注意：消息恢复需要谨慎处理，避免重复消息
 	// 使用批量插入，忽略重复消息（基于消息ID去重）
-	
+
 	if len(backupData.Messages) == 0 {
 		return nil // 无消息需要恢复
 	}
-	
+
 	// 批量恢复消息
 	for i := range backupData.Messages {
 		msg := &backupData.Messages[i]
 		msg.ID = 0 // 重置ID，让数据库自动分配
 		msg.ChatID = &chatID
 		msg.CreatedAt = time.Now()
-		
+
 		// 检查是否已存在（基于原始消息内容和时间戳去重）
 		var existingMsg model.Message
 		err := tx.Where("chat_id = ? AND content = ? AND sender_id = ?", chatID, msg.Content, msg.SenderID).First(&existingMsg).Error
@@ -437,7 +437,7 @@ func (s *ChatBackupService) restoreMessagesBackup(tx *gorm.DB, chatID uint, back
 		}
 		// 已存在则跳过
 	}
-	
+
 	return nil
 }
 

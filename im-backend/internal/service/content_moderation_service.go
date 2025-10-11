@@ -25,12 +25,12 @@ func NewContentModerationService(db *gorm.DB) *ContentModerationService {
 
 // ReportContentRequest 举报内容请求
 type ReportContentRequest struct {
-	ContentType   string `json:"content_type" binding:"required"` // message, user, chat, file
-	ContentID     uint   `json:"content_id" binding:"required"`
-	ContentUserID uint   `json:"content_user_id" binding:"required"`
-	ReporterID    uint   `json:"reporter_id" binding:"required"`
-	ReportReason  string `json:"report_reason" binding:"required"`
-	ReportDetail  string `json:"report_detail"`
+	ContentType    string `json:"content_type" binding:"required"` // message, user, chat, file
+	ContentID      uint   `json:"content_id" binding:"required"`
+	ContentUserID  uint   `json:"content_user_id" binding:"required"`
+	ReporterID     uint   `json:"reporter_id" binding:"required"`
+	ReportReason   string `json:"report_reason" binding:"required"`
+	ReportDetail   string `json:"report_detail"`
 	ReportEvidence string `json:"report_evidence"`
 }
 
@@ -83,17 +83,17 @@ func (s *ContentModerationService) ReportContent(req ReportContentRequest) (*mod
 
 	// 创建举报记录
 	report := model.ContentReport{
-		ContentType:   req.ContentType,
-		ContentID:     req.ContentID,
-		ContentText:   contentText,
-		ContentUserID: req.ContentUserID,
-		ReporterID:    req.ReporterID,
-		ReportReason:  req.ReportReason,
-		ReportDetail:  req.ReportDetail,
+		ContentType:    req.ContentType,
+		ContentID:      req.ContentID,
+		ContentText:    contentText,
+		ContentUserID:  req.ContentUserID,
+		ReporterID:     req.ReporterID,
+		ReportReason:   req.ReportReason,
+		ReportDetail:   req.ReportDetail,
 		ReportEvidence: req.ReportEvidence,
-		Status:        "pending",
-		Priority:      s.calculatePriority(req.ReportReason),
-		AutoDetected:  false,
+		Status:         "pending",
+		Priority:       s.calculatePriority(req.ReportReason),
+		AutoDetected:   false,
 	}
 
 	if err := s.db.Create(&report).Error; err != nil {
@@ -101,7 +101,7 @@ func (s *ContentModerationService) ReportContent(req ReportContentRequest) (*mod
 	}
 
 	// 记录审核日志
-	s.logModeration("report_created", req.ContentType, req.ContentID, req.ReporterID, 
+	s.logModeration("report_created", req.ContentType, req.ContentID, req.ReporterID,
 		fmt.Sprintf("举报原因: %s", req.ReportReason), "")
 
 	// 更新统计
@@ -121,7 +121,7 @@ func (s *ContentModerationService) CheckContent(req CheckContentRequest) (*model
 	// 检测内容
 	for _, filter := range filters {
 		matched, score, keywords := s.matchFilter(filter, req.ContentText)
-		
+
 		if matched && score >= filter.Threshold {
 			// 更新过滤规则统计
 			now := time.Now()
@@ -217,13 +217,13 @@ func (s *ContentModerationService) HandleReport(req HandleReportRequest) error {
 
 	case "delete":
 		// 记录删除动作（实际删除由管理员手动执行）
-		s.logModeration("content_marked_delete", report.ContentType, report.ContentID, 
+		s.logModeration("content_marked_delete", report.ContentType, report.ContentID,
 			req.HandlerID, req.HandleComment, "")
 		s.updateStatistics("content_deleted")
 
 	case "ban":
 		// 记录封禁动作（实际封禁由管理员手动执行）
-		s.logModeration("user_marked_ban", "user", report.ContentUserID, 
+		s.logModeration("user_marked_ban", "user", report.ContentUserID,
 			req.HandlerID, req.HandleComment, "")
 		s.updateStatistics("users_banned")
 
@@ -234,7 +234,7 @@ func (s *ContentModerationService) HandleReport(req HandleReportRequest) error {
 	}
 
 	// 记录处理日志
-	s.logModeration("report_handled", report.ContentType, report.ContentID, 
+	s.logModeration("report_handled", report.ContentType, report.ContentID,
 		req.HandlerID, fmt.Sprintf("处理动作: %s", req.HandleAction), req.HandleComment)
 
 	// 更新统计

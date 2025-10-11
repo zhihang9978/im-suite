@@ -168,4 +168,3 @@ func (s *LargeGroupService) GetMemberCount(chatID uint) (int64, error) {
 
 	return count, nil
 }
-

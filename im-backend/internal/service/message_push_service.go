@@ -16,13 +16,13 @@ import (
 
 // MessagePushService 消息推送服务
 type MessagePushService struct {
-	db          *gorm.DB
-	redis       *redis.Client
-	ctx         context.Context
-	pushQueue   chan *PushTask
-	workers     int
-	stopChan    chan struct{}
-	wg          sync.WaitGroup
+	db        *gorm.DB
+	redis     *redis.Client
+	ctx       context.Context
+	pushQueue chan *PushTask
+	workers   int
+	stopChan  chan struct{}
+	wg        sync.WaitGroup
 }
 
 // PushTask 推送任务
@@ -195,4 +195,3 @@ func (s *MessagePushService) BatchPush(messages []*model.Message, userIDs []uint
 func (s *MessagePushService) GetPendingPushCount() int {
 	return len(s.pushQueue)
 }
-

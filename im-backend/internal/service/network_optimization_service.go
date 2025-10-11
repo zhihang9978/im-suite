@@ -51,11 +51,8 @@ func (s *NetworkOptimizationService) monitorNetworkQuality() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			s.collectNetworkMetrics()
-		}
+	for range ticker.C {
+		s.collectNetworkMetrics()
 	}
 }
 
@@ -134,4 +131,3 @@ func (s *NetworkOptimizationService) CompressResponse(w io.Writer, data []byte) 
 	_, err := gzipWriter.Write(data)
 	return err
 }
-
