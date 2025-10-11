@@ -27,10 +27,11 @@ func NewAuthService() *AuthService {
 	}
 }
 
-// LoginRequest 登录请求
+// LoginRequest 登录请求（支持phone或username登录）
 type LoginRequest struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Phone    string `json:"phone"`    // 手机号（可选）
+	Username string `json:"username"` // 用户名（可选）
+	Password string `json:"password" binding:"required"` // 密码（必需）
 }
 
 // RegisterRequest 注册请求
@@ -84,7 +85,20 @@ func (s *AuthService) Login(req LoginRequest) (*LoginResponse, error) {
 	var user model.User
 
 	// 查找用户（支持用户名或手机号登录）
-	if err := s.db.Where("username = ? OR phone = ?", req.Username, req.Username).First(&user).Error; err != nil {
+	// 优先使用phone，如果为空则使用username
+	var query string
+	var queryParam string
+	if req.Phone != "" {
+		query = "phone = ?"
+		queryParam = req.Phone
+	} else if req.Username != "" {
+		query = "username = ?"
+		queryParam = req.Username
+	} else {
+		return nil, errors.New("必须提供phone或username")
+	}
+
+	if err := s.db.Where(query, queryParam).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("用户不存在")
 		}

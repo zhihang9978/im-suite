@@ -22,10 +22,11 @@ func NewAuthController(authService *service.AuthService) *AuthController {
 	}
 }
 
-// LoginRequest 登录请求
+// LoginRequest 登录请求（支持phone或username登录）
 type LoginRequest struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Phone    string `json:"phone"`    // 手机号（可选）
+	Username string `json:"username"` // 用户名（可选）
+	Password string `json:"password" binding:"required"` // 密码（必需）
 }
 
 // RegisterRequest 注册请求
@@ -47,9 +48,19 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 
-	// 调用服务层
+	// 验证：必须提供phone或username之一
+	if req.Phone == "" && req.Username == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error":   "请求参数错误",
+			"details": "必须提供phone或username之一",
+		})
+		return
+	}
+
+	// 调用服务层（优先使用phone，fallback到username）
 	loginReq := service.LoginRequest{
 		Username: req.Username,
+		Phone:    req.Phone,
 		Password: req.Password,
 	}
 
