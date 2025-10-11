@@ -275,6 +275,28 @@ func (s *AuthService) ValidateToken(token string) (*model.User, error) {
 	return &user, nil
 }
 
+// GenerateToken 生成新的访问令牌（用于Token刷新）
+func (s *AuthService) GenerateToken(userID uint, phone string) (string, error) {
+	// 查找用户
+	var user model.User
+	if err := s.db.Where("id = ? AND phone = ?", userID, phone).First(&user).Error; err != nil {
+		return "", errors.New("用户不存在")
+	}
+
+	// 检查用户状态
+	if !user.IsActive {
+		return "", errors.New("用户已被禁用")
+	}
+
+	// 生成令牌
+	accessToken, _, _, err := s.generateTokens(&user)
+	if err != nil {
+		return "", fmt.Errorf("生成令牌失败: %v", err)
+	}
+
+	return accessToken, nil
+}
+
 // generateTokens 生成访问令牌和刷新令牌
 func (s *AuthService) generateTokens(user *model.User) (string, string, int64, error) {
 	// 从环境变量获取JWT密钥

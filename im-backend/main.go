@@ -12,6 +12,7 @@ import (
 	"zhihang-messenger/im-backend/internal/controller"
 	"zhihang-messenger/im-backend/internal/middleware"
 	"zhihang-messenger/im-backend/internal/service"
+	"zhihang-messenger/im-backend/internal/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -73,7 +74,6 @@ func main() {
 	webrtcService := service.NewWebRTCService()
 
 	// 设置Gin模式
-	ginMode := os.Getenv("GIN_MODE")
 	if ginMode == "" {
 		ginMode = "release"
 	}
