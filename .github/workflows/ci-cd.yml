@@ -209,10 +209,11 @@ jobs:
         tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:latest
         labels: ${{ steps.meta.outputs.labels }}
         
-    - name: 构建并推送前端镜像
+    - name: 构建并推送Web客户端镜像
       uses: docker/build-push-action@v5
       with:
-        context: ./telegram-web
+        context: ./im-client-web
+        file: ./im-client-web/Dockerfile
         push: true
         tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-web:latest
         labels: ${{ steps.meta.outputs.labels }}
@@ -231,7 +232,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: docker
     if: github.ref == 'refs/heads/develop'
-    environment: staging
+    # environment: staging  # 需要在GitHub仓库Settings > Environments中创建
     
     steps:
     - name: 检出代码
@@ -250,7 +251,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: docker
     if: github.event_name == 'release'
-    environment: production
+    # environment: production  # 需要在GitHub仓库Settings > Environments中创建
     
     steps:
     - name: 检出代码
