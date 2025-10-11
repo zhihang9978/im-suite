@@ -8,10 +8,11 @@ import (
 	"sync"
 	"time"
 
+	"zhihang-messenger/im-backend/config"
+
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"zhihang-messenger/im-backend/config"
 )
 
 // NetworkOptimizationService 网络优化服务

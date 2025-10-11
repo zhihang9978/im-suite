@@ -10,8 +10,9 @@ import (
 	"fmt"
 	"time"
 
-	"gorm.io/gorm"
 	"zhihang-messenger/im-backend/internal/model"
+
+	"gorm.io/gorm"
 )
 
 // MessageEncryptionService 消息加密服务
