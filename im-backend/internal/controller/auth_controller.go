@@ -24,8 +24,8 @@ func NewAuthController(authService *service.AuthService) *AuthController {
 
 // LoginRequest 登录请求（支持phone或username登录）
 type LoginRequest struct {
-	Phone    string `json:"phone"`    // 手机号（可选）
-	Username string `json:"username"` // 用户名（可选）
+	Phone    string `json:"phone"`                       // 手机号（可选）
+	Username string `json:"username"`                    // 用户名（可选）
 	Password string `json:"password" binding:"required"` // 密码（必需）
 }
 

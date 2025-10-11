@@ -4,8 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
 	"zhihang-messenger/im-backend/internal/service"
+
+	"github.com/gin-gonic/gin"
 )
 
 // DialogController 会话控制器
@@ -195,4 +196,3 @@ func (c *DialogController) MuteDialog(ctx *gin.Context) {
 		"message": "设置成功",
 	})
 }
-

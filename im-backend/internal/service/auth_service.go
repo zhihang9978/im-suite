@@ -29,17 +29,17 @@ func NewAuthService() *AuthService {
 
 // LoginRequest 登录请求（支持phone或username登录）
 type LoginRequest struct {
-	Phone    string `json:"phone"`    // 手机号（可选）
-	Username string `json:"username"` // 用户名（可选）
+	Phone    string `json:"phone"`                       // 手机号（可选）
+	Username string `json:"username"`                    // 用户名（可选）
 	Password string `json:"password" binding:"required"` // 密码（必需）
 }
 
 // RegisterRequest 注册请求
 type RegisterRequest struct {
-	Phone    string `json:"phone" binding:"required"`    // 手机号（必需）
-	Username string `json:"username"`                    // 用户名（可选，为空时自动生成）
+	Phone    string `json:"phone" binding:"required"`          // 手机号（必需）
+	Username string `json:"username"`                          // 用户名（可选，为空时自动生成）
 	Password string `json:"password" binding:"required,min=6"` // 密码（必需）
-	Nickname string `json:"nickname"`                    // 昵称（可选）
+	Nickname string `json:"nickname"`                          // 昵称（可选）
 }
 
 // RefreshRequest 刷新令牌请求
@@ -473,28 +473,28 @@ type VerificationCodeResponse struct {
 func (s *AuthService) SendVerificationCode(phone string) (*VerificationCodeResponse, error) {
 	// 生成6位验证码
 	code := generateVerificationCode()
-	
+
 	// 生成phone_code_hash（用于后续验证）
 	phoneCodeHash := generatePhoneCodeHash(phone, code)
-	
+
 	// 将验证码存储到Redis，5分钟有效期
 	codeKey := fmt.Sprintf("verification_code:%s", phone)
 	hashKey := fmt.Sprintf("phone_code_hash:%s", phoneCodeHash)
-	
+
 	// 存储验证码
 	if err := config.Redis.Set(context.Background(), codeKey, code, 5*time.Minute).Err(); err != nil {
 		return nil, fmt.Errorf("存储验证码失败: %v", err)
 	}
-	
+
 	// 存储phone映射（用于验证时找回phone）
 	if err := config.Redis.Set(context.Background(), hashKey, phone, 5*time.Minute).Err(); err != nil {
 		return nil, fmt.Errorf("存储验证码哈希失败: %v", err)
 	}
-	
+
 	// TODO: 实际生产环境需要调用短信服务发送验证码
 	// 这里暂时只打印到日志
 	fmt.Printf("📱 验证码短信: phone=%s, code=%s, hash=%s\n", phone, code, phoneCodeHash)
-	
+
 	return &VerificationCodeResponse{
 		PhoneCodeHash: phoneCodeHash,
 		Timeout:       300, // 5分钟
@@ -510,29 +510,29 @@ func (s *AuthService) VerifyCodeAndLogin(phone, phoneCodeHash, code string) (*Lo
 	if err != nil {
 		return nil, errors.New("验证码已过期")
 	}
-	
+
 	if storedPhone != phone {
 		return nil, errors.New("手机号不匹配")
 	}
-	
+
 	// 2. 验证验证码
 	codeKey := fmt.Sprintf("verification_code:%s", phone)
 	storedCode, err := config.Redis.Get(context.Background(), codeKey).Result()
 	if err != nil {
 		return nil, errors.New("验证码已过期")
 	}
-	
+
 	if storedCode != code {
 		return nil, errors.New("验证码错误")
 	}
-	
+
 	// 3. 验证码正确，删除Redis中的验证码
 	config.Redis.Del(context.Background(), codeKey, hashKey)
-	
+
 	// 4. 查找用户（如果不存在则自动注册）
 	var user model.User
 	err = s.db.Where("phone = ?", phone).First(&user).Error
-	
+
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// 用户不存在，自动注册
@@ -540,23 +540,23 @@ func (s *AuthService) VerifyCodeAndLogin(phone, phoneCodeHash, code string) (*Lo
 		}
 		return nil, fmt.Errorf("数据库查询失败: %v", err)
 	}
-	
+
 	// 5. 检查用户状态
 	if !user.IsActive {
 		return nil, errors.New("用户已被禁用")
 	}
-	
+
 	// 6. 更新在线状态
 	user.LastSeenAt = time.Now()
 	user.Online = true
 	s.db.Save(&user)
-	
+
 	// 7. 生成令牌
 	accessToken, refreshToken, expiresIn, err := s.generateTokens(&user)
 	if err != nil {
 		return nil, fmt.Errorf("生成令牌失败: %v", err)
 	}
-	
+
 	return &LoginResponse{
 		User:         &user,
 		AccessToken:  accessToken,
@@ -570,37 +570,37 @@ func (s *AuthService) VerifyCodeAndLogin(phone, phoneCodeHash, code string) (*Lo
 func (s *AuthService) autoRegisterUser(phone string) (*LoginResponse, error) {
 	// 生成默认用户名
 	username := fmt.Sprintf("user_%s", phone[len(phone)-8:]) // 使用手机号后8位
-	
+
 	// 生成默认密码（用户后续可以修改）
 	defaultPassword := generateSecurePassword()
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(defaultPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("密码加密失败: %v", err)
 	}
-	
+
 	// 创建新用户
 	user := model.User{
-		Phone:     phone,
-		Username:  username,
-		Nickname:  username,
-		Password:  string(hashedPassword),
-		IsActive:  true,
-		Online:    true,
+		Phone:      phone,
+		Username:   username,
+		Nickname:   username,
+		Password:   string(hashedPassword),
+		IsActive:   true,
+		Online:     true,
 		LastSeenAt: time.Now(),
 	}
-	
+
 	if err := s.db.Create(&user).Error; err != nil {
 		return nil, fmt.Errorf("创建用户失败: %v", err)
 	}
-	
+
 	// 生成令牌
 	accessToken, refreshToken, expiresIn, err := s.generateTokens(&user)
 	if err != nil {
 		return nil, fmt.Errorf("生成令牌失败: %v", err)
 	}
-	
+
 	fmt.Printf("✅ 自动注册新用户: phone=%s, username=%s\n", phone, username)
-	
+
 	return &LoginResponse{
 		User:         &user,
 		AccessToken:  accessToken,
@@ -620,7 +620,7 @@ func generatePhoneCodeHash(phone, code string) string {
 	// 使用phone+code+timestamp生成唯一hash
 	timestamp := time.Now().Unix()
 	hashStr := fmt.Sprintf("%s:%s:%d", phone, code, timestamp)
-	
+
 	// 简单的hash（生产环境应使用更安全的方法）
 	hash := fmt.Sprintf("%x", []byte(hashStr))
 	if len(hash) > 32 {

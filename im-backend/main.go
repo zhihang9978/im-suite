@@ -83,7 +83,7 @@ func main() {
 
 	// 中间件
 	r.Use(gin.Logger())
-	r.Use(middleware.Recovery()) // 使用自定义的Recovery中间件
+	r.Use(middleware.Recovery())          // 使用自定义的Recovery中间件
 	r.Use(middleware.MetricsMiddleware()) // Prometheus指标中间件
 	r.Use(middleware.RateLimit())
 	r.Use(middleware.Security())
@@ -168,8 +168,8 @@ func main() {
 			auth.GET("/validate", authController.ValidateToken)
 
 			// Telegram验证码登录（P0核心功能）
-			auth.POST("/send-code", authController.SendCode)           // 发送验证码
-			auth.POST("/verify-code", authController.VerifyCode)       // 验证码登录
+			auth.POST("/send-code", authController.SendCode)     // 发送验证码
+			auth.POST("/verify-code", authController.VerifyCode) // 验证码登录
 
 			// 2FA登录验证
 			auth.POST("/login/2fa", authController.LoginWith2FA)
@@ -204,10 +204,10 @@ func main() {
 				messages.POST("/search", messageController.SearchMessages)
 				messages.POST("/forward", messageController.ForwardMessage)
 				messages.GET("/unread/count", messageController.GetUnreadCount)
-				
+
 				// Typing状态API（Telegram用户体验核心）
 				messages.POST("/typing", messageController.SetTyping)
-				
+
 				// 会话列表API（Telegram首屏核心）
 				messages.GET("/dialogs", dialogController.GetDialogs)
 				messages.GET("/dialogs/:peer_id", dialogController.GetDialogByPeer)
@@ -221,9 +221,9 @@ func main() {
 			users := protected.Group("/users")
 			{
 				// 基础用户API
-				users.GET("/me", userController.GetCurrentUser)       // 获取当前用户信息
-				users.GET("/friends", userController.GetFriends)      // 获取好友列表
-				
+				users.GET("/me", userController.GetCurrentUser)  // 获取当前用户信息
+				users.GET("/friends", userController.GetFriends) // 获取好友列表
+
 				// 用户管理API
 				users.POST("/:id/blacklist", userMgmtController.AddToBlacklist)
 				users.DELETE("/:id/blacklist/:blacklist_id", userMgmtController.RemoveFromBlacklist)

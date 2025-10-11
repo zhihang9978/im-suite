@@ -432,7 +432,7 @@ func (s *MessageService) BroadcastTypingStatus(userID uint, chatID *uint, receiv
 
 	// TODO: 通过WebSocket广播给相关用户
 	// 这里需要与WebSocket服务集成，暂时打印日志
-	fmt.Printf("⌨️  Typing事件: user_id=%d, chat_id=%v, receiver_id=%v, action=%s\n", 
+	fmt.Printf("⌨️  Typing事件: user_id=%d, chat_id=%v, receiver_id=%v, action=%s\n",
 		userID, chatID, receiverID, action)
 
 	// 实际生产环境需要调用WebSocket管理器的广播方法

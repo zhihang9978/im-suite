@@ -4,9 +4,10 @@ import (
 	"errors"
 	"time"
 
-	"gorm.io/gorm"
 	"zhihang-messenger/im-backend/config"
 	"zhihang-messenger/im-backend/internal/model"
+
+	"gorm.io/gorm"
 )
 
 // DialogService 会话服务
@@ -23,44 +24,44 @@ func NewDialogService() *DialogService {
 
 // DialogResponse 会话响应（对应Telegram的TL_dialog）
 type DialogResponse struct {
-	PeerID           uint   `json:"peer_id"`            // 对话方ID
-	PeerType         string `json:"peer_type"`          // user/group/channel
-	TopMessageID     uint   `json:"top_message_id"`     // 最新消息ID
-	UnreadCount      int    `json:"unread_count"`       // 未读数
-	Pinned           bool   `json:"pinned"`             // 是否置顶
-	Muted            bool   `json:"muted"`              // 是否静音
-	LastMessageDate  int64  `json:"last_message_date"`  // 最后消息时间（Unix时间戳）
-	Draft            string `json:"draft,omitempty"`    // 草稿
-	MuteUntil        int64  `json:"mute_until"`         // 静音到期时间
+	PeerID          uint   `json:"peer_id"`           // 对话方ID
+	PeerType        string `json:"peer_type"`         // user/group/channel
+	TopMessageID    uint   `json:"top_message_id"`    // 最新消息ID
+	UnreadCount     int    `json:"unread_count"`      // 未读数
+	Pinned          bool   `json:"pinned"`            // 是否置顶
+	Muted           bool   `json:"muted"`             // 是否静音
+	LastMessageDate int64  `json:"last_message_date"` // 最后消息时间（Unix时间戳）
+	Draft           string `json:"draft,omitempty"`   // 草稿
+	MuteUntil       int64  `json:"mute_until"`        // 静音到期时间
 }
 
 // DialogsResponse 会话列表响应（对应Telegram的TL_messages_dialogs）
 type DialogsResponse struct {
-	Dialogs  []DialogResponse   `json:"dialogs"`  // 会话列表
-	Messages []model.Message    `json:"messages"` // 最新消息列表
-	Users    []DialogUserInfo   `json:"users"`    // 用户信息列表
-	Groups   []DialogGroupInfo  `json:"groups"`   // 群组信息列表
-	Total    int                `json:"total"`    // 总会话数
+	Dialogs  []DialogResponse  `json:"dialogs"`  // 会话列表
+	Messages []model.Message   `json:"messages"` // 最新消息列表
+	Users    []DialogUserInfo  `json:"users"`    // 用户信息列表
+	Groups   []DialogGroupInfo `json:"groups"`   // 群组信息列表
+	Total    int               `json:"total"`    // 总会话数
 }
 
 // DialogUserInfo 会话中的用户信息
 type DialogUserInfo struct {
-	ID        uint   `json:"id"`
-	Phone     string `json:"phone"`
-	Username  string `json:"username"`
-	Nickname  string `json:"nickname"`
-	Avatar    string `json:"avatar"`
-	Online    bool   `json:"online"`
-	LastSeen  int64  `json:"last_seen"` // Unix时间戳
+	ID       uint   `json:"id"`
+	Phone    string `json:"phone"`
+	Username string `json:"username"`
+	Nickname string `json:"nickname"`
+	Avatar   string `json:"avatar"`
+	Online   bool   `json:"online"`
+	LastSeen int64  `json:"last_seen"` // Unix时间戳
 }
 
 // DialogGroupInfo 会话中的群组信息
 type DialogGroupInfo struct {
-	ID            uint   `json:"id"`
-	Title         string `json:"title"`
-	Photo         string `json:"photo"`
-	MembersCount  int    `json:"members_count"`
-	Type          string `json:"type"` // group/channel
+	ID           uint   `json:"id"`
+	Title        string `json:"title"`
+	Photo        string `json:"photo"`
+	MembersCount int    `json:"members_count"`
+	Type         string `json:"type"` // group/channel
 }
 
 // GetDialogs 获取会话列表
@@ -74,7 +75,7 @@ func (s *DialogService) GetDialogs(userID uint, limit, offset int) (*DialogsResp
 
 	// 1. 获取该用户所有相关的消息（私聊 + 群聊）
 	var messages []model.Message
-	
+
 	// 查询私聊消息（作为发送者或接收者）
 	err := s.db.Where("sender_id = ? OR receiver_id = ?", userID, userID).
 		Order("created_at DESC").
@@ -122,7 +123,7 @@ func (s *DialogService) GetDialogs(userID uint, limit, offset int) (*DialogsResp
 		if dialog, exists := dialogMap[dialogKey]; !exists {
 			// 计算未读数
 			unreadCount := s.getUnreadCount(userID, peerID, peerType)
-			
+
 			dialogMap[dialogKey] = &DialogResponse{
 				PeerID:          peerID,
 				PeerType:        peerType,
@@ -166,7 +167,7 @@ func (s *DialogService) GetDialogs(userID uint, limit, offset int) (*DialogsResp
 		response.Total = total
 		return response, nil
 	}
-	
+
 	end := offset + limit
 	if end > total {
 		end = total
@@ -318,4 +319,3 @@ func (s *DialogService) getUnreadCount(userID, peerID uint, peerType string) int
 
 	return int(count)
 }
-

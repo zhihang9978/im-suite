@@ -265,7 +265,19 @@ docs/.doctrees/
 # package-lock.json
 # yarn.lock
 # go.sum
-# Ignore heavy clients and alternatives
+# ====================
+# Telegram 源码（第三方，不推送到远程）
+# ====================
+# Telegram源码体积巨大（20000+文件），只在本地保留
+# 开发者需要自行下载官方源码到这些目录
+telegram-android/
+telegram-desktop/
+tdesktop-dev/
+Telegram-master/
+
+# ====================
+# 其他排除项
+# ====================
 clients/
 deploy/alternatives/
 docs/archive/
