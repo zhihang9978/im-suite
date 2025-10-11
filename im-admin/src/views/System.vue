@@ -588,8 +588,8 @@ const createBot = async () => {
   try {
     const response = await request.post('/super-admin/bots', botForm)
     createdApiKeys.value = {
-      api_key: response.data.data.api_key,
-      api_secret: response.data.data.api_secret
+      api_key: response.data.api_key,
+      api_secret: response.data.api_secret
     }
     showCreateBotDialog.value = false
     showApiKeysDialog.value = true
